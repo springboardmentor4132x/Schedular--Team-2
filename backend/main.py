@@ -1,26 +1,22 @@
 from fastapi import FastAPI
+from app.core.config import settings
 
-from app.database.database import Base, engine
+# Import our API routers
+from app.routers import auth, campaigns, posts
 
-# Import models before creating tables
-from app.models.user import User
-
-from app.routers import auth
-
-# Create database tables
-Base.metadata.create_all(bind=engine)
-
+# Initialize the FastAPI App
 app = FastAPI(
-    title="SocialPilot Scheduler API",
-    version="1.0.0"
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    description="Social Media Scheduler & Campaign Management Platform API"
 )
 
-# Include Routers
-app.include_router(auth.router)
-
+# Include Routers from our team members
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(campaigns.router, prefix="/api/v1")
+app.include_router(posts.router, prefix="/api/v1")
 
 @app.get("/")
 def root():
-    return {
-        "message": "SocialPilot Scheduler Backend Running Successfully"
-    }
+    """Health check endpoint at the root."""
+    return {"status": "Backend is running!"}

@@ -23,10 +23,7 @@ def get_db():
 # MONGODB SETUP (Document Data/Logs)
 # ==========================================
 try:
-    mongo_client = MongoClient(
-        settings.MONGO_DATABASE_URI,
-        serverSelectionTimeoutMS=5000
-    )
+    mongo_client = MongoClient(settings.MONGO_DATABASE_URI, serverSelectionTimeoutMS=5000)
     mongo_db = mongo_client[settings.MONGO_DB]
 except Exception as e:
     print(f"Warning: Could not connect to MongoDB - {e}")
