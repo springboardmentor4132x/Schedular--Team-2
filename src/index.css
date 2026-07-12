@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-800 font-sans antialiased;
+  }
+
+  .dark body {
+    @apply bg-slate-900 text-slate-100;
+  }
+
+  /* Smooth colour transitions when toggling theme — excludes animated elements */
+  :not([class*="animate"]):not([class*="transition"]) {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-duration: 180ms;
+    transition-timing-function: ease;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium text-sm
+           hover:bg-primary-700 active:bg-primary-800 transition-colors duration-150 cursor-pointer;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-300 rounded-lg font-medium text-sm
+           hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors duration-150 cursor-pointer;
+  }
+
+  .card {
+    @apply bg-white dark:bg-slate-800 rounded-xl shadow-card dark:shadow-[0_2px_16px_rgba(0,0,0,0.35)] border border-slate-100 dark:border-slate-700 p-6 text-slate-800 dark:text-slate-100;
+  }
+
+  .stat-card {
+    @apply bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-5 flex items-start gap-4
+           hover:shadow-card-lg dark:hover:shadow-[0_4px_24px_rgba(0,0,0,0.45)] transition-all duration-200;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400
+           hover:text-white hover:bg-sidebar-hover transition-all duration-150 cursor-pointer;
+  }
+
+  .sidebar-link.active {
+    @apply text-white bg-primary-600/20 !important;
+  }
+
+  .sidebar-link-icon {
+    @apply w-5 h-5 flex-shrink-0;
+  }
+}

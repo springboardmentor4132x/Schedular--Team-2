@@ -1,4 +1,21 @@
-# 🚀 SocialPilot - Social Media Scheduler & Campaign Management Platform
+alok-scheduler
+#React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+
+#React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+##Expanding the Oxlint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+#SocialPilot - Social Media Scheduler & Campaign Management Platform
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green)
@@ -6,17 +23,14 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-## 📖 Overview
+##Overview
 
 SocialPilot is a full-stack web application designed to simplify social media management by providing a centralized platform for scheduling, managing, and monitoring content across multiple social media platforms.
 
 The project is developed using **React** for the frontend and **FastAPI** for the backend, with **PostgreSQL** as the primary relational database. The current implementation establishes the project structure, database integration, frontend interface, and backend API foundation for future feature development.
+#Current Features
 
----
-
-# ✨ Current Features
-
-### Backend
+##Backend
 - FastAPI project structure
 - REST API architecture
 - PostgreSQL integration
@@ -25,20 +39,20 @@ The project is developed using **React** for the frontend and **FastAPI** for th
 - API testing setup
 - Swagger API documentation
 
-### Frontend
+##Frontend
 - React + Vite project setup
 - Responsive UI structure
 - Routing configuration
 - Reusable component structure
 
-### Database
+##Database
 - PostgreSQL configuration
 - SQLAlchemy models
 - Alembic migration support
 
 ---
 
-# 🚧 Planned Features
+#Planned Features
 
 - User Registration
 - User Authentication
@@ -52,11 +66,9 @@ The project is developed using **React** for the frontend and **FastAPI** for th
 - Notifications
 - Reports & Export
 
----
+#Technology Stack
 
-# 🛠 Technology Stack
-
-## Frontend
+##Frontend
 
 - React.js
 - Vite
@@ -64,7 +76,7 @@ The project is developed using **React** for the frontend and **FastAPI** for th
 - Axios
 - Tailwind CSS
 
-## Backend
+##Backend
 
 - FastAPI
 - SQLAlchemy
@@ -72,23 +84,20 @@ The project is developed using **React** for the frontend and **FastAPI** for th
 - Pydantic
 - Uvicorn
 
-## Database
+##Database
 
 - PostgreSQL
 - MongoDB (Planned)
 
-## Development Tools
+##Development Tools
 
 - Git
 - GitHub
 - VS Code
 - Postman
+- 
+#Project Structure
 
----
-
-# 📂 Project Structure
-
-```
 SocialPilot/
 
 ├── frontend/
@@ -106,57 +115,38 @@ SocialPilot/
 │
 ├── README.md
 └── .gitignore
-```
 
----
+#Installation
 
-# ⚙ Installation
+##Clone Repository
 
-## Clone Repository
-
-```bash
 git clone https://github.com/<your-username>/Schedular--Team-2.git
 
 cd Schedular--Team-2
-```
-
----
-
-# 🖥 Backend Setup
-
-```bash
+#Backend Setup
 cd backend
 
 python -m venv venv
-```
-
-### Activate Virtual Environment
+##Activate Virtual Environment
 
 Windows
 
-```bash
 venv\Scripts\activate
-```
+
 
 Linux / macOS
 
-```bash
 source venv/bin/activate
-```
+
 
 Install dependencies
 
-```bash
 pip install -r requirements.txt
-```
 
----
-
-# 🗄 Configure Environment
+#Configure Environment
 
 Create a `.env` file inside the backend directory.
-
-```env
+env
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_SERVER=localhost
@@ -168,71 +158,39 @@ MONGO_PORT=27017
 MONGO_USER=admin
 MONGO_PASSWORD=adminpassword
 MONGO_DB=socialpilot_mongo
-```
 
----
-
-# 🔄 Database Migration
+#Database Migration
 
 Run the latest database migrations.
-
-```bash
 alembic upgrade head
-```
-
 Create a new migration after model changes.
-
-```bash
 alembic revision --autogenerate -m "Migration Name"
-```
-
----
-
-# ▶ Running the Backend
-
-```bash
+#Running the Backend
 uvicorn app.main:app --reload
-```
 
 Backend URL
 
-```
 http://127.0.0.1:8000
-```
 
 Swagger UI
-
-```
-http://127.0.0.1:8000/docs
-```
-
+#http://127.0.0.1:8000/docs
 ReDoc
-
-```
 http://127.0.0.1:8000/redoc
-```
 
----
 
-# 💻 Frontend Setup
+#Frontend Setup
 
-```bash
 cd frontend
 
 npm install
 
 npm run dev
-```
 
 Frontend URL
 
-```
 http://localhost:5173
-```
 
----
-
-# 📡 Available API Endpoints
+#Available API Endpoints
 
 | Method | Endpoint | Description |
 |---------|----------|-------------|
@@ -242,31 +200,24 @@ http://localhost:5173
 
 Interactive API documentation is available at:
 
-```
 http://127.0.0.1:8000/docs
-```
 
----
 
-# 🧪 API Testing
+#API Testing
 
 Run the API test script.
 
-```bash
 python tests/test_api.py
-```
+
 
 Current expected output:
 
-```
 GET /                          200 OK
 POST /register                 Pending Implementation
 POST /login                    Pending Implementation
-```
 
----
 
-# 📊 Database
+#Database
 
 The application currently uses **PostgreSQL** as the primary relational database.
 
@@ -278,9 +229,8 @@ Database management includes:
 
 MongoDB configuration has been added for future feature expansion.
 
----
 
-# 📌 Roadmap
+#Roadmap
 
 - Complete Authentication Module
 - JWT Security
@@ -292,15 +242,13 @@ MongoDB configuration has been added for future feature expansion.
 - Docker Support
 - Cloud Deployment (AWS / Azure)
 
----
 
-# 📄 License
+#License
 
 This project is developed for educational purposes.
 
----
 
-# 🙏 Acknowledgements
+#Acknowledgements
 
 - FastAPI
 - React
@@ -308,3 +256,4 @@ This project is developed for educational purposes.
 - SQLAlchemy
 - Alembic
 - Vite
+ milestone-1-review
