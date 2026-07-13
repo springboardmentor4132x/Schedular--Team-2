@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { useTheme } from '../hooks/useTheme'
 import { mockProfile } from '../services/profileService'
+import { authService } from '../services/api'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Validation helpers
@@ -361,45 +362,72 @@ function UserDetailsCard({ profile, isEditing, onEdit, onSave, onCancel }) {
             />
           </div>
 
-          <Input
-            id="edit-username"
-            label="Username"
-            value={form.username}
-            onChange={e => set('username', e.target.value)}
-            error={errors.username}
-            placeholder="johndoe"
-            autoComplete="username"
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              id="edit-username"
+              label="Username"
+              value={form.username}
+              onChange={e => set('username', e.target.value)}
+              error={errors.username}
+              placeholder="johndoe"
+              autoComplete="username"
+            />
+            <Input
+              id="edit-email"
+              label="Email"
+              type="email"
+              value={form.email}
+              onChange={e => set('email', e.target.value)}
+              error={errors.email}
+              placeholder="john@orbitsocial.com"
+              autoComplete="email"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              id="edit-phone"
+              label="Phone Number"
+              type="tel"
+              value={form.phone}
+              onChange={e => set('phone', e.target.value)}
+              error={errors.phone}
+              placeholder="9876543210"
+              autoComplete="tel"
+            />
+            <Input
+              id="edit-role"
+              label="Role"
+              value={form.role}
+              onChange={e => set('role', e.target.value)}
+              error={errors.role}
+              placeholder="Creator"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              id="edit-company"
+              label="Company Name"
+              value={form.company || ''}
+              onChange={e => set('company', e.target.value)}
+              placeholder="Acme Corp"
+            />
+            <Input
+              id="edit-location"
+              label="Location"
+              value={form.location || ''}
+              onChange={e => set('location', e.target.value)}
+              placeholder="New York, USA"
+            />
+          </div>
 
           <Input
-            id="edit-email"
-            label="Email"
-            type="email"
-            value={form.email}
-            onChange={e => set('email', e.target.value)}
-            error={errors.email}
-            placeholder="john@orbitsocial.com"
-            autoComplete="email"
-          />
-
-          <Input
-            id="edit-phone"
-            label="Phone Number"
-            type="tel"
-            value={form.phone}
-            onChange={e => set('phone', e.target.value)}
-            error={errors.phone}
-            placeholder="9876543210"
-            autoComplete="tel"
-          />
-
-          <Input
-            id="edit-role"
-            label="Company / Role"
-            value={form.role}
-            onChange={e => set('role', e.target.value)}
-            error={errors.role}
-            placeholder="Creator"
+            id="edit-website"
+            label="Website URL"
+            value={form.website || ''}
+            onChange={e => set('website', e.target.value)}
+            placeholder="https://example.com"
           />
 
           <div className="space-y-1.5">
@@ -432,13 +460,18 @@ function UserDetailsCard({ profile, isEditing, onEdit, onSave, onCancel }) {
           </div>
         </form>
       ) : (
-        <dl className="divide-y divide-slate-100 dark:divide-slate-700/60">
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
           <ViewRow id="view-full-name"  label="Full Name"      value={`${profile.firstName} ${profile.lastName}`} />
           <ViewRow id="view-username"   label="Username"       value={`@${profile.username}`} />
           <ViewRow id="view-email"      label="Email"          value={profile.email} />
           <ViewRow id="view-phone"      label="Phone Number"   value={profile.phone} />
-          <ViewRow id="view-role"       label="Company / Role" value={profile.role} />
-          <ViewRow id="view-bio"        label="Bio"            value={profile.bio} />
+          <ViewRow id="view-role"       label="Role"           value={profile.role} />
+          <ViewRow id="view-company"    label="Company"        value={profile.company} />
+          <ViewRow id="view-location"   label="Location"       value={profile.location} />
+          <ViewRow id="view-website"    label="Website"        value={profile.website} />
+          <div className="sm:col-span-2">
+            <ViewRow id="view-bio"        label="Bio"            value={profile.bio} />
+          </div>
         </dl>
       )}
     </Card>
@@ -619,17 +652,70 @@ function ChangePasswordCard() {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Profile page (root)
-// ─────────────────────────────────────────────────────────────────────────────
+import { useNavigate } from 'react-router-dom'
 
 export default function Profile() {
-  const [profile,   setProfile] = useState(mockProfile)
+  const [profile, setProfile] = useState(null)
   const [isEditing, setEditing] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
-  const handleSaveProfile = (updated) => {
-    setProfile(updated)
-    setEditing(false)
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await authService.getMe();
+        setProfile({
+          firstName: data.first_name || '',
+          lastName: data.last_name || '',
+          username: data.username || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          role: data.role || 'Creator',
+          bio: data.bio || '',
+          company: data.company || '',
+          location: data.location || '',
+          website: data.website || '',
+          avatarInitials: (data.first_name?.[0] || '') + (data.last_name?.[0] || '') || 'U',
+          joinedDate: 'Today'
+        });
+      } catch (error) {
+        console.error("Failed to load profile:", error);
+        alert("You must be logged in to view your profile.");
+        navigate('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, [navigate]);
+
+  const handleSaveProfile = async (updated) => {
+    try {
+      const dbUpdate = {
+        first_name: updated.firstName,
+        last_name: updated.lastName,
+        phone: updated.phone,
+        bio: updated.bio,
+        company: updated.company,
+        location: updated.location,
+        website: updated.website
+      };
+      
+      const savedData = await authService.updateMe(dbUpdate);
+      setProfile(prev => ({
+        ...prev,
+        ...updated,
+        avatarInitials: (savedData.first_name?.[0] || '') + (savedData.last_name?.[0] || '') || 'U'
+      }));
+      setEditing(false);
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+      alert("Failed to save profile updates.");
+    }
+  }
+
+  if (loading || !profile) {
+    return <div className="p-8 text-center text-slate-500">Loading profile...</div>;
   }
 
   return (

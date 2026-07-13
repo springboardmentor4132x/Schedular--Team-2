@@ -7,6 +7,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import Toast from '../components/Toast'
+import { authService } from '../services/api'
 
 /**
  * Login page
@@ -76,30 +77,36 @@ export default function Login({ isDark, onToggleTheme }) {
       return
     }
 
-    // 3. Simulate API call ─────────────────────────────────────────
+    // 3. API call ─────────────────────────────────────────
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1400))
-
-    // ── Simulated responses ───────────────────────────────────────
-    // For demo purposes: any email that starts with "wrong@" triggers
-    // "Account not found", anything with wrong password length shows
-    // "Incorrect password". Remove this block when wiring real API.
-    if (email.toLowerCase().startsWith('wrong@')) {
-      setLoading(false)
-      setErrors({ email: 'No account found with this email.' })
-      setToast({ type: 'error', message: '❌ Account not found.' })
-      return
+    
+    try {
+      const data = await authService.login(email, password);
+      // Save token to localStorage so user stays logged in
+      localStorage.setItem('token', data.access_token);
+      
+      setLoading(false);
+      setToast({ type: 'success', message: '✅ Login successful! Redirecting…' });
+      
+      // Navigate to dashboard after the toast is visible
+      setTimeout(() => navigate('/dashboard'), 1500);
+      
+    } catch (error) {
+      setLoading(false);
+      
+      // Check if it's an API error response (like 401 Unauthorized or 404 Not Found)
+      if (error.response) {
+        if (error.response.status === 401 || error.response.status === 404) {
+          setErrors({ password: 'The email or password you entered is incorrect.' });
+          setToast({ type: 'error', message: '❌ Incorrect email or password. Please try again.' });
+        } else {
+          setToast({ type: 'error', message: `❌ Server error: ${error.response.data.detail || 'Please try again later'}` });
+        }
+      } else {
+        // Network error (backend is off)
+        setToast({ type: 'error', message: '❌ Could not connect to server. Is the backend running?' });
+      }
     }
-    if (password === '00000000') {
-      setLoading(false)
-      setErrors({ password: 'The password you entered is incorrect.' })
-      setToast({ type: 'error', message: '❌ Incorrect password. Please try again.' })
-      return
-    }
-    // ─────────────────────────────────────────────────────────────
-
-    setLoading(false)
-    setToast({ type: 'success', message: '✅ Login successful! Redirecting…' })
 
     // Navigate to dashboard after the toast is visible
     setTimeout(() => navigate('/dashboard'), 1800)

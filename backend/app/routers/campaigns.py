@@ -5,9 +5,6 @@ router = APIRouter(
     tags=["Campaigns"]
 )
 
-# ----------------------------------------------------
-# @Anwin: Implement campaign database queries here
-# ----------------------------------------------------
 
 @router.post("/")
 def create_campaign():

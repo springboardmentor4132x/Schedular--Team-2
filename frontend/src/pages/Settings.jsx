@@ -192,11 +192,21 @@ function SettingsCard({ title, icon: Icon, children, id, className = '' }) {
 export default function Settings() {
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
-  const [settings, setSettings] = useState(settingsService.getSettings())
+  const [settings, setSettings] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', title: '', message: '' })
   
   // Navigation active tab category state
   const [activeTab, setActiveTab] = useState('account')
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      const data = await settingsService.getSettings()
+      setSettings(data)
+      setLoading(false)
+    }
+    loadSettings()
+  }, [])
 
   // Keep theme select matched with local context theme
   const getThemeValue = () => {
@@ -230,7 +240,7 @@ export default function Settings() {
   }
 
   // Update specific sections helper
-  const updateNotificationSetting = (key, val) => {
+  const updateNotificationSetting = async (key, val) => {
     const updated = {
       ...settings,
       notifications: {
@@ -239,10 +249,10 @@ export default function Settings() {
       }
     }
     setSettings(updated)
-    settingsService.saveSettings(updated)
+    await settingsService.saveSettings(updated)
   }
 
-  const updateSecuritySetting = (key, val) => {
+  const updateSecuritySetting = async (key, val) => {
     const updated = {
       ...settings,
       security: {
@@ -251,10 +261,10 @@ export default function Settings() {
       }
     }
     setSettings(updated)
-    settingsService.saveSettings(updated)
+    await settingsService.saveSettings(updated)
   }
 
-  const updatePrivacySetting = (key, val) => {
+  const updatePrivacySetting = async (key, val) => {
     const updated = {
       ...settings,
       privacy: {
@@ -263,10 +273,10 @@ export default function Settings() {
       }
     }
     setSettings(updated)
-    settingsService.saveSettings(updated)
+    await settingsService.saveSettings(updated)
   }
 
-  const updateRegionSetting = (key, val) => {
+  const updateRegionSetting = async (key, val) => {
     const updated = {
       ...settings,
       region: {
@@ -275,7 +285,7 @@ export default function Settings() {
       }
     }
     setSettings(updated)
-    settingsService.saveSettings(updated)
+    await settingsService.saveSettings(updated)
   }
 
   // Danger Zone Handlers
@@ -302,9 +312,12 @@ export default function Settings() {
     { id: 'security',           label: 'Security',           icon: ShieldIcon },
     { id: 'appearance',          label: 'Appearance',          icon: PaletteIcon },
     { id: 'connected-accounts', label: 'Connected Accounts', icon: ConnectedIcon },
-    { id: 'billing',            label: 'Billing',            icon: BillingIcon, badge: 'Soon' },
     { id: 'support',            label: 'Support',            icon: SupportIcon },
   ]
+
+  if (loading || !settings) {
+    return <div className="p-8 text-center text-slate-500">Loading settings...</div>
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -703,36 +716,7 @@ export default function Settings() {
             </SettingsCard>
           )}
 
-          {/* 8. Billing Section */}
-          {activeTab === 'billing' && (
-            <SettingsCard title="Subscription & Billing" icon={BillingIcon}>
-              <div className="space-y-5">
-                <div className="p-4 bg-primary-50/40 dark:bg-primary-950/15 border border-primary-100/60 dark:border-primary-900/40 rounded-2xl">
-                  <h4 className="text-sm font-bold text-primary-800 dark:text-primary-400">Current Subscription</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Your next invoice is scheduled for payment authorization on August 15, 2026.</p>
-                  
-                  <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Tier</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-100">Professional Plan</span>
-                    </div>
-                    <div>
-                      <span className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Rate</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-100">$29.00 / month</span>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-800/10 min-h-[160px]">
-                  <BillingIcon />
-                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-3">Detailed Billing History (Coming Soon)</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
-                    Payment gateway configuration, card updates, and historic PDF invoice access will be ready in an upcoming service update.
-                  </p>
-                </div>
-              </div>
-            </SettingsCard>
-          )}
 
           {/* 9. Support Section */}
           {activeTab === 'support' && (

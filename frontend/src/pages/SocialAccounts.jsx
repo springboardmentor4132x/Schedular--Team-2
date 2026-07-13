@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
@@ -86,179 +86,104 @@ const getHealthClass = (health) => {
 }
 
 export default function SocialAccounts() {
-  const [accounts, setAccounts] = useState(() => socialAccountsService.getAccounts())
-  const [activities, setActivities] = useState(() => socialAccountsService.getActivities())
+  const [accounts, setAccounts] = useState([])
+  const [activities, setActivities] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  // Connect helper
-  const handleConnect = (id) => {
-    const updated = accounts.map((acc) => {
-      if (acc.id === id) {
-        return {
-          ...acc,
-          status: 'Connected',
-          username: acc.username === '--' ? '@johndoe_social' : acc.username,
-          followers: acc.followers === '--' ? '3.5K' : acc.followers,
-          connectedSince: '12 Jan 2026',
-          lastSync: 'Just now',
-          health: 'Healthy',
-        }
-      }
-      return acc
-    })
-    setAccounts(updated)
-    socialAccountsService.saveAccounts(updated)
+  const loadData = async () => {
+    setLoading(true)
+    const data = await socialAccountsService.getAccounts()
+    setAccounts(data)
+    setActivities(socialAccountsService.getActivities())
+    setLoading(false)
+  }
 
-    // Add activity record
-    const targetPlatform = accounts.find(a => a.id === id)?.platform || 'Platform'
-    const newActivity = {
-      id: Date.now(),
-      text: `${targetPlatform} connection initiated successfully`,
-      time: '2 minutes ago',
-      type: 'success'
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  // Connect helper - opens the login page and simulates connection
+  const handleConnect = async (platformId) => {
+    try {
+      // 1. Open the requested login page in a new tab to satisfy the visual requirement
+      window.open(`http://localhost:8000/api/v1/social/connect/${platformId}`, '_blank')
+      
+      // 2. Mock the DB connection using the POST endpoint
+      await socialAccountsService.connectAccount(platformId)
+      
+      // 3. Reload the data so the new connection shows up immediately
+      await loadData()
+    } catch (e) {
+      console.error(e)
+      alert("Failed to connect platform.")
     }
-    const updatedActs = [newActivity, ...activities]
-    setActivities(updatedActs)
-    socialAccountsService.saveActivities(updatedActs)
   }
 
   // Disconnect helper
-  const handleDisconnect = (id) => {
-    const updated = accounts.map((acc) => {
-      if (acc.id === id) {
-        return {
-          ...acc,
-          status: 'Not Connected',
-          username: '--',
-          followers: '--',
-          connectedSince: '--',
-          lastSync: '--',
-          health: '--',
-        }
-      }
-      return acc
-    })
-    setAccounts(updated)
-    socialAccountsService.saveAccounts(updated)
-
-    // Add activity record
-    const targetPlatform = accounts.find(a => a.id === id)?.platform || 'Platform'
-    const newActivity = {
-      id: Date.now(),
-      text: `${targetPlatform} connection was removed`,
-      time: 'Yesterday',
-      type: 'warning'
+  const handleDisconnect = async (accountId, platformName) => {
+    try {
+      await socialAccountsService.disconnectAccount(accountId)
+      socialAccountsService.addActivity({
+        id: Date.now(),
+        text: `${platformName} connection was removed`,
+        time: 'Just now',
+        type: 'warning'
+      })
+      await loadData()
+    } catch (e) {
+      console.error(e)
+      alert("Failed to disconnect platform.")
     }
-    const updatedActs = [newActivity, ...activities]
-    setActivities(updatedActs)
-    socialAccountsService.saveActivities(updatedActs)
   }
 
   // Refresh sync helper
-  const handleRefresh = (id) => {
-    const updated = accounts.map((acc) => {
-      if (acc.id === id && acc.status !== 'Not Connected') {
-        return {
-          ...acc,
-          status: 'Connected',
-          lastSync: 'Just now',
-          health: 'Healthy',
-        }
-      }
-      return acc
-    })
-    setAccounts(updated)
-    socialAccountsService.saveAccounts(updated)
-
-    const targetPlatform = accounts.find(a => a.id === id)?.platform || 'Platform'
-    const newActivity = {
-      id: Date.now(),
-      text: `${targetPlatform} connection synched and verified`,
-      time: '10 minutes ago',
-      type: 'info'
+  const handleRefresh = async (accountId, platformName) => {
+    try {
+      await socialAccountsService.syncAccount(accountId)
+      socialAccountsService.addActivity({
+        id: Date.now(),
+        text: `${platformName} connection synched and verified`,
+        time: 'Just now',
+        type: 'info'
+      })
+      await loadData()
+    } catch (e) {
+      console.error(e)
+      alert("Failed to sync platform.")
     }
-    const updatedActs = [newActivity, ...activities]
-    setActivities(updatedActs)
-    socialAccountsService.saveActivities(updatedActs)
   }
 
   // Global Actions
-  const handleConnectAll = () => {
-    const updated = accounts.map((acc) => {
-      if (acc.status === 'Not Connected') {
-        return {
-          ...acc,
-          status: 'Connected',
-          username: `@johndoe_${acc.id}`,
-          followers: '1.2K',
-          connectedSince: '12 Jan 2026',
-          lastSync: 'Just now',
-          health: 'Healthy',
-        }
-      }
-      return acc
-    })
-    setAccounts(updated)
-    socialAccountsService.saveAccounts(updated)
-
-    const newActivity = {
-      id: Date.now(),
-      text: 'All available social media channels connected',
-      time: '2 minutes ago',
-      type: 'success'
-    }
-    const updatedActs = [newActivity, ...activities]
-    setActivities(updatedActs)
-    socialAccountsService.saveActivities(updatedActs)
+  const handleConnectAll = async () => {
+    alert("Connect All feature is disabled in manual mode.")
   }
 
-  const handleRefreshAll = () => {
-    const updated = accounts.map((acc) => {
-      if (acc.status !== 'Not Connected') {
-        return {
-          ...acc,
-          status: 'Connected',
-          lastSync: 'Just now',
-          health: 'Healthy',
-        }
-      }
-      return acc
-    })
-    setAccounts(updated)
-    socialAccountsService.saveAccounts(updated)
-
-    const newActivity = {
+  const handleRefreshAll = async () => {
+    const connectedAccounts = accounts.filter(a => a.status === 'Connected')
+    for (const acc of connectedAccounts) {
+      await socialAccountsService.syncAccount(acc.id)
+    }
+    socialAccountsService.addActivity({
       id: Date.now(),
       text: 'Triggered global verification and channel synchronization',
-      time: '10 minutes ago',
+      time: 'Just now',
       type: 'info'
-    }
-    const updatedActs = [newActivity, ...activities]
-    setActivities(updatedActs)
-    socialAccountsService.saveActivities(updatedActs)
+    })
+    await loadData()
   }
 
-  const handleDisconnectAll = () => {
-    const updated = accounts.map((acc) => ({
-      ...acc,
-      status: 'Not Connected',
-      username: '--',
-      followers: '--',
-      connectedSince: '--',
-      lastSync: '--',
-      health: '--',
-    }))
-    setAccounts(updated)
-    socialAccountsService.saveAccounts(updated)
-
-    const newActivity = {
+  const handleDisconnectAll = async () => {
+    const connectedAccounts = accounts.filter(a => a.status === 'Connected')
+    for (const acc of connectedAccounts) {
+      await socialAccountsService.disconnectAccount(acc.id)
+    }
+    socialAccountsService.addActivity({
       id: Date.now(),
       text: 'All connected platform tokens revoked',
-      time: 'Yesterday',
+      time: 'Just now',
       type: 'error'
-    }
-    const updatedActs = [newActivity, ...activities]
-    setActivities(updatedActs)
-    socialAccountsService.saveActivities(updatedActs)
+    })
+    await loadData()
   }
 
   const handleExport = () => {
@@ -267,6 +192,10 @@ export default function SocialAccounts() {
     dlAnchorElem.setAttribute("href",     dataStr);
     dlAnchorElem.setAttribute("download", "orbit_social_connections.json");
     dlAnchorElem.click();
+  }
+
+  if (loading && accounts.length === 0) {
+    return <div className="p-8 text-center text-slate-500">Loading social accounts...</div>
   }
 
   // Summary Metrics calculations
@@ -304,7 +233,8 @@ export default function SocialAccounts() {
           {accounts.map((acc) => {
             const statusProps = getStatusProps(acc.status)
             const isConnected = acc.status !== 'Not Connected'
-            const LogoConfig = platformLogos[acc.id] || { component: GlobeIcon, brandColor: 'text-slate-500', iconColor: 'bg-slate-100 text-slate-500' }
+            const platformKey = acc.platformId || acc.id // fallback for unconnected
+            const LogoConfig = platformLogos[platformKey] || platformLogos['twitter']
             const LogoComponent = LogoConfig.component
 
             return (
@@ -356,7 +286,7 @@ export default function SocialAccounts() {
                         variant="secondary"
                         size="sm"
                         fullWidth
-                        onClick={() => handleDisconnect(acc.id)}
+                        onClick={() => handleDisconnect(acc.id, acc.platform)}
                         className="text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20"
                       >
                         Disconnect Account
@@ -366,7 +296,7 @@ export default function SocialAccounts() {
                         variant="ghost"
                         size="sm"
                         fullWidth
-                        onClick={() => handleRefresh(acc.id)}
+                        onClick={() => handleRefresh(acc.id, acc.platform)}
                         className="text-navy-600 dark:text-navy-300"
                       >
                         Sync Link
@@ -378,7 +308,7 @@ export default function SocialAccounts() {
                       variant="primary"
                       size="sm"
                       fullWidth
-                      onClick={() => handleConnect(acc.id)}
+                      onClick={() => handleConnect(platformKey)}
                     >
                       Connect Account
                     </Button>

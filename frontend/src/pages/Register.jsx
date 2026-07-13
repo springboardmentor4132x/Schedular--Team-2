@@ -12,6 +12,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import Toast from '../components/Toast'
+import { authService } from '../services/api'
 
 /* ─────────────────────────────────────────────────────────────────
    sessionStorage persistence
@@ -254,12 +255,38 @@ export default function Register({ isDark, onToggleTheme }) {
     }
 
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1400))  // TODO: replace with real API
-    setLoading(false)
-    setSuccess(true)
-    clearDraft()
-    setToast({ type: 'success', message: 'Account created successfully!' })
-    setTimeout(() => navigate('/login'), 2000)
+    
+    try {
+      const userData = {
+        first_name: form.fullName.split(' ')[0] || '',
+        last_name: form.fullName.split(' ').slice(1).join(' ') || '',
+        username: form.username,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+        role: roleId || 'creator'
+      };
+
+      await authService.register(userData);
+      
+      setLoading(false)
+      setSuccess(true)
+      clearDraft()
+      setToast({ type: 'success', message: 'Account created successfully!' })
+      setTimeout(() => navigate('/login'), 2000)
+
+    } catch (error) {
+      setLoading(false)
+      
+      if (error.response) {
+        setToast({ type: 'error', message: `❌ ${error.response.data.detail || 'Registration failed'}` });
+        if (error.response.data.detail?.includes('Email') || error.response.data.detail?.includes('username')) {
+           setErrors({ email: 'This email or username is already in use.' });
+        }
+      } else {
+        setToast({ type: 'error', message: '❌ Could not connect to server.' });
+      }
+    }
   }
 
   /* ─────────────────────────────────────────────────────────────── */

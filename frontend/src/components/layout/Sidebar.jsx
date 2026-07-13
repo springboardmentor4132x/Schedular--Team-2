@@ -1,4 +1,6 @@
 import { NavLink } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { authService } from '../../services/api'
 
 // ── Icons (inline SVG, no extra dependency) ──────────────────────────────────
 
@@ -84,6 +86,26 @@ const navItems = [
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Sidebar() {
+  const [user, setUser] = useState({ name: 'Loading...', email: '', initials: '' })
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const data = await authService.getMe()
+        const first = data.first_name || ''
+        const last = data.last_name || ''
+        setUser({
+          name: `${first} ${last}`.trim() || data.username,
+          email: data.email,
+          initials: (first[0] || '') + (last[0] || '') || 'U'
+        })
+      } catch (err) {
+        console.error("Failed to load user for sidebar")
+      }
+    }
+    fetchUser()
+  }, [])
+
   return (
     <aside className="flex flex-col w-64 min-h-screen bg-sidebar-bg border-r border-sidebar-border flex-shrink-0">
       {/* Brand */}
@@ -124,11 +146,11 @@ export default function Sidebar() {
                         transition-colors cursor-pointer group">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
                           flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-            JD
+            {user.initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-medium truncate">John Doe</p>
-            <p className="text-slate-500 text-xs truncate">john@example.com</p>
+            <p className="text-white text-sm font-medium truncate">{user.name}</p>
+            <p className="text-slate-500 text-xs truncate">{user.email}</p>
           </div>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"

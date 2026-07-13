@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useTheme } from '../../hooks/useTheme'
+import { authService } from '../../services/api'
 
 // ── Breadcrumb label map ──────────────────────────────────────────────────────
 const pageTitles = {
-  '/dashboard': { label: 'Dashboard',  sub: 'Welcome back, John 👋' },
+  '/dashboard': { label: 'Dashboard',  sub: 'Welcome back 👋' },
   '/calendar':  { label: 'Calendar',   sub: 'Manage your scheduled posts' },
   '/analytics': { label: 'Analytics',  sub: 'Track your performance' },
   '/team':      { label: 'Team',       sub: 'Manage team members' },
@@ -67,6 +68,26 @@ export default function Navbar() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
+  const [user, setUser] = useState({ name: 'Loading...', email: '', initials: '', role: 'Creator' })
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const data = await authService.getMe()
+        const first = data.first_name || ''
+        const last = data.last_name || ''
+        setUser({
+          name: `${first} ${last}`.trim() || data.username,
+          email: data.email,
+          initials: (first[0] || '') + (last[0] || '') || 'U',
+          role: data.role || 'Creator'
+        })
+      } catch (err) {
+        console.error("Failed to load user for navbar")
+      }
+    }
+    fetchUser()
+  }, [])
 
   // Realistic mock notifications
   const [notifications, setNotifications] = useState([
@@ -94,7 +115,8 @@ export default function Navbar() {
 
   const handleLogout = () => {
     setShowUserMenu(false)
-    setToastMessage('Logout action simulated successfully!')
+    localStorage.removeItem('token')
+    navigate('/login')
   }
 
   // Keyboard navigation & click outside behavior
@@ -142,7 +164,9 @@ export default function Navbar() {
           {page.label}
         </h1>
         {page.sub && (
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{page.sub}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {pathname === '/dashboard' ? `Welcome back, ${user.name.split(' ')[0]} 👋` : page.sub}
+          </p>
         )}
       </div>
 
@@ -295,7 +319,7 @@ export default function Navbar() {
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
                             flex items-center justify-center text-white text-xs font-bold shadow-sm">
-              JD
+              {user.initials}
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -310,13 +334,13 @@ export default function Navbar() {
               {/* User Header Profile Card */}
               <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
-                  JD
+                  {user.initials}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">John Doe</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">john@orbitsocial.com</p>
-                  <span className="inline-block mt-1 text-[10px] font-semibold text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/40 px-2 py-0.5 rounded-full">
-                    Pro Plan
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{user.name}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
+                  <span className="inline-block mt-1 text-[10px] font-semibold text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/40 px-2 py-0.5 rounded-full capitalize">
+                    {user.role}
                   </span>
                 </div>
               </div>

@@ -5,9 +5,6 @@ router = APIRouter(
     tags=["Posts & Scheduling"]
 )
 
-# ----------------------------------------------------
-# @Anwin: Implement Post scheduling queries here
-# ----------------------------------------------------
 
 @router.post("/")
 def schedule_post():
