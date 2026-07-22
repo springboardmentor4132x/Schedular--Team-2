@@ -4,9 +4,9 @@ from pymongo import MongoClient
 
 from app.core.config import settings
 
-# ==========================================
+# =====================================================
 # POSTGRESQL SETUP (Relational Database)
-# ==========================================
+# =====================================================
 
 engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
 
@@ -20,7 +20,9 @@ Base = declarative_base()
 
 
 def get_db():
-    """Dependency to get a PostgreSQL DB session"""
+    """
+    Dependency to get a PostgreSQL DB session
+    """
     db = SessionLocal()
     try:
         yield db
@@ -28,15 +30,16 @@ def get_db():
         db.close()
 
 
-# ==========================================
+# =====================================================
 # MONGODB SETUP (Document Database)
-# ==========================================
+# =====================================================
 
 try:
     mongo_client = MongoClient(
         settings.MONGO_DATABASE_URI,
         serverSelectionTimeoutMS=5000
     )
+
     mongo_db = mongo_client[settings.MONGO_DB]
 
 except Exception as e:
@@ -45,5 +48,7 @@ except Exception as e:
 
 
 def get_mongo_db():
-    """Dependency to get the MongoDB instance"""
+    """
+    Dependency to get the MongoDB instance
+    """
     return mongo_db
