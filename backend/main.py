@@ -1,4 +1,4 @@
-from backend.app.routers import social_accounts, users
+from app.routers import social_accounts, users
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
