@@ -1,31 +1,61 @@
 from fastapi import APIRouter
+from app.services.campaign_service import (
+    create_campaign,
+    get_all_campaigns,
+    get_campaign_by_id,
+    update_campaign,
+    delete_campaign,
+    assign_post_to_campaign,
+    remove_post_from_campaign,
+    get_campaign_timeline,
+    get_campaign_progress,
+    get_campaign_summary
+)
 
 router = APIRouter(
     prefix="/campaigns",
     tags=["Campaigns"]
 )
 
-
 @router.post("/")
-def create_campaign():
-    """Creates a new campaign for a user."""
-    return {"message": "Create Campaign "}
+def create_new_campaign():
+    return create_campaign()
+
 
 @router.get("/")
 def get_campaigns():
-    """Lists all campaigns for the logged-in user."""
-    return {"message": "Get All Campaigns "}
+    return get_all_campaigns()
+
+@router.post("/{campaign_id}/assign-post/{post_id}")
+def assign_post(campaign_id: int, post_id: int):
+    return assign_post_to_campaign(campaign_id, post_id)
+
+@router.delete("/{campaign_id}/remove-post/{post_id}")
+def remove_post(campaign_id: int, post_id: int):
+    return remove_post_from_campaign(campaign_id, post_id)
+
+@router.get("/{campaign_id}/timeline")
+def campaign_timeline(campaign_id: int):
+    return get_campaign_timeline(campaign_id)
+
+@router.get("/{campaign_id}/progress")
+def campaign_progress(campaign_id: int):
+    return get_campaign_progress(campaign_id)
+
+@router.get("/{campaign_id}/summary")
+def campaign_summary(campaign_id: int):
+    return get_campaign_summary(campaign_id)
 
 @router.get("/{campaign_id}")
 def get_campaign(campaign_id: int):
-    return {"message": f"Get Campaign {campaign_id}"}
+    return get_campaign_by_id(campaign_id)
 
 
 @router.put("/{campaign_id}")
-def update_campaign(campaign_id: int):
-    return {"message": f"Update Campaign {campaign_id}"}
+def update_existing_campaign(campaign_id: int):
+    return update_campaign(campaign_id)
 
 
 @router.delete("/{campaign_id}")
-def delete_campaign(campaign_id: int):
-    return {"message": f"Delete Campaign {campaign_id}"}
+def delete_existing_campaign(campaign_id: int):
+    return delete_campaign(campaign_id)
