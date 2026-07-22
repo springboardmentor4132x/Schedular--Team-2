@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from app.services.campaign_service import (
     create_campaign,
     get_all_campaigns,
@@ -12,10 +13,12 @@ from app.services.campaign_service import (
     get_campaign_summary
 )
 
+
 router = APIRouter(
     prefix="/campaigns",
     tags=["Campaigns"]
 )
+
 
 @router.post("/")
 def create_new_campaign():
@@ -59,3 +62,5 @@ def update_existing_campaign(campaign_id: int):
 @router.delete("/{campaign_id}")
 def delete_existing_campaign(campaign_id: int):
     return delete_campaign(campaign_id)
+
+
