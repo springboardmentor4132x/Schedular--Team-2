@@ -1,4 +1,7 @@
 from fastapi import APIRouter
+
+from app.schemas.campaign import CampaignCreate, CampaignUpdate
+
 from app.services.campaign_service import (
     create_campaign,
     get_all_campaigns,
@@ -17,34 +20,49 @@ router = APIRouter(
     tags=["Campaigns"]
 )
 
+
 @router.post("/")
-def create_new_campaign():
-    return create_campaign()
+def create_new_campaign(
+    campaign: CampaignCreate
+):
+    return create_campaign(campaign)
 
 
 @router.get("/")
 def get_campaigns():
     return get_all_campaigns()
 
+
 @router.post("/{campaign_id}/assign-post/{post_id}")
-def assign_post(campaign_id: int, post_id: int):
+def assign_post(
+    campaign_id: int,
+    post_id: int
+):
     return assign_post_to_campaign(campaign_id, post_id)
 
+
 @router.delete("/{campaign_id}/remove-post/{post_id}")
-def remove_post(campaign_id: int, post_id: int):
+def remove_post(
+    campaign_id: int,
+    post_id: int
+):
     return remove_post_from_campaign(campaign_id, post_id)
+
 
 @router.get("/{campaign_id}/timeline")
 def campaign_timeline(campaign_id: int):
     return get_campaign_timeline(campaign_id)
 
+
 @router.get("/{campaign_id}/progress")
 def campaign_progress(campaign_id: int):
     return get_campaign_progress(campaign_id)
 
+
 @router.get("/{campaign_id}/summary")
 def campaign_summary(campaign_id: int):
     return get_campaign_summary(campaign_id)
+
 
 @router.get("/{campaign_id}")
 def get_campaign(campaign_id: int):
@@ -52,8 +70,11 @@ def get_campaign(campaign_id: int):
 
 
 @router.put("/{campaign_id}")
-def update_existing_campaign(campaign_id: int):
-    return update_campaign(campaign_id)
+def update_existing_campaign(
+    campaign_id: int,
+    campaign: CampaignUpdate
+):
+    return update_campaign(campaign_id, campaign)
 
 
 @router.delete("/{campaign_id}")
