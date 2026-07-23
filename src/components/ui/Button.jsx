@@ -1,52 +1,90 @@
 /**
- * Button — reusable button component for the Profile module.
- * Uses the navy design system; does not interfere with existing .btn-primary / .btn-ghost classes.
+ * Button — OrbitSocial Design System
+ * Unified button component using primary (indigo) design tokens.
+ * Variants: primary | secondary | success | danger | warning | outline | ghost | info
+ * Sizes: xs | sm | md | lg | xl
  */
 
+import { forwardRef } from 'react'
+
+// ── Spinner ───────────────────────────────────────────────────────────────────
+const Spinner = () => (
+  <svg
+    className="animate-spin w-4 h-4 flex-shrink-0"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+  </svg>
+)
+
+// ── Maps ──────────────────────────────────────────────────────────────────────
 const variantMap = {
-  primary:   'bg-navy-600 hover:bg-navy-700 active:bg-navy-800 text-white shadow-sm focus-visible:ring-navy-500',
-  secondary: 'bg-white dark:bg-slate-700 border border-navy-200 dark:border-navy-700 text-navy-700 dark:text-navy-200 hover:bg-navy-50 dark:hover:bg-slate-600 shadow-sm focus-visible:ring-navy-400',
-  ghost:     'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 focus-visible:ring-slate-400',
-  danger:    'bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-sm focus-visible:ring-rose-400',
+  primary:   'btn-primary',
+  secondary: 'btn-secondary',
+  success:   'btn-success',
+  danger:    'btn-danger',
+  warning:   'btn-warning',
+  outline:   'btn-outline',
+  ghost:     'btn-ghost',
+  info:      'btn-info',
 }
 
 const sizeMap = {
-  sm: 'px-3 py-1.5 text-xs gap-1.5',
-  md: 'px-4 py-2   text-sm gap-2',
-  lg: 'px-5 py-2.5 text-sm gap-2',
+  xs: 'btn-xs',
+  sm: 'btn-sm',
+  md: 'btn-md',
+  lg: 'btn-lg',
+  xl: 'btn-xl',
 }
 
-export default function Button({
-  children,
-  variant  = 'primary',
-  size     = 'md',
-  type     = 'button',
-  disabled = false,
-  fullWidth = false,
-  onClick,
-  className = '',
-  id,
-  'aria-label': ariaLabel,
-}) {
+// ── Component ─────────────────────────────────────────────────────────────────
+const Button = forwardRef(function Button(
+  {
+    children,
+    variant   = 'primary',
+    size      = 'md',
+    type      = 'button',
+    disabled  = false,
+    loading   = false,
+    fullWidth = false,
+    iconOnly  = false,
+    onClick,
+    className = '',
+    id,
+    'aria-label': ariaLabel,
+    ...rest
+  },
+  ref
+) {
+  const isDisabled = disabled || loading
+
   return (
     <button
+      ref={ref}
       id={id}
       type={type}
-      disabled={disabled}
+      disabled={isDisabled}
       onClick={onClick}
       aria-label={ariaLabel}
+      aria-busy={loading || undefined}
       className={[
-        'inline-flex items-center justify-center font-semibold rounded-xl',
-        'transition-all duration-150',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'btn',
         variantMap[variant] ?? variantMap.primary,
         sizeMap[size]       ?? sizeMap.md,
         fullWidth ? 'w-full' : '',
+        iconOnly  ? '!p-2 aspect-square' : '',
         className,
-      ].join(' ')}
+      ].filter(Boolean).join(' ')}
+      {...rest}
     >
+      {loading && <Spinner />}
       {children}
     </button>
   )
-}
+})
+
+export default Button
