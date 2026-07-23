@@ -21,13 +21,9 @@ const EyeClosedIcon = () => (
 )
 
 /**
- * Input — reusable form input with:
- * - optional visible label
- * - error message (shown red, with role="alert")
- * - optional hint text
- * - built-in password visibility toggle when type="password"
- * - dark mode support
- * - forwarded ref for programmatic focus
+ * Input — OrbitSocial Design System
+ * Unified form input with label, error, hint, password toggle, dark mode.
+ * Matches .input-base design token from index.css.
  */
 const Input = forwardRef(function Input(
   { label, id, error, hint, type = 'text', className = '', disabled, readOnly, ...props },
@@ -37,29 +33,10 @@ const Input = forwardRef(function Input(
   const isPassword = type === 'password'
   const resolvedType = isPassword ? (showPw ? 'text' : 'password') : type
 
-  const baseInput = [
-    'w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-150',
-    'bg-white dark:bg-slate-800',
-    'text-slate-800 dark:text-slate-100',
-    'placeholder:text-slate-400 dark:placeholder:text-slate-500',
-    'focus:outline-none focus-visible:ring-2',
-    disabled || readOnly
-      ? 'bg-slate-50 dark:bg-slate-900 cursor-not-allowed opacity-70'
-      : '',
-    error
-      ? 'border-rose-400 dark:border-rose-500 focus-visible:ring-rose-400'
-      : 'border-slate-200 dark:border-slate-600 focus-visible:ring-navy-400 focus-visible:border-navy-400',
-    isPassword ? 'pr-10' : '',
-    className,
-  ].join(' ')
-
   return (
     <div className="space-y-1.5">
       {label && (
-        <label
-          htmlFor={id}
-          className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
-        >
+        <label htmlFor={id} className="label-base">
           {label}
         </label>
       )}
@@ -73,7 +50,12 @@ const Input = forwardRef(function Input(
           readOnly={readOnly}
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
-          className={baseInput}
+          className={[
+            'input-base',
+            error ? 'input-error' : '',
+            isPassword ? 'pr-10' : '',
+            className,
+          ].filter(Boolean).join(' ')}
           {...props}
         />
 
@@ -86,7 +68,7 @@ const Input = forwardRef(function Input(
             className="absolute right-3 top-1/2 -translate-y-1/2
                        text-slate-400 hover:text-slate-600 dark:hover:text-slate-300
                        transition-colors focus:outline-none focus-visible:ring-1
-                       focus-visible:ring-navy-400 rounded"
+                       focus-visible:ring-primary-400 rounded"
           >
             {showPw ? <EyeClosedIcon /> : <EyeOpenIcon />}
           </button>
@@ -94,7 +76,7 @@ const Input = forwardRef(function Input(
       </div>
 
       {error && (
-        <p id={`${id}-error`} role="alert" className="text-xs text-rose-500 dark:text-rose-400">
+        <p id={`${id}-error`} role="alert" className="text-xs text-danger-500 dark:text-danger-400">
           {error}
         </p>
       )}

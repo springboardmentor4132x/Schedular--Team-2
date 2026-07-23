@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useTheme } from '../../hooks/useTheme'
+import { useSidebar } from '../../context/SidebarContext'
 
-// ── Breadcrumb label map ──────────────────────────────────────────────────────
 const pageTitles = {
   '/dashboard': { label: 'Dashboard',  sub: 'Welcome back, John 👋' },
   '/calendar':  { label: 'Calendar',   sub: 'Manage your scheduled posts' },
@@ -12,9 +12,25 @@ const pageTitles = {
   '/profile':   { label: 'My Profile', sub: 'Manage your personal information' },
   '/settings':  { label: 'Account Settings', sub: 'Manage your OrbitSocial account preferences and security' },
   '/social-accounts': { label: 'Social Accounts', sub: 'Manage all connected social media platforms from one place' },
+  '/creator/dashboard': { label: 'Creator Dashboard', sub: 'Welcome back, Creator 👋' },
+  '/creator/posts': { label: 'My Posts', sub: 'Manage your created posts' },
+  '/creator/scheduling': { label: 'Content Scheduling', sub: 'Plan your content publishing times' },
+  '/creator/campaigns': { label: 'Campaigns', sub: 'Track campaign collaborations' },
+  '/creator/calendar': { label: 'Publishing Calendar', sub: 'Visual schedule of posts' },
+  '/creator/notifications': { label: 'Notifications', sub: 'Stay updated with your audience and reviewer feedback' },
+  '/creator/profile': { label: 'Creator Profile', sub: 'Manage your creator profile details' },
+  '/creator/settings': { label: 'Creator Settings', sub: 'Manage your creator preference settings' },
 }
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
+
+const MenuIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    className="w-5 h-5">
+    <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
+  </svg>
+)
 
 const BellIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -132,18 +148,37 @@ export default function Navbar() {
     }
   }, [toastMessage])
 
+  let sidebarCtx = null
+  try {
+    sidebarCtx = useSidebar()
+  } catch (e) {
+    // context optional fallback
+  }
+
   return (
     <header className="relative flex items-center justify-between px-6 py-4
                        bg-white dark:bg-slate-800
-                       border-b border-slate-100 dark:border-slate-700 z-30">
-      {/* Left — Page title */}
-      <div>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
-          {page.label}
-        </h1>
-        {page.sub && (
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{page.sub}</p>
+                       border-b border-slate-100 dark:border-slate-700 z-20">
+      {/* Left — Mobile Menu & Page title */}
+      <div className="flex items-center gap-3">
+        {sidebarCtx && (
+          <button
+            type="button"
+            onClick={sidebarCtx.toggleMobile}
+            className="p-2 -ml-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 md:hidden focus:outline-none"
+            aria-label="Open mobile menu"
+          >
+            <MenuIcon />
+          </button>
         )}
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
+            {page.label}
+          </h1>
+          {page.sub && (
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{page.sub}</p>
+          )}
+        </div>
       </div>
 
       {/* Right — Search + actions */}

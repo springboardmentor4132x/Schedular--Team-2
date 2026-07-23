@@ -1,14 +1,14 @@
 import { Outlet } from 'react-router-dom'
 import { SidebarProvider } from '../../context/SidebarContext'
-import Sidebar from './Sidebar'
+import CreatorSidebar from './CreatorSidebar'
 import Navbar from './Navbar'
 
-export default function DashboardLayout() {
+export default function CreatorLayout() {
   return (
     <SidebarProvider>
       <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900">
         {/* Collapsible Sidebar */}
-        <Sidebar />
+        <CreatorSidebar />
 
         {/* Main content area - Auto expands smoothly */}
         <div className="flex flex-col flex-1 overflow-hidden min-w-0 transition-all duration-300">
