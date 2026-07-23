@@ -16,7 +16,7 @@ The project is developed using **React** for the frontend and **FastAPI** for th
 
 # ✨ Current Features
 
-### Backend
+## Backend
 - FastAPI project structure
 - REST API architecture
 - PostgreSQL integration
@@ -25,13 +25,16 @@ The project is developed using **React** for the frontend and **FastAPI** for th
 - API testing setup
 - Swagger API documentation
 
-### Frontend
+## Frontend
 - React + Vite project setup
-- Responsive UI structure
+- Responsive UI
+- Role-based dashboard UI
 - Routing configuration
 - Reusable component structure
+- Dark/Light mode
+- Responsive authentication pages
 
-### Database
+## Database
 - PostgreSQL configuration
 - SQLAlchemy models
 - Alembic migration support
@@ -60,9 +63,10 @@ The project is developed using **React** for the frontend and **FastAPI** for th
 
 - React.js
 - Vite
-- React Router
-- Axios
+- React Router DOM
 - Tailwind CSS
+- Axios
+- React Icons
 
 ## Backend
 
@@ -116,7 +120,6 @@ SocialPilot/
 
 ```bash
 git clone https://github.com/<your-username>/Schedular--Team-2.git
-
 cd Schedular--Team-2
 ```
 
@@ -138,7 +141,7 @@ Windows
 venv\Scripts\activate
 ```
 
-Linux / macOS
+Linux/macOS
 
 ```bash
 source venv/bin/activate
@@ -174,13 +177,11 @@ MONGO_DB=socialpilot_mongo
 
 # 🔄 Database Migration
 
-Run the latest database migrations.
-
 ```bash
 alembic upgrade head
 ```
 
-Create a new migration after model changes.
+Create a new migration:
 
 ```bash
 alembic revision --autogenerate -m "Migration Name"
@@ -232,6 +233,41 @@ http://localhost:5173
 
 ---
 
+# 🎨 Frontend Pages
+
+| Route | Description |
+|--------|-------------|
+| / | Landing Page |
+| /role-selection | Role Selection |
+| /register | User Registration |
+| /login | User Login |
+| /terms | Terms & Conditions |
+
+---
+
+# 🎨 Frontend Features
+
+- Responsive UI
+- Dark / Light Theme
+- Form Validation
+- Password Strength Indicator
+- Show / Hide Password
+- Role-based Registration
+- Reusable Components
+- Accessible Design
+- Mobile Friendly Layout
+
+Supported Platforms:
+
+- Instagram
+- Facebook
+- LinkedIn
+- X (Twitter)
+- YouTube
+- Pinterest
+
+---
+
 # 📡 Available API Endpoints
 
 | Method | Endpoint | Description |
@@ -240,7 +276,7 @@ http://localhost:5173
 | POST | `/api/v1/auth/register` | Register API *(placeholder)* |
 | POST | `/api/v1/auth/login` | Login API *(placeholder)* |
 
-Interactive API documentation is available at:
+Swagger Documentation
 
 ```
 http://127.0.0.1:8000/docs
@@ -250,13 +286,11 @@ http://127.0.0.1:8000/docs
 
 # 🧪 API Testing
 
-Run the API test script.
-
 ```bash
 python tests/test_api.py
 ```
 
-Current expected output:
+Expected Output
 
 ```
 GET /                          200 OK
@@ -270,13 +304,13 @@ POST /login                    Pending Implementation
 
 The application currently uses **PostgreSQL** as the primary relational database.
 
-Database management includes:
+Features include:
 
 - SQLAlchemy ORM
-- Alembic migrations
-- PostgreSQL integration
+- Alembic Migrations
+- PostgreSQL Integration
 
-MongoDB configuration has been added for future feature expansion.
+MongoDB configuration is prepared for future enhancements.
 
 ---
 
@@ -308,3 +342,4 @@ This project is developed for educational purposes.
 - SQLAlchemy
 - Alembic
 - Vite
+- Tailwind CSS
