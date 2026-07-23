@@ -19,10 +19,10 @@ import Toast from '../components/Toast'
 const SESSION_KEY = 'orbit-register-draft'
 
 const ROLE_LABELS = {
-  creator:   'Creator',
-  business:  'Business',
-  agency:    'Agency',
-  marketing: 'Marketing Team',
+  creator:       'Content Creator',
+  business:      'Business User',
+  administrator: 'Administrator',
+  marketing:     'Marketing Team',
 }
 
 const EMPTY_FORM = {
@@ -38,14 +38,26 @@ function saveDraft(data) {
   try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(data)) }
   catch { /* ignore */ }
 }
+function saveRegisteredUser(form, roleId) {
+  try {
+    const raw = localStorage.getItem('orbit-registered-users')
+    const users = raw ? JSON.parse(raw) : {}
+    users[form.email.toLowerCase()] = {
+      name:     form.fullName,
+      username: form.username,
+      role:     roleId || 'business',
+      password: form.password,   // stored locally for demo - replace with hashed API call
+    }
+    localStorage.setItem('orbit-registered-users', JSON.stringify(users))
+  } catch { /* ignore */ }
+}
+
 function clearDraft() {
   try { sessionStorage.removeItem(SESSION_KEY) }
   catch { /* ignore */ }
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   Password strength (5 levels, all criteria visible to user)
-   ───────────────────────────────────────────────────────────────── */
+/* Password strength (5 levels, all criteria visible to user) */
 function getStrength(pw) {
   if (!pw) return { score: 0, label: '', color: '' }
   let s = 0
@@ -257,6 +269,7 @@ export default function Register({ isDark, onToggleTheme }) {
     await new Promise(r => setTimeout(r, 1400))  // TODO: replace with real API
     setLoading(false)
     setSuccess(true)
+    saveRegisteredUser(form, roleId)
     clearDraft()
     setToast({ type: 'success', message: 'Account created successfully!' })
     setTimeout(() => navigate('/login'), 2000)
