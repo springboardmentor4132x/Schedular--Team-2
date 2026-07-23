@@ -14,7 +14,15 @@ from app.services.post_service import (
     get_publishing_queue
 )
 
-router = APIRouter(prefix="/posts", tags=["Posts"])
+router = APIRouter(
+    prefix="/posts", 
+    tags=["Posts"]
+    )
+
+@router.post("/schedule")
+def schedule_post(post: CreatePostRequest):
+    """Schedules a new post (Saves metadata in Postgres, content in Mongo)."""
+    return {"message": "Pending Implementation (Anwin)"}
 
 @router.get("/")
 def get_posts():

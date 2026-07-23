@@ -2,6 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.database.database import engine, Base
+import app.models  # Import all models to register with Base
+
+# Auto-generate database tables if they don't exist
+Base.metadata.create_all(bind=engine)
 
 # Import our API routers
 from app.routers import (
@@ -10,7 +15,10 @@ from app.routers import (
     posts,
     users,
     social_accounts,
+    workspaces,
 )
+
+from app.routers import settings as settings_router
 
 # Initialize the FastAPI App
 app = FastAPI(
@@ -19,33 +27,33 @@ app = FastAPI(
     description="Social Media Scheduler & Campaign Management Platform API",
 )
 
-# CORS
-origins = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-]
-
+# Add CORS Middleware to allow React frontend to connect
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173"
+        ],  # Allow React's dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include Routers
-app.include_router(auth.router, prefix="/api/v1", tags=["Authentication"])
-app.include_router(campaigns.router, prefix="/api/v1", tags=["Campaigns"])
-app.include_router(posts.router, prefix="/api/v1", tags=["Posts"])
-app.include_router(users.router, prefix="/api/v1", tags=["Users"])
-app.include_router(social_accounts.router, prefix="/api/v1", tags=["Social Accounts"])
 
+app.include_router(users.router, prefix="/api/v1") 
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(campaigns.router, prefix="/api/v1")
+app.include_router(posts.router, prefix="/api/v1")
+app.include_router(settings_router.router, prefix="/api/v1")
+app.include_router(workspaces.router, prefix="/api/v1")
+app.include_router(social_accounts.router, prefix="/api/v1")
 
 @app.get("/")
 def root():
-    """Health check endpoint."""
+    """Health check endpoint at the root."""
     return {
         "Project": settings.PROJECT_NAME,
         "Version": settings.VERSION,
         "Status": "Running",
     }
+
