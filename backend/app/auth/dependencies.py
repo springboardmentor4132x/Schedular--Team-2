@@ -4,7 +4,9 @@ from fastapi.security import OAuth2PasswordBearer
 from app.auth.jwt import verify_access_token
 
 # OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api/v1/auth/login"
+)
 
 
 # Get current user from JWT token

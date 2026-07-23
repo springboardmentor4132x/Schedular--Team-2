@@ -24,7 +24,7 @@ def register_user(db: Session, user):
     new_user = User(
         username=user.username,
         email=user.email,
-        password=hashed_password,
+        password_hash=hashed_password,
         role=user.role
     )
 
@@ -54,7 +54,7 @@ def login_user(db: Session, user):
             "detail": "Invalid email or password"
         }
 
-    if not verify_password(user.password, db_user.password):
+    if not verify_password(user.password, db_user.password_hash):
         return {
             "detail": "Invalid email or password"
         }
