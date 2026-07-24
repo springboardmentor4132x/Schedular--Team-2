@@ -23,19 +23,6 @@ function validate(email, password) {
   return errors
 }
 
-/* ── Demo accounts (silent — no UI hint shown) ──────────────────── */
-const DEMO_USERS = {
-  'business@demo.com':  { role: 'business',  name: 'Alex Johnson' },
-  'marketing@demo.com': { role: 'marketing', name: 'Sam Rivera'   },
-}
-
-function loadRegisteredUsers() {
-  try {
-    const raw = localStorage.getItem('orbit-registered-users')
-    return raw ? JSON.parse(raw) : {}
-  } catch { return {} }
-}
-
 /* ── Component ──────────────────────────────────────────────────── */
 export default function Login({ isDark, onToggleTheme }) {
   const navigate  = useNavigate()
@@ -62,41 +49,17 @@ export default function Login({ isDark, onToggleTheme }) {
     const errs = validate(email, password)
     if (Object.keys(errs).length) { setErrors(errs); return }
 
-    setLoading(true)
-    await new Promise(r => setTimeout(r, 700))
-
-    const emailKey = email.toLowerCase()
-    let userInfo = DEMO_USERS[emailKey]
-
-    // Check registered users
-    if (!userInfo) {
-      const registered = loadRegisteredUsers()
-      const regUser = registered[emailKey]
-      if (regUser) {
-        if (password !== regUser.password) {
-          setLoading(false)
-          setErrors({ password: 'The password you entered is incorrect.' })
-          setToast({ type: 'error', message: 'Incorrect password.' })
-          return
-        }
-        userInfo = { role: regUser.role, name: regUser.name }
-      }
+    try {
+      setLoading(true)
+      const userData = await login(email, password)
+      setToast({ type: 'success', message: `Welcome back, ${userData.first_name || userData.username}!` })
+      setTimeout(() => navigate(ROLE_ROUTES[userData.role] ?? '/dashboard'), 700)
+    } catch (err) {
+      setLoading(false)
+      const detail = err.response?.data?.detail || 'An error occurred during login.'
+      setErrors({ password: detail })
+      setToast({ type: 'error', message: detail })
     }
-
-    // Fallback — default to business role
-    if (!userInfo) {
-      const name = emailKey.split('@')[0]
-        .replace(/[._-]/g, ' ')
-        .replace(/\b\w/g, c => c.toUpperCase())
-      // If email contains "market" treat as marketing, else business
-      const role = emailKey.includes('market') ? 'marketing' : 'business'
-      userInfo = { role, name }
-    }
-
-    login({ email: emailKey, name: userInfo.name, role: userInfo.role })
-    setLoading(false)
-    setToast({ type: 'success', message: `Welcome back, ${userInfo.name}!` })
-    setTimeout(() => navigate(ROLE_ROUTES[userInfo.role] ?? '/dashboard'), 700)
   }
 
   return (

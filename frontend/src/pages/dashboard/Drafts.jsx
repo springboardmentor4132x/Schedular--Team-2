@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import PageHeader from '../../components/dashboard/PageHeader'
 import EmptyState from '../../components/dashboard/EmptyState'
+import Toast from '../../components/Toast'
+import axiosInstance from '../../api/axios'
 
 /* ── Platform meta ─────────────────────────────────────────────── */
 const PLATFORM_META = {
@@ -48,10 +50,42 @@ export default function Drafts() {
   const { role }        = useAuth()
   const isMarketing     = role === 'marketing'
 
-  const [drafts,   setDrafts]   = useState(isMarketing ? INIT_MARKETING_DRAFTS : INIT_DRAFTS)
+  const [drafts,   setDrafts]   = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const [view,     setView]     = useState('grid')
   const [search,   setSearch]   = useState('')
   const [platform, setPlatform] = useState('all')
+  const [toast,    setToast]    = useState(null)
+
+  useEffect(() => {
+    fetchDrafts()
+  }, [])
+
+  const fetchDrafts = async () => {
+    setIsLoading(true)
+    try {
+      const res = await axiosInstance.get('/api/v1/posts/')
+      // Filter only drafts. Use lowercased comparison since backend might return "Draft"
+      const allDrafts = res.data.filter(p => p.status && p.status.toLowerCase() === 'draft')
+      
+      // Parse backend schema to frontend format
+      const parsedDrafts = allDrafts.map(d => ({
+        id: d.id,
+        title: d.title || 'Untitled Post',
+        caption: d.caption || '',
+        platform: 'x', // Mock platform since social_accounts is empty right now
+        updatedAt: 'Recently',
+        tags: [],
+        status: d.status.toLowerCase()
+      }))
+      
+      setDrafts(parsedDrafts)
+    } catch (err) {
+      setToast({ type: 'error', message: 'Failed to load drafts' })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const filtered = drafts.filter(d => {
     const matchSearch = d.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -60,20 +94,70 @@ export default function Drafts() {
     return matchSearch && matchPlat
   })
 
-  const deleteDraft    = id => setDrafts(prev => prev.filter(d => d.id !== id))
-  const duplicateDraft = id => {
-    const src = drafts.find(d => d.id === id)
-    if (src) setDrafts(prev => [...prev, { ...src, id: Date.now(), title: `${src.title} (Copy)`, updatedAt: 'Just now', status: 'draft' }])
+  const deleteDraft = async (id) => {
+    if (!confirm('Are you sure you want to delete this draft?')) return
+    try {
+      await axiosInstance.delete(`/api/v1/posts/${id}`)
+      setToast({ type: 'success', message: 'Draft deleted' })
+      setDrafts(prev => prev.filter(d => d.id !== id))
+    } catch (err) {
+      setToast({ type: 'error', message: 'Failed to delete draft' })
+    }
   }
-  const submitForReview = id =>
-    setDrafts(prev => prev.map(d => d.id === id ? { ...d, status: 'submitted', updatedAt: 'Just now' } : d))
-  const recallDraft = id =>
-    setDrafts(prev => prev.map(d => d.id === id ? { ...d, status: 'draft', updatedAt: 'Just now' } : d))
+
+  const duplicateDraft = async (id) => {
+    const src = drafts.find(d => d.id === id)
+    if (!src) return
+    try {
+      const payload = {
+        title: `${src.title} (Copy)`,
+        caption: src.caption,
+        status: 'Draft',
+        social_account_ids: []
+      }
+      const res = await axiosInstance.post('/api/v1/posts/', payload)
+      
+      const newDraft = {
+        id: res.data.id,
+        title: res.data.title || 'Untitled Post',
+        caption: res.data.caption || '',
+        platform: 'x',
+        updatedAt: 'Just now',
+        tags: [],
+        status: 'draft'
+      }
+      setDrafts(prev => [newDraft, ...prev])
+      setToast({ type: 'success', message: 'Draft duplicated' })
+    } catch (err) {
+      setToast({ type: 'error', message: 'Failed to duplicate draft' })
+    }
+  }
+  
+  const submitForReview = async (id) => {
+    try {
+      await axiosInstance.put(`/api/v1/posts/${id}`, { status: 'Pending Approval' })
+      setDrafts(prev => prev.map(d => d.id === id ? { ...d, status: 'submitted', updatedAt: 'Just now' } : d))
+      setToast({ type: 'success', message: 'Draft submitted for review' })
+    } catch (err) {
+      setToast({ type: 'error', message: 'Failed to submit draft' })
+    }
+  }
+
+  const recallDraft = async (id) => {
+    try {
+      await axiosInstance.put(`/api/v1/posts/${id}`, { status: 'Draft' })
+      setDrafts(prev => prev.map(d => d.id === id ? { ...d, status: 'draft', updatedAt: 'Just now' } : d))
+      setToast({ type: 'success', message: 'Draft recalled' })
+    } catch (err) {
+      setToast({ type: 'error', message: 'Failed to recall draft' })
+    }
+  }
 
   const submittedCount = drafts.filter(d => d.status === 'submitted').length
 
   return (
-    <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
+    <div className="p-4 sm:p-6 max-w-[1400px] mx-auto relative">
+      <Toast toast={toast} onClose={() => setToast(null)} />
       <PageHeader
         title="Drafts"
         subtitle={isMarketing
@@ -154,15 +238,21 @@ export default function Drafts() {
         </div>
       </div>
 
-      {/* Empty */}
-      {filtered.length === 0 && (
-        <div className="card">
-          <EmptyState icon={FileText} title="No drafts found" message="Create a new post or adjust your search filters." />
+      {isLoading ? (
+        <div className="flex justify-center items-center h-48">
+          <p style={{ color: 'var(--text-muted)' }}>Loading drafts...</p>
         </div>
-      )}
+      ) : (
+        <>
+          {/* Empty */}
+          {filtered.length === 0 && (
+            <div className="card">
+              <EmptyState icon={FileText} title="No drafts found" message="Create a new post or adjust your search filters." />
+            </div>
+          )}
 
-      {/* ── Grid view ── */}
-      {filtered.length > 0 && view === 'grid' && (
+          {/* ── Grid view ── */}
+          {filtered.length > 0 && view === 'grid' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <AnimatePresence>
             {filtered.map((draft, i) => {
@@ -356,6 +446,8 @@ export default function Drafts() {
             </tbody>
           </table>
         </div>
+      )}
+      </>
       )}
     </div>
   )

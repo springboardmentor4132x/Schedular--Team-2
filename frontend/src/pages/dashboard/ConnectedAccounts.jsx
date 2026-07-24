@@ -10,6 +10,8 @@ import {
 } from 'react-icons/fa6'
 import { useAuth } from '../../context/AuthContext'
 import PageHeader from '../../components/dashboard/PageHeader'
+import axiosInstance from '../../api/axios'
+import Toast from '../../components/Toast'
 
 /**
  * ConnectedAccounts — Business User Module 2
@@ -119,49 +121,111 @@ export default function ConnectedAccounts() {
   const [platforms, setPlatforms] = useState(PLATFORMS)
   const [syncing,   setSyncing]   = useState(null)
   const [expanded,  setExpanded]  = useState(null)
+  const [toast,     setToast]     = useState(null)
+  const [loading,   setLoading]   = useState(true)
+
+  useEffect(() => {
+    fetchConnectedAccounts()
+    checkUrlParams()
+  }, [])
+
+  const checkUrlParams = () => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('success')) {
+      setToast({ type: 'success', message: 'Account connected successfully!' })
+      window.history.replaceState({}, document.title, window.location.pathname)
+    } else if (params.get('error')) {
+      setToast({ type: 'error', message: `Connection failed: ${params.get('error')}` })
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }
+
+  const fetchConnectedAccounts = async () => {
+    try {
+      const res = await axiosInstance.get('/api/v1/social/')
+      const connectedData = res.data
+      
+      setPlatforms(prev => prev.map(p => {
+        const dbAcc = connectedData.find(a => a.platform === p.id)
+        if (dbAcc) {
+          return {
+            ...p,
+            connected: true,
+            username: dbAcc.username,
+            syncStatus: dbAcc.health === 'Healthy' ? 'synced' : 'error',
+            lastSync: 'Recently',
+            followers: dbAcc.followers_count || '0',
+            accountId: dbAcc.id // Store DB id for deletion
+          }
+        }
+        return { ...p, connected: false }
+      }))
+    } catch (err) {
+      setToast({ type: 'error', message: 'Failed to load connected accounts' })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const connected    = platforms.filter(p => p.connected)
   const disconnected = platforms.filter(p => !p.connected)
 
-  const handleConnect = id => {
-    setPlatforms(prev => prev.map(p =>
-      p.id === id ? {
-        ...p,
-        connected: true,
-        username: `@${id}_account`,
-        syncStatus: 'synced',
-        lastSync: 'Just now',
-        followers: '0',
-      } : p
-    ))
+  const handleConnect = async id => {
+    try {
+      // For phase 1, only LinkedIn and X are truly implemented.
+      // The backend handles fallbacks or real OAuth URLs.
+      const res = await axiosInstance.get(`/api/v1/social/connect/${id}`)
+      if (res.data.auth_url) {
+        window.location.href = res.data.auth_url
+      }
+    } catch (err) {
+      setToast({ type: 'error', message: 'Failed to initiate connection' })
+    }
   }
 
-  const handleDisconnect = id => {
-    setPlatforms(prev => prev.map(p =>
-      p.id === id ? {
-        ...p,
-        connected: false,
-        username: null,
-        syncStatus: null,
-        lastSync: null,
-        followers: null,
-      } : p
-    ))
-    if (expanded === id) setExpanded(null)
+  const handleDisconnect = async (id, accountId) => {
+    if (!accountId) return
+    if (!confirm('Are you sure you want to disconnect this account?')) return
+    
+    try {
+      await axiosInstance.delete(`/api/v1/social/${accountId}`)
+      setToast({ type: 'success', message: 'Account disconnected' })
+      setPlatforms(prev => prev.map(p =>
+        p.id === id ? {
+          ...p,
+          connected: false,
+          username: null,
+          syncStatus: null,
+          lastSync: null,
+          followers: null,
+          accountId: null
+        } : p
+      ))
+      if (expanded === id) setExpanded(null)
+    } catch (err) {
+      setToast({ type: 'error', message: 'Failed to disconnect account' })
+    }
   }
 
-  const handleSync = id => {
+  const handleSync = async (id, accountId) => {
+    if (!accountId) return
     setSyncing(id)
-    setTimeout(() => {
+    try {
+      await axiosInstance.post(`/api/v1/social/${accountId}/sync`)
       setPlatforms(prev => prev.map(p =>
         p.id === id ? { ...p, syncStatus: 'synced', lastSync: 'Just now' } : p
       ))
+      setToast({ type: 'success', message: 'Account synced' })
+    } catch (err) {
+      setToast({ type: 'error', message: 'Sync failed' })
+    } finally {
       setSyncing(null)
-    }, 1800)
+    }
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-[1000px] mx-auto">
+    <div className="p-4 sm:p-6 max-w-[1000px] mx-auto relative">
+      <Toast toast={toast} onClose={() => setToast(null)} />
       <PageHeader
         title="Connected Accounts"
         subtitle="Manage your social media accounts and platform permissions."
@@ -250,7 +314,7 @@ export default function ConnectedAccounts() {
                     {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
-                        onClick={() => handleSync(p.id)}
+                        onClick={() => handleSync(p.id, p.accountId)}
                         disabled={isSyncing}
                         className="p-1.5 rounded-lg hover:bg-[var(--bg-alt)] transition-colors"
                         title="Sync now"
@@ -266,7 +330,7 @@ export default function ConnectedAccounts() {
                         {isExpanded ? 'Hide' : 'Details'}
                       </button>
                       <button
-                        onClick={() => handleDisconnect(p.id)}
+                        onClick={() => handleDisconnect(p.id, p.accountId)}
                         className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all"
                         style={{ background: 'rgba(239,68,68,.06)', borderColor: 'rgba(239,68,68,.20)', color: '#EF4444' }}
                       >

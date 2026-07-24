@@ -1,13 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, HTTPException, status, Form
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse, Token
-from app.auth.dependencies import get_current_user
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, Token
 from app.auth.security import hash_password, verify_password
-from app.auth.jwt import create_access_token, verify_access_token
+from app.auth.jwt import create_access_token
+from app.auth.dependencies import get_current_user
 
 router = APIRouter(
     prefix="/auth",
@@ -58,14 +57,15 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    username: str = Form(...),
+    password: str = Form(...),
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(
-        User.email == form_data.username
+        User.email == username
     ).first()
 
-    if not user or not verify_password(form_data.password, user.password_hash):
+    if not user or not verify_password(password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -86,43 +86,6 @@ def login(
     }
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-
-
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
-):
-    payload = verify_access_token(token)
-
-    if not payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    user_email = payload.get("sub")
-
-    if user_email is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Could not validate credentials"
-        )
-
-    user = db.query(User).filter(
-        User.email == user_email
-    ).first()
-
-    if user is None:
-        raise HTTPException(
-            status_code=401,
-            detail="User not found"
-        )
-
-    return user
-
-
 @router.get("/me", response_model=UserResponse)
 def get_me(
     current_user: User = Depends(get_current_user)
@@ -133,18 +96,15 @@ def get_me(
 
 @router.put("/me", response_model=UserResponse)
 def update_me(
-    user_update: dict,
+    user_update: UserUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Updates the currently logged-in user details."""
-
-    for key, value in user_update.items():
-        if hasattr(current_user, key) and key not in [
-            "id",
-            "password_hash",
-            "email"
-        ]:
+    update_data = user_update.model_dump(exclude_unset=True)
+    
+    for key, value in update_data.items():
+        if hasattr(current_user, key) and key not in ["id", "password_hash", "email"]:
             setattr(current_user, key, value)
 
     db.commit()

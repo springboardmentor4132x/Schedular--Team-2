@@ -44,12 +44,14 @@ app.add_middleware(
 
 
 # Register routers
+# Register routers
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(campaigns.router, prefix="/api/v1")
 app.include_router(posts.router, prefix="/api/v1")
 app.include_router(social_accounts.router, prefix="/api/v1")
-
+app.include_router(workspaces.router, prefix="/api/v1")
+app.include_router(settings_router.router, prefix="/api/v1")
 
 @app.get("/")
 def root():

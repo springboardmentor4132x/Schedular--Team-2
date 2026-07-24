@@ -12,6 +12,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import Toast from '../components/Toast'
+import { useAuth } from '../context/AuthContext'
 
 /* ─────────────────────────────────────────────────────────────────
    sessionStorage persistence
@@ -37,19 +38,6 @@ function loadDraft() {
 function saveDraft(data) {
   try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(data)) }
   catch { /* ignore */ }
-}
-function saveRegisteredUser(form, roleId) {
-  try {
-    const raw = localStorage.getItem('orbit-registered-users')
-    const users = raw ? JSON.parse(raw) : {}
-    users[form.email.toLowerCase()] = {
-      name:     form.fullName,
-      username: form.username,
-      role:     roleId || 'business',
-      password: form.password,   // stored locally for demo - replace with hashed API call
-    }
-    localStorage.setItem('orbit-registered-users', JSON.stringify(users))
-  } catch { /* ignore */ }
 }
 
 function clearDraft() {
@@ -145,6 +133,7 @@ function validateAll(form) {
 export default function Register({ isDark, onToggleTheme }) {
   const navigate = useNavigate()
   const [params] = useSearchParams()
+  const { register } = useAuth()
 
   const urlRole   = params.get('role') || ''
   const draft     = loadDraft()
@@ -265,14 +254,31 @@ export default function Register({ isDark, onToggleTheme }) {
       return
     }
 
-    setLoading(true)
-    await new Promise(r => setTimeout(r, 1400))  // TODO: replace with real API
-    setLoading(false)
-    setSuccess(true)
-    saveRegisteredUser(form, roleId)
-    clearDraft()
-    setToast({ type: 'success', message: 'Account created successfully!' })
-    setTimeout(() => navigate('/login'), 2000)
+    try {
+      setLoading(true)
+      
+      const payload = {
+        username: form.username,
+        email: form.email,
+        password: form.password,
+        first_name: form.fullName.split(' ')[0] || form.fullName,
+        last_name: form.fullName.split(' ').slice(1).join(' ') || 'User',
+        phone: form.phone.replace(/\D/g, ''),
+        role: roleId || 'business'
+      }
+
+      await register(payload)
+      
+      setLoading(false)
+      setSuccess(true)
+      clearDraft()
+      setToast({ type: 'success', message: 'Account created successfully!' })
+      setTimeout(() => navigate('/login'), 2000)
+    } catch (err) {
+      setLoading(false)
+      const detail = err.response?.data?.detail || 'An error occurred during registration.'
+      setToast({ type: 'error', message: detail })
+    }
   }
 
   /* ─────────────────────────────────────────────────────────────── */

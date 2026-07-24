@@ -9,6 +9,7 @@ import {
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6'
 import PageHeader from '../../components/dashboard/PageHeader'
 import { useAuth } from '../../context/AuthContext'
+import axiosInstance from '../../api/axios'
 
 /* ── Constants ─────────────────────────────────────────────────── */
 const PLATFORMS = [
@@ -145,6 +146,7 @@ export default function CreatePost() {
   const [dragging,     setDragging]     = useState(false)
   const [showEmoji,    setShowEmoji]    = useState(false)
   const [toast,        setToast]        = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const fileRef = useRef()
 
@@ -181,15 +183,62 @@ export default function CreatePost() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  const handleAction = action => {
+  const handleAction = async action => {
     if (action !== 'draft' && !validate()) return
-    const messages = {
-      publish:  '🚀 Post published successfully!',
-      schedule: '📅 Post scheduled!',
-      draft:    '💾 Draft saved!',
-      approval: '✅ Post submitted for approval! Your manager will review it shortly.',
+    if (action === 'schedule' && (!scheduleDate || !scheduleTime)) {
+      showToast('Please select a date and time to schedule.', 'error')
+      return
     }
-    showToast(messages[action] ?? 'Done!', 'success')
+
+    setIsSubmitting(true)
+
+    let status = 'Draft'
+    if (action === 'publish') status = 'Published'
+    if (action === 'schedule') status = 'Scheduled'
+    if (action === 'approval') status = 'Pending Approval' // Based on marketing workflow
+
+    let scheduledFor = null
+    if (scheduleDate && scheduleTime) {
+      // Create an ISO string for the scheduled datetime
+      scheduledFor = new Date(`${scheduleDate}T${scheduleTime}:00`).toISOString()
+    }
+
+    try {
+      const payload = {
+        title: title.trim() || 'Untitled Post',
+        caption: caption.trim() || undefined,
+        status: status,
+        social_account_ids: [] // Empty array for now until social accounts UI is built
+      }
+      if (scheduledFor) payload.scheduled_for = scheduledFor
+
+      // Append tags/hashtags directly to caption if provided
+      if (hashtags) {
+        payload.caption = payload.caption ? `${payload.caption}\n\n${hashtags}` : hashtags
+      }
+
+      await axiosInstance.post('/api/v1/posts/', payload)
+
+      const messages = {
+        publish:  '🚀 Post published successfully!',
+        schedule: '📅 Post scheduled!',
+        draft:    '💾 Draft saved!',
+        approval: '✅ Post submitted for approval! Your manager will review it shortly.',
+      }
+      showToast(messages[action] ?? 'Done!', 'success')
+      
+      // Clear form after success
+      setTitle('')
+      setCaption('')
+      setHashtags('')
+      setScheduleDate('')
+      setScheduleTime('')
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Failed to save post'
+      showToast(typeof msg === 'string' ? msg : JSON.stringify(msg), 'error')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const inputSty = { background: 'var(--bg-alt)', borderColor: 'var(--border)', color: 'var(--text)' }
@@ -488,15 +537,15 @@ export default function CreatePost() {
               <div className="flex flex-col gap-3">
                 <div className="flex flex-wrap gap-3">
                   {/* Primary — Submit for Approval */}
-                  <button type="button" onClick={() => handleAction('approval')}
+                  <button type="button" onClick={() => handleAction('approval')} disabled={isSubmitting}
                     className="flex items-center gap-2 px-6 h-11 rounded-[var(--r-md)] text-sm font-semibold text-white transition-all hover:brightness-105"
-                    style={{ background: 'linear-gradient(135deg, #1E3A8A, #4F46E5)' }}>
+                    style={{ background: 'linear-gradient(135deg, #1E3A8A, #4F46E5)', opacity: isSubmitting ? 0.6 : 1 }}>
                     <CheckCircle size={16} /> Submit for Approval
                   </button>
                   {/* Secondary — Save Draft */}
-                  <button type="button" onClick={() => handleAction('draft')}
+                  <button type="button" onClick={() => handleAction('draft')} disabled={isSubmitting}
                     className="flex items-center gap-2 px-5 h-11 rounded-[var(--r-md)] border text-sm font-semibold transition-all hover:shadow-[var(--shadow-sm)]"
-                    style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}>
+                    style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)', opacity: isSubmitting ? 0.6 : 1 }}>
                     <Save size={16} /> Save as Draft
                   </button>
                 </div>
@@ -510,19 +559,19 @@ export default function CreatePost() {
             ) : (
               /* Business workflow */
               <div className="flex flex-wrap gap-3">
-                <button type="button" onClick={() => handleAction('draft')}
+                <button type="button" onClick={() => handleAction('draft')} disabled={isSubmitting}
                   className="flex items-center gap-2 px-5 h-11 rounded-[var(--r-md)] border text-sm font-semibold transition-all hover:shadow-[var(--shadow-sm)]"
-                  style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}>
+                  style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)', opacity: isSubmitting ? 0.6 : 1 }}>
                   <Save size={16} /> Save Draft
                 </button>
-                <button type="button" onClick={() => handleAction('schedule')}
+                <button type="button" onClick={() => handleAction('schedule')} disabled={isSubmitting}
                   className="flex items-center gap-2 px-5 h-11 rounded-[var(--r-md)] border text-sm font-semibold transition-all hover:shadow-[var(--shadow-sm)]"
-                  style={{ background: 'var(--primary-light)', borderColor: 'var(--primary)', color: 'var(--primary)' }}>
+                  style={{ background: 'var(--primary-light)', borderColor: 'var(--primary)', color: 'var(--primary)', opacity: isSubmitting ? 0.6 : 1 }}>
                   <Clock size={16} /> Schedule Post
                 </button>
-                <button type="button" onClick={() => handleAction('publish')}
+                <button type="button" onClick={() => handleAction('publish')} disabled={isSubmitting}
                   className="flex items-center gap-2 px-6 h-11 rounded-[var(--r-md)] text-sm font-semibold text-white transition-all hover:brightness-105"
-                  style={{ background: 'linear-gradient(135deg, var(--primary), var(--secondary))' }}>
+                  style={{ background: 'linear-gradient(135deg, var(--primary), var(--secondary))', opacity: isSubmitting ? 0.6 : 1 }}>
                   <Send size={16} /> Publish Now
                 </button>
               </div>
