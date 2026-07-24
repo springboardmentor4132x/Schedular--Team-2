@@ -8,7 +8,6 @@ import app.models  # Register all models
 # Auto-create database tables
 Base.metadata.create_all(bind=engine)
 
-# Import API routers
 from app.routers import (
     auth,
     campaigns,
@@ -17,14 +16,16 @@ from app.routers import (
     social_accounts,
     workspaces,
 )
+
 from app.routers import settings as settings_router
 
 # Initialize FastAPI
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="Social Media Scheduler & Campaign Management Platform API"
+    description="Social Media Scheduler & Campaign Management Platform API",
 )
+
 
 # CORS
 origins = [
@@ -41,14 +42,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Register routers
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api/v1")
 app.include_router(campaigns.router, prefix="/api/v1")
 app.include_router(posts.router, prefix="/api/v1")
-app.include_router(users.router, prefix="/api/v1")
 app.include_router(social_accounts.router, prefix="/api/v1")
-app.include_router(settings_router.router, prefix="/api/v1")
-app.include_router(workspaces.router, prefix="/api/v1")
 
 
 @app.get("/")
