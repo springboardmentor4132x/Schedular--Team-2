@@ -1,8 +1,10 @@
 from fastapi import UploadFile, HTTPException
 from datetime import datetime
+from sqlalchemy.orm import Session
+from app.models.post import Post
 
 MAX_FILE_SIZE = 10 * 1024 * 1024   # 10 MB
-def create_post(post):
+def create_post(post, db: Session, current_user):
     """Create a new post."""
 
     if post.scheduled_time is not None:
@@ -12,33 +14,90 @@ def create_post(post):
                 detail="Scheduled time must be in the future."
             )
 
+        existing_post = db.query(Post).filter(
+            Post.user_id == current_user.id,
+            Post.scheduled_for == post.scheduled_time
+        ).first()
+
+        if existing_post:
+            raise HTTPException(
+                status_code=400,
+                detail="You already have a post scheduled at this time."
+            )
+
+    new_post = Post(
+        user_id=current_user.id,
+        title=post.title,
+        caption=post.caption,
+        media_file_path=post.media_url,
+        scheduled_for=post.scheduled_time
+    )
+
+    db.add(new_post)
+    db.commit()
+    db.refresh(new_post)
+
     return {
         "message": "Post created successfully",
-        "data": post
+        "post_id": new_post.id
+    }
+def get_all_posts(db: Session):
+    print("GET POSTS CALLED")
+
+    posts = db.query(Post).all()
+
+    print(posts)
+
+    return posts
+
+
+def get_post_by_id(post_id: int, db: Session):
+    post = db.query(Post).filter(Post.id == post_id).first()
+
+    if not post:
+        raise HTTPException(
+            status_code=404,
+            detail="Post not found"
+        )
+
+    return post
+
+def update_post(post_id: int, post_data, db: Session):
+    post = db.query(Post).filter(Post.id == post_id).first()
+
+    if not post:
+        raise HTTPException(
+            status_code=404,
+            detail="Post not found"
+        )
+
+    post.title = post_data.title
+    post.caption = post_data.caption
+    post.media_file_path = post_data.media_url
+    post.scheduled_for = post_data.scheduled_time
+
+    db.commit()
+    db.refresh(post)
+
+    return {
+        "message": "Post updated successfully",
+        "post": post
     }
 
+def delete_post(post_id: int, db: Session):
+    post = db.query(Post).filter(Post.id == post_id).first()
 
-def get_all_posts():
+    if not post:
+        raise HTTPException(
+            status_code=404,
+            detail="Post not found"
+        )
+
+    db.delete(post)
+    db.commit()
+
     return {
-        "message": "Get All Posts - Pending Database Integration"
-    }
-
-
-def get_post_by_id(post_id: int):
-    return {
-        "message": f"Get Post {post_id} - Pending Database Integration"
-    }
-
-
-def update_post(post_id: int):
-    return {
-        "message": f"Update Post {post_id} - Pending Database Integration"
-    }
-
-
-def delete_post(post_id: int):
-    return {
-        "message": f"Delete Post {post_id} - Pending Database Integration"
+        "message": "Post deleted successfully"
     }
 
 
