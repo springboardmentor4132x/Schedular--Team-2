@@ -1,7 +1,15 @@
-from fastapi import UploadFile
+from fastapi import UploadFile,HTTPException
+from datetime import datetime, timezone
 
 def create_post(post):
     """Create a new post."""
+
+    if post.scheduled_time <= datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=400,
+            detail="Scheduled time must be in the future."
+        )
+
     return {
         "message": "Post created successfully",
         "data": post
@@ -38,6 +46,20 @@ def delete_post(post_id: int):
 
 def upload_media(file: UploadFile):
     """Upload media."""
+
+    allowed_types = [
+        "image/jpeg",
+        "image/png",
+        "image/jpg",
+        "video/mp4"
+    ]
+
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail="Only JPG, PNG and MP4 files are allowed."
+        )
+
     return {
         "message": "Media uploaded successfully",
         "filename": file.filename,
