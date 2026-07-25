@@ -89,7 +89,7 @@ def get_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return get_post_by_id(post_id, db)
+    return get_post_by_id(post_id, db, current_user)
 
 @router.put("/{post_id}")
 def update_existing_post(
@@ -98,7 +98,7 @@ def update_existing_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return update_post(post_id, post, db)
+    return update_post(post_id, post, db, current_user)
 
 @router.delete("/{post_id}")
 def delete_existing_post(
@@ -106,4 +106,4 @@ def delete_existing_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return delete_post(post_id, db)
+    return delete_post(post_id, db, current_user)

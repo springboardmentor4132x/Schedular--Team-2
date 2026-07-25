@@ -1,37 +1,118 @@
-def create_campaign(campaign):
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+from app.models.campaign import Campaign
+
+def create_campaign(campaign, db: Session, current_user):
     """Create a new campaign."""
+
+    # Check for overlapping campaign dates
+    existing_campaign = db.query(Campaign).filter(
+        Campaign.user_id == current_user.id,
+        Campaign.start_date <= campaign.end_date,
+        Campaign.end_date >= campaign.start_date
+    ).first()
+
+    if existing_campaign:
+        raise HTTPException(
+            status_code=400,
+            detail="Campaign dates overlap with an existing campaign."
+        )
+
+    new_campaign = Campaign(
+        user_id=current_user.id,
+        name=campaign.campaign_name,
+        start_date=campaign.start_date,
+        end_date=campaign.end_date
+    )
+
+    db.add(new_campaign)
+    db.commit()
+    db.refresh(new_campaign)
+
     return {
         "message": "Campaign created successfully",
+        "campaign_id": new_campaign.id
+    }
+def get_all_campaigns(db: Session, current_user):
+    campaigns = db.query(Campaign).filter(
+        Campaign.user_id == current_user.id
+    ).all()
+
+    return campaigns
+
+
+def get_campaign_by_id(campaign_id: int, db: Session, current_user):
+    campaign = db.query(Campaign).filter(
+        Campaign.id == campaign_id
+    ).first()
+
+    if not campaign:
+        raise HTTPException(
+            status_code=404,
+            detail="Campaign not found"
+        )
+
+    if campaign.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized to access this campaign."
+        )
+
+    return campaign
+
+
+def update_campaign(campaign_id: int, campaign_data, db: Session, current_user):
+    campaign = db.query(Campaign).filter(
+        Campaign.id == campaign_id
+    ).first()
+
+    if not campaign:
+        raise HTTPException(
+            status_code=404,
+            detail="Campaign not found"
+        )
+
+    if campaign.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized to update this campaign."
+        )
+
+    campaign.name = campaign_data.campaign_name
+    campaign.start_date = campaign_data.start_date
+    campaign.end_date = campaign_data.end_date
+
+    db.commit()
+    db.refresh(campaign)
+
+    return {
+        "message": "Campaign updated successfully",
         "campaign": campaign
     }
 
 
-def get_all_campaigns():
-    """Get all campaigns."""
+def delete_campaign(campaign_id: int, db: Session, current_user):
+    campaign = db.query(Campaign).filter(
+        Campaign.id == campaign_id
+    ).first()
+
+    if not campaign:
+        raise HTTPException(
+            status_code=404,
+            detail="Campaign not found"
+        )
+
+    if campaign.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized to delete this campaign."
+        )
+
+    db.delete(campaign)
+    db.commit()
+
     return {
-        "message": "Get All Campaigns - Pending Database Integration"
-    }
-
-
-def get_campaign_by_id(campaign_id: int):
-    """Get a campaign by ID."""
-    return {
-        "message": f"Get Campaign {campaign_id} - Pending Database Integration"
-    }
-
-
-def update_campaign(campaign_id: int, campaign):
-    """Update campaign details."""
-    return {
-        "message": f"Update Campaign {campaign_id} - Pending Database Integration",
-        "campaign": campaign
-    }
-
-
-def delete_campaign(campaign_id: int):
-    """Delete a campaign."""
-    return {
-        "message": f"Delete Campaign {campaign_id} - Pending Database Integration"
+        "message": "Campaign deleted successfully"
     }
 
 

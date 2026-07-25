@@ -51,7 +51,7 @@ def get_all_posts(db: Session):
     return posts
 
 
-def get_post_by_id(post_id: int, db: Session):
+def get_post_by_id(post_id: int, db: Session, current_user):
     post = db.query(Post).filter(Post.id == post_id).first()
 
     if not post:
@@ -60,15 +60,26 @@ def get_post_by_id(post_id: int, db: Session):
             detail="Post not found"
         )
 
+    if post.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized to access this post."
+        )
+
     return post
 
-def update_post(post_id: int, post_data, db: Session):
+def update_post(post_id: int, post_data, db: Session, current_user):
     post = db.query(Post).filter(Post.id == post_id).first()
 
     if not post:
         raise HTTPException(
             status_code=404,
             detail="Post not found"
+        )
+    if post.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized to update this post."
         )
 
     post.title = post_data.title
@@ -84,13 +95,18 @@ def update_post(post_id: int, post_data, db: Session):
         "post": post
     }
 
-def delete_post(post_id: int, db: Session):
+def delete_post(post_id: int, db: Session, current_user):
     post = db.query(Post).filter(Post.id == post_id).first()
 
     if not post:
         raise HTTPException(
             status_code=404,
             detail="Post not found"
+        )
+    if post.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized to delete this post."
         )
 
     db.delete(post)

@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.database.database import get_db
 from app.auth.dependencies import get_current_user
 from app.models.user import User
 
@@ -26,15 +28,17 @@ router = APIRouter(
 @router.post("/")
 def create_new_campaign(
     campaign: CampaignCreate,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return create_campaign(campaign)
+    return create_campaign(campaign, db, current_user)
 
 @router.get("/")
 def get_campaigns(
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-     return get_all_campaigns()
+    return get_all_campaigns(db, current_user)
 
 
 @router.post("/{campaign_id}/assign-post/{post_id}")
@@ -82,23 +86,26 @@ def campaign_summary(
 @router.get("/{campaign_id}")
 def get_campaign(
     campaign_id: int,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return get_campaign_by_id(campaign_id)
+    return get_campaign_by_id(campaign_id, db, current_user)
 
 
 @router.put("/{campaign_id}")
 def update_existing_campaign(
     campaign_id: int,
     campaign: CampaignUpdate,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return update_campaign(campaign_id, campaign)
+    return update_campaign(campaign_id, campaign, db, current_user)
 
 
 @router.delete("/{campaign_id}")
 def delete_existing_campaign(
     campaign_id: int,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-       return delete_campaign(campaign_id)
+    return delete_campaign(campaign_id, db, current_user)
