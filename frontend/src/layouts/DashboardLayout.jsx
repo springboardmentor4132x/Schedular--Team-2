@@ -3,6 +3,7 @@ import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import Sidebar from '../components/dashboard/Sidebar'
 import TopBar from '../components/dashboard/TopBar'
+import MarketingClientSelector from '../components/dashboard/MarketingClientSelector'
 import { useAuth } from '../context/AuthContext'
 
 /**
@@ -80,8 +81,12 @@ export default function DashboardLayout({ isDark, onToggleTheme }) {
           onOpenMobileSidebar={() => setMobileOpen(true)}
         />
 
-        {/* Page content with fade transition */}
         <main className="flex-1 overflow-y-auto">
+          {location.pathname.startsWith('/dashboard/mkt') && (
+            <div className="p-4 sm:p-6 border-b" style={{ borderColor: 'var(--border)', background: 'var(--bg-alt)' }}>
+              <MarketingClientSelector />
+            </div>
+          )}
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}

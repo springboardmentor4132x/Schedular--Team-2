@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Megaphone, Plus, Search, Edit3, Archive,
+  Megaphone, Search,
   Users, TrendingUp, Calendar, DollarSign,
-  Target, MoreHorizontal, X, CheckCircle2,
+  Target, MoreHorizontal, CheckCircle2,
 } from 'lucide-react'
 import PageHeader from '../../components/dashboard/PageHeader'
 import EmptyState from '../../components/dashboard/EmptyState'
@@ -31,75 +31,10 @@ function Avatar({ initials }) {
   )
 }
 
-function CreateModal({ onClose, onCreate }) {
-  const [form, setForm] = useState({ name:'', objective:'Brand Awareness', budget:'', start:'', end:'' })
-  const objectives = ['Brand Awareness','Lead Generation','Sales','Reach','Engagement']
-  const submit = e => {
-    e.preventDefault()
-    if (!form.name.trim()) return
-    onCreate({ ...form, budget: Number(form.budget) || 0, id: Date.now(), status:'draft', progress:0, spent:0, members:[], platforms:[], posts:0, reach:0 })
-    onClose()
-  }
-  return (
-    <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <motion.div initial={{ scale:0.95, y:16 }} animate={{ scale:1, y:0 }} exit={{ scale:0.95 }}
-        className="w-full max-w-md rounded-[var(--r-xl)] p-6 shadow-[var(--shadow-lg)]"
-        style={{ background:'var(--card)', border:'1px solid var(--border)' }}>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold" style={{ fontFamily:"'Plus Jakarta Sans', sans-serif", color:'var(--text)' }}>
-            Create Campaign
-          </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[var(--bg-alt)]" style={{ color:'var(--text-muted)' }}>
-            <X size={16} />
-          </button>
-        </div>
-        <form onSubmit={submit} className="flex flex-col gap-4">
-          {[
-            { label:'Campaign Name', key:'name', type:'text', placeholder:'e.g. Summer Sale 2025' },
-            { label:'Budget ($)',    key:'budget', type:'number', placeholder:'e.g. 2500' },
-            { label:'Start Date',   key:'start',  type:'date', placeholder:'' },
-            { label:'End Date',     key:'end',    type:'date', placeholder:'' },
-          ].map(f => (
-            <div key={f.key}>
-              <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>{f.label}</label>
-              <input type={f.type} value={form[f.key]} placeholder={f.placeholder}
-                onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                className="w-full h-10 px-4 text-sm rounded-[var(--r-md)] border outline-none"
-                style={{ background:'var(--bg-alt)', borderColor:'var(--border)', color:'var(--text)' }} />
-            </div>
-          ))}
-          <div>
-            <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Objective</label>
-            <select value={form.objective} onChange={e => setForm(p => ({ ...p, objective: e.target.value }))}
-              className="w-full h-10 px-4 text-sm rounded-[var(--r-md)] border outline-none"
-              style={{ background:'var(--bg-alt)', borderColor:'var(--border)', color:'var(--text)' }}>
-              {objectives.map(o => <option key={o}>{o}</option>)}
-            </select>
-          </div>
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 h-10 rounded-[var(--r-md)] border text-sm font-semibold transition-all"
-              style={{ background:'var(--card)', borderColor:'var(--border)', color:'var(--text)' }}>
-              Cancel
-            </button>
-            <button type="submit"
-              className="flex-1 h-10 rounded-[var(--r-md)] text-sm font-semibold text-white transition-all hover:brightness-105"
-              style={{ background:'linear-gradient(135deg, var(--primary), var(--secondary))' }}>
-              Create Campaign
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
-  )
-}
-
 export default function Campaigns() {
   const [campaigns, setCampaigns] = useState(INIT_CAMPAIGNS)
   const [search,    setSearch]    = useState('')
   const [status,    setStatus]    = useState('all')
-  const [showModal, setShowModal] = useState(false)
 
   const filtered = campaigns.filter(c => {
     const matchSearch = c.name.toLowerCase().includes(search.toLowerCase())
@@ -114,13 +49,6 @@ export default function Campaigns() {
       <PageHeader
         title="Campaigns"
         subtitle={`${campaigns.filter(c => c.status === 'active').length} active campaigns`}
-        actions={
-          <button onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 h-9 rounded-[var(--r-md)] text-sm font-semibold text-white hover:brightness-105 transition-all"
-            style={{ background:'linear-gradient(135deg, var(--primary), var(--secondary))' }}>
-            <Plus size={15} /> New Campaign
-          </button>
-        }
       />
 
       {/* Filters */}
@@ -152,7 +80,7 @@ export default function Campaigns() {
 
       {/* Empty */}
       {filtered.length === 0 && (
-        <div className="card"><EmptyState icon={Megaphone} title="No campaigns found" message="Create your first campaign to get started." /></div>
+        <div className="card"><EmptyState icon={Megaphone} title="No campaigns found" message="Your marketing team will create campaigns for you." /></div>
       )}
 
       {/* Campaign cards */}
@@ -234,16 +162,12 @@ export default function Campaigns() {
                   </div>
                 </div>
 
-                {/* Footer actions */}
+          {/* Footer actions — view only for Business User */}
                 {c.status !== 'completed' && (
                   <div className="flex gap-2 pt-3 mt-3 border-t" style={{ borderColor:'var(--border)' }}>
-                    <button className="flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color:'var(--primary)' }}>
-                      <Edit3 size={11} /> Edit
-                    </button>
-                    <button onClick={() => archive(c.id)}
-                      className="flex items-center gap-1 text-xs font-semibold hover:underline ml-auto" style={{ color:'var(--text-muted)' }}>
-                      <Archive size={11} /> Archive
-                    </button>
+                    <span className="flex items-center gap-1 text-xs" style={{ color:'var(--text-subtle)' }}>
+                      Managed by your marketing team
+                    </span>
                   </div>
                 )}
                 {c.status === 'completed' && (
@@ -256,15 +180,6 @@ export default function Campaigns() {
           })}
         </AnimatePresence>
       </div>
-
-      <AnimatePresence>
-        {showModal && (
-          <CreateModal
-            onClose={() => setShowModal(false)}
-            onCreate={c => setCampaigns(prev => [c, ...prev])}
-          />
-        )}
-      </AnimatePresence>
     </div>
   )
 }

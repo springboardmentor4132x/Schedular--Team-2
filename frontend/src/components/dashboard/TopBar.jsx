@@ -3,6 +3,7 @@ import { Bell, Menu, Search } from 'lucide-react'
 import { useState } from 'react'
 import ThemeToggle from '../ThemeToggle'
 import { useAuth } from '../../context/AuthContext'
+import { useClient } from '../../context/ClientContext'
 
 /**
  * TopBar — sticky top navigation inside the dashboard layout.
@@ -10,24 +11,38 @@ import { useAuth } from '../../context/AuthContext'
  */
 
 const ROUTE_LABELS = {
-  '/dashboard/business':    'Dashboard',
-  '/dashboard/marketing':   'Dashboard',
-  '/dashboard/creator':     'Dashboard',
-  '/dashboard/admin':       'Dashboard',
-  '/dashboard/create-post': 'Create Post',
-  '/dashboard/calendar':    'Publishing Calendar',
-  '/dashboard/drafts':      'Drafts',
-  '/dashboard/campaigns':   'Campaigns',
-  '/dashboard/queue':       'Publishing Queue',
-  '/dashboard/logs':        'Publishing Logs',
-  '/dashboard/analytics':   'Analytics',
-  '/dashboard/notifications': 'Notifications',
-  '/dashboard/profile':     'Business Profile',
-  '/dashboard/settings':    'Settings',
+  '/dashboard/business':           'Dashboard',
+  '/dashboard/marketing':          'Dashboard',
+  '/dashboard/creator':            'Dashboard',
+  '/dashboard/admin':              'Dashboard',
+  // Business routes
+  '/dashboard/marketing-teams':    'Marketing Teams',
+  '/dashboard/brand-guidelines':   'Brand Guidelines',
+  '/dashboard/marketing-activity': 'Marketing Activity',
+  '/dashboard/connected-accounts': 'Connected Accounts',
+  '/dashboard/campaigns':          'Campaigns',
+  '/dashboard/scheduled-posts':    'Scheduled Posts',
+  '/dashboard/published-posts':    'Published Posts',
+  '/dashboard/reports':            'Reports',
+  // Marketing Team routes
+  '/dashboard/mkt/clients':        'Clients',
+  '/dashboard/mkt/workspace':      'Client Workspace',
+  '/dashboard/mkt/connected-apps': 'Connected Apps',
+  '/dashboard/mkt/content':        'Content Management',
+  '/dashboard/mkt/scheduling':     'Content Scheduling',
+  '/dashboard/mkt/calendar':       'Publishing Calendar',
+  '/dashboard/mkt/campaigns':      'Campaign Management',
+  '/dashboard/mkt/reports':        'Reports',
+  // Shared
+  '/dashboard/analytics':          'Analytics',
+  '/dashboard/notifications':      'Notifications',
+  '/dashboard/profile':            'Profile',
+  '/dashboard/settings':           'Settings',
 }
 
 export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
   const { user } = useAuth()
+  const { activeClient } = useClient()
   const { pathname } = useLocation()
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -60,6 +75,11 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
           >
             {pageTitle}
           </h1>
+          {pathname.startsWith('/dashboard/mkt') && activeClient && (
+            <p className="text-xs text-[var(--text-muted)] truncate mt-1">
+              Managing: {activeClient.name}
+            </p>
+          )}
         </div>
       </div>
 

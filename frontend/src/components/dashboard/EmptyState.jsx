@@ -31,7 +31,19 @@ export default function EmptyState({ icon: Icon, title, message, action }) {
         {title}
       </h3>
       <p className="text-sm max-w-xs" style={{ color: 'var(--text-muted)' }}>{message}</p>
-      {action && <div className="mt-5">{action}</div>}
+      {action && (
+        <div className="mt-5">
+          {typeof action === 'object' && action.label ? (
+            <button
+              onClick={action.onClick}
+              className="flex items-center gap-2 px-4 h-9 rounded-[var(--r-md)] text-sm font-semibold text-white transition-all hover:brightness-105"
+              style={{ background: 'linear-gradient(135deg, var(--primary), var(--secondary))' }}
+            >
+              {action.label}
+            </button>
+          ) : action}
+        </div>
+      )}
     </motion.div>
   )
 }

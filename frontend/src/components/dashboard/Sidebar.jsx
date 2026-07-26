@@ -1,10 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  LayoutDashboard, PenSquare, CalendarDays, FileText,
+  LayoutDashboard, CalendarDays, FileText,
   List, ScrollText, BarChart2, Bell,
   User, Settings, LogOut, ChevronLeft, ChevronRight,
-  Link2, Megaphone, ClipboardList,
+  Link2, Megaphone, ClipboardList, Users, Send, PenSquare,
+  BookOpen, Activity,
 } from 'lucide-react'
 import { useAuth, ROLE_LABELS } from '../../context/AuthContext'
 import Logo from '../Logo'
@@ -26,27 +27,32 @@ import Logo from '../Logo'
  */
 
 const BUSINESS_NAV = [
-  { label: 'Dashboard',          icon: LayoutDashboard, href: null },
-  { label: 'Create Post',        icon: PenSquare,       href: '/dashboard/create-post' },
-  { label: 'Campaigns',          icon: Megaphone,       href: '/dashboard/campaigns' },
-  { label: 'Calendar',           icon: CalendarDays,    href: '/dashboard/calendar' },
-  { label: 'Drafts',             icon: FileText,        href: '/dashboard/drafts' },
-  { label: 'Publishing Queue',   icon: List,            href: '/dashboard/queue' },
-  { label: 'Publishing Logs',    icon: ScrollText,      href: '/dashboard/logs' },
-  { label: 'Connected Accounts', icon: Link2,           href: '/dashboard/connected-accounts' },
-  { label: 'Analytics',          icon: BarChart2,       href: '/dashboard/analytics' },
-  { label: 'Notifications',      icon: Bell,            href: '/dashboard/notifications' },
+  { label: 'Dashboard',           icon: LayoutDashboard, href: null },
+  { label: 'Marketing Teams',     icon: Users,           href: '/dashboard/marketing-teams' },
+  { label: 'Brand Guidelines',    icon: BookOpen,        href: '/dashboard/brand-guidelines' },
+  { label: 'Marketing Activity',  icon: Activity,        href: '/dashboard/marketing-activity' },
+  { label: 'Connected Accounts',  icon: Link2,           href: '/dashboard/connected-accounts' },
+  { label: 'Campaigns',           icon: Megaphone,       href: '/dashboard/campaigns' },
+  { label: 'Scheduled Posts',     icon: CalendarDays,    href: '/dashboard/scheduled-posts' },
+  { label: 'Published Posts',     icon: Send,            href: '/dashboard/published-posts' },
+  { label: 'Analytics',           icon: BarChart2,       href: '/dashboard/analytics' },
+  { label: 'Reports',             icon: FileText,        href: '/dashboard/reports' },
+  { label: 'Notifications',       icon: Bell,            href: '/dashboard/notifications' },
 ]
 
 const MARKETING_NAV = [
-  { label: 'Dashboard',          icon: LayoutDashboard, href: null },
-  { label: 'Assigned Campaigns', icon: ClipboardList,   href: '/dashboard/assigned-campaigns' },
-  { label: 'Publishing Queue',   icon: List,            href: '/dashboard/queue' },
-  { label: 'Calendar',           icon: CalendarDays,    href: '/dashboard/calendar' },
-  { label: 'Draft Review',       icon: FileText,        href: '/dashboard/drafts' },
-  { label: 'Publishing Logs',    icon: ScrollText,      href: '/dashboard/logs' },
-  { label: 'Analytics',          icon: BarChart2,       href: '/dashboard/analytics' },
-  { label: 'Notifications',      icon: Bell,            href: '/dashboard/notifications' },
+  { label: 'Dashboard',           icon: LayoutDashboard, href: null },
+  { label: 'Client Requests',     icon: ClipboardList,   href: '/dashboard/mkt/requests' },
+  { label: 'Clients',             icon: Users,           href: '/dashboard/mkt/clients' },
+  { label: 'Brand Guidelines',    icon: BookOpen,        href: '/dashboard/mkt/brand-guidelines' },
+  { label: 'Connected Apps',      icon: Link2,           href: '/dashboard/mkt/connected-apps' },
+  { label: 'Content Management',  icon: PenSquare,       href: '/dashboard/mkt/content' },
+  { label: 'Content Scheduling',  icon: CalendarDays,    href: '/dashboard/mkt/scheduling' },
+  { label: 'Publishing Calendar', icon: CalendarDays,    href: '/dashboard/mkt/calendar' },
+  { label: 'Campaigns',           icon: Megaphone,       href: '/dashboard/mkt/campaigns' },
+  { label: 'Analytics',           icon: BarChart2,       href: '/dashboard/mkt/analytics' },
+  { label: 'Reports',             icon: ScrollText,      href: '/dashboard/mkt/reports' },
+  { label: 'Notifications',       icon: Bell,            href: '/dashboard/notifications' },
 ]
 
 const MINIMAL_NAV = [
