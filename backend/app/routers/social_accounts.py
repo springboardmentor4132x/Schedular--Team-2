@@ -1,17 +1,32 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+
 from app.database.database import get_db
 from app.models.user import User
 from app.models.social_account import SocialAccount
-from app.schemas.social_account import SocialAccountConnect, SocialAccountResponse
+from app.schemas.social_account import (
+    SocialAccountConnect,
+    SocialAccountResponse,
+)
 from app.routers.auth import get_current_user
+
 from typing import List
 from datetime import datetime, timezone
 import os
 import urllib.parse
 import requests
 import base64
+
+from app.services.facebook_service import (
+    get_facebook_login_url,
+    exchange_code_for_access_token,
+)
+
+from app.services.linkedin_service import (
+    get_linkedin_login_url,
+    exchange_code_for_access_token as exchange_linkedin_token,
+)
 
 router = APIRouter(
     prefix="/social",
