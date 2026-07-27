@@ -66,17 +66,6 @@ export function PublishingPanel() {
         </motion.div></AnimatePresence>
       )}
 
-      {/* Info banner */}
-      <div className="flex items-center gap-3 px-4 py-3 rounded-[var(--r-md)] mb-5 text-xs font-medium"
-        style={{ background:'rgba(30,58,138,.08)', border:'1px solid rgba(30,58,138,.20)', color:'#1E3A8A' }}>
-        <Zap size={14} className="flex-shrink-0"/>
-        Actual publishing to Facebook, Instagram, LinkedIn, X, YouTube and Pinterest will be handled by the backend API. Publishing Center shows status and queues.
-      </div>
-
-      {/* Summary placeholder - parent may render summaries */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
-        <div className="card p-3 text-center">No data</div>
-      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-1.5 mb-5">

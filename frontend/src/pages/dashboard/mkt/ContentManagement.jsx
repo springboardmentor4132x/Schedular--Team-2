@@ -144,7 +144,7 @@ export default function ContentManagement() {
       platform: form.platforms[0] || 'instagram',
       status,
       tags: form.hashtags.split(/[,\s]+/).filter(Boolean),
-      scheduledAt: status === 'scheduled' ? `${form.scheduleDate}T${form.scheduleTime}` : null,
+      scheduledAt: form.scheduleDate && form.scheduleTime ? `${form.scheduleDate}T${form.scheduleTime}` : null,
       uploadedBy: activeClient.name,
     }
 
@@ -382,6 +382,9 @@ export default function ContentManagement() {
                   <div className="flex flex-wrap gap-2 text-[11px] text-[var(--text-muted)]">
                     {draft.tags?.map(tag => <span key={tag} className="px-2 py-1 rounded-full" style={{ background:'var(--bg-alt)' }}>#{tag}</span>)}
                     {draft.campaign && <span className="px-2 py-1 rounded-full" style={{ background:'rgba(59,130,246,.12)', color:'#2563EB' }}>{draft.campaign}</span>}
+                    {draft.scheduledAt && (
+                      <span className="px-2 py-1 rounded-full" style={{ background:'rgba(14,165,233,.12)', color:'#0369A1' }}>{new Date(draft.scheduledAt).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}</span>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2 pt-2 border-t" style={{ borderColor:'var(--border)' }}>
                     <button onClick={() => openEdit(draft)} className="flex items-center gap-1 text-xs font-semibold text-[var(--primary)] hover:underline">
@@ -476,6 +479,17 @@ export default function ContentManagement() {
                 <div>
                   <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Hashtags</label>
                   <input value={form.hashtags} onChange={e => upd('hashtags', e.target.value)} placeholder="#brand #launch" className={inputClass} style={inputStyle} />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Schedule date</label>
+                    <input type="date" value={form.scheduleDate} onChange={e => upd('scheduleDate', e.target.value)} className={inputClass} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Schedule time</label>
+                    <input type="time" value={form.scheduleTime} onChange={e => upd('scheduleTime', e.target.value)} className={inputClass} style={inputStyle} />
+                  </div>
                 </div>
 
                 <div>

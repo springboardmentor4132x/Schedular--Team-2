@@ -38,7 +38,7 @@ export function SchedulingPanel() {
   const [month,setMonth]=useState(new Date().getMonth())
   const [showModal,setShowModal]=useState(false)
   const [toast,setToast]=useState(null)
-  const [form,setForm]=useState({ title:'', platform:'instagram', date:'', time:'', campaign:'' })
+  const [form,setForm]=useState({ title:'', platform:'instagram', date:'', time:'', campaign:'', caption:'', mediaFile:null, mediaPreview:null })
   const [queue,setQueue]=useState([])
 
   const posts = activeClient ? (MOCK_CLIENT_POSTS[activeClient.id] ?? { scheduled: [] }) : { scheduled: [] }
@@ -69,16 +69,22 @@ export function SchedulingPanel() {
       scheduledAt:`${form.date}T${form.time}`,
       status:'scheduled',
       campaign:form.campaign||null,
-      caption:'',
-      media:false,
+      caption:form.caption || '',
+      media: form.mediaFile ? { type: form.mediaFile.type, name: form.mediaFile.name, preview: form.mediaPreview } : null,
     }
     setQueue(prev=>[...prev,newPost])
     setShowModal(false)
-    setForm({ title:'', platform:'instagram', date:'', time:'', campaign:'' })
+    setForm({ title:'', platform:'instagram', date:'', time:'', campaign:'', caption:'', mediaFile:null, mediaPreview:null })
     showToast('Post scheduled!')
   }
 
   const removePost=id=>{ setQueue(prev=>prev.filter(p=>p.id!==id)); showToast('Post removed.') }
+  const selectMedia=(file)=>{
+    if(!file) return
+    const preview = URL.createObjectURL(file)
+    setForm(p=>({ ...p, mediaFile:file, mediaPreview:preview }))
+  }
+  const removeMedia=()=> setForm(p=>({ ...p, mediaFile:null, mediaPreview:null }))
 
   const firstDay=new Date(year,month,1).getDay()
   const daysInMonth=new Date(year,month+1,0).getDate()
@@ -242,11 +248,44 @@ export function SchedulingPanel() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Campaign (optional)</label>
-                  <select value={form.campaign} onChange={e=>setForm(p=>({...p,campaign:e.target.value}))} className={inputCls} style={inputSty}>
-                    <option value="">None</option>
-                    {campaigns.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
+                  <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Caption</label>
+                  <textarea value={form.caption} onChange={e=>setForm(p=>({...p,caption:e.target.value}))}
+                    rows={3} className="w-full px-4 py-3 text-sm rounded-[var(--r-md)] border outline-none resize-none transition-all" style={inputSty}
+                    placeholder="Write a caption for this post..." />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Media</label>
+                  <div className="rounded-[var(--r-md)] border border-dashed border-slate-500/40 bg-[var(--bg-alt)] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm text-[var(--text-muted)]">Upload image, video or audio</div>
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-all hover:brightness-110">
+                        <input type="file" accept="image/*,video/*,audio/*" className="hidden" onChange={e=>selectMedia(e.target.files?.[0])} />
+                        Choose file
+                      </label>
+                    </div>
+                    {form.mediaPreview && (
+                      <div className="mt-3 rounded-[var(--r-md)] border border-slate-600/40 bg-slate-950/10 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold" style={{ color:'var(--text)' }}>{form.mediaFile?.name}</p>
+                            <p className="text-xs text-[var(--text-muted)]">{form.mediaFile?.type}</p>
+                          </div>
+                          <button type="button" onClick={removeMedia} className="text-sm font-semibold text-blue-500">Remove</button>
+                        </div>
+                        <div className="mt-3">
+                          {form.mediaFile?.type.startsWith('image/') && (
+                            <img src={form.mediaPreview} alt="Preview" className="w-full rounded-[var(--r-md)] object-cover" />
+                          )}
+                          {form.mediaFile?.type.startsWith('video/') && (
+                            <video src={form.mediaPreview} controls className="w-full rounded-[var(--r-md)]" />
+                          )}
+                          {form.mediaFile?.type.startsWith('audio/') && (
+                            <audio src={form.mediaPreview} controls className="w-full rounded-[var(--r-md)]" />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-3 pt-2">
                   <button onClick={()=>setShowModal(false)} className="flex-1 h-10 rounded-[var(--r-md)] border text-sm font-semibold" style={{ background:'var(--card)', borderColor:'var(--border)', color:'var(--text)' }}>Cancel</button>

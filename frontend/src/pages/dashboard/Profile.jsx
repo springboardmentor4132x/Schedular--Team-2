@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Building2, Globe, Clock, Camera, Save,
@@ -7,6 +7,9 @@ import {
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6'
 import { useAuth } from '../../context/AuthContext'
 import PageHeader from '../../components/dashboard/PageHeader'
+import Toast from '../../components/Toast'
+import ProfileImageUpload from '../../components/ProfileImageUpload'
+import { getStoredProfileImage, removeProfileImage, uploadProfileImage } from '../../services/profileImageService'
 
 const TIMEZONES = [
   'UTC−08:00 Pacific Time','UTC−05:00 Eastern Time',
@@ -51,7 +54,7 @@ const inputCls = "w-full h-10 px-4 text-sm rounded-[var(--r-md)] border outline-
 const inputSty = { background:'var(--bg-alt)', borderColor:'var(--border)', color:'var(--text)' }
 
 export default function Profile() {
-  const { user, role } = useAuth()
+  const { user, role, updateAvatar, removeAvatar } = useAuth()
   const isMarketing = role === 'marketing'
 
   const [form, setForm] = useState({
@@ -70,19 +73,65 @@ export default function Profile() {
   })
   const [socials, setSocials]  = useState(SOCIAL_PLATFORMS)
   const [saved,   setSaved]    = useState(false)
+  const [toast, setToast] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(() => getStoredProfileImage() || user?.avatar || null)
+
+  useEffect(() => {
+    const storedAvatar = getStoredProfileImage() || user?.avatar || null
+    setAvatarUrl(storedAvatar)
+  }, [user?.avatar])
 
   const update = (k, v) => setForm(p => ({ ...p, [k]:v }))
 
   const toggleConnect = id =>
     setSocials(prev => prev.map(s => s.id === id ? { ...s, connected:!s.connected } : s))
 
+  const showToast = (message, type = 'success') => {
+    setToast({ type, message })
+    window.setTimeout(() => setToast(null), 3200)
+  }
+
   const handleSave = () => {
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
 
+  const handleUpload = async (preview, selectedFile) => {
+    try {
+      setUploading(true)
+      const imageUrl = await uploadProfileImage(preview || selectedFile)
+      updateAvatar(imageUrl)
+      setAvatarUrl(imageUrl)
+      showToast('Profile picture updated successfully.', 'success')
+      return true
+    } catch {
+      showToast('Upload failed.', 'error')
+      return false
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemove = async () => {
+    try {
+      setUploading(true)
+      await removeProfileImage()
+      removeAvatar()
+      setAvatarUrl(null)
+      showToast('Profile picture removed.', 'success')
+    } catch {
+      showToast('Upload failed.', 'error')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const avatarDisplay = useMemo(() => avatarUrl || user?.avatar || null, [avatarUrl, user?.avatar])
+
   return (
     <div className="p-4 sm:p-6 max-w-[900px] mx-auto">
+      <Toast toast={toast} onClose={() => setToast(null)} />
       <PageHeader
         title={isMarketing ? 'Team Profile' : 'Business Profile'}
         subtitle={isMarketing
@@ -101,25 +150,8 @@ export default function Profile() {
 
         {/* Company / Team identity */}
         <Section title={isMarketing ? 'Team Identity' : 'Company Identity'}>
-          <div className="flex items-center gap-5 mb-5">
-            <div className="relative flex-shrink-0">
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-white text-3xl font-bold shadow-[var(--shadow-md)]"
-                style={{ background:'linear-gradient(135deg, var(--primary), var(--secondary))' }}>
-                {isMarketing ? 'M' : 'O'}
-              </div>
-              <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center text-white shadow-[var(--shadow-sm)]"
-                style={{ background:'var(--primary)' }}>
-                <Camera size={13} />
-              </button>
-            </div>
-            <div>
-              <p className="text-base font-bold" style={{ color:'var(--text)' }}>
-                {isMarketing ? form.teamName : form.company}
-              </p>
-              <p className="text-xs mt-0.5" style={{ color:'var(--text-muted)' }}>
-                {isMarketing ? 'Marketing Team' : 'Click the camera icon to update your logo.'}
-              </p>
-            </div>
+          <div className="mb-5 rounded-[24px] border p-4" style={{ borderColor:'var(--border)', background:'var(--bg-alt)' }}>
+            <ProfileImageUpload currentImage={avatarDisplay} onUpload={handleUpload} onRemove={handleRemove} loading={uploading} />
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             {isMarketing ? (

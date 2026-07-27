@@ -288,10 +288,14 @@ export default function Sidebar({ isDark, collapsed, onCollapse }) {
           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #1E3A8A, #4F46E5)' }}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden border"
+            style={{ background: 'linear-gradient(135deg, #1E3A8A, #4F46E5)', borderColor: 'rgba(255,255,255,0.16)' }}
           >
-            {user.name?.[0]?.toUpperCase() ?? 'U'}
+            {user.avatar ? (
+              <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+            ) : (
+              user.name?.[0]?.toUpperCase() ?? 'U'
+            )}
           </div>
           <div className="overflow-hidden">
             <p className="text-sm font-semibold truncate" style={{ color: '#F8FAFC' }}>{user.name}</p>
@@ -303,11 +307,15 @@ export default function Sidebar({ isDark, collapsed, onCollapse }) {
       {collapsed && user && (
         <div className="flex items-center justify-center pb-3">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
-            style={{ background: 'linear-gradient(135deg, #1E3A8A, #4F46E5)' }}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold overflow-hidden border"
+            style={{ background: 'linear-gradient(135deg, #1E3A8A, #4F46E5)', borderColor: 'rgba(255,255,255,0.16)' }}
             title={`${user.name} · ${ROLE_LABELS[user.role]}`}
           >
-            {user.name?.[0]?.toUpperCase() ?? 'U'}
+            {user.avatar ? (
+              <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+            ) : (
+              user.name?.[0]?.toUpperCase() ?? 'U'
+            )}
           </div>
         </div>
       )}

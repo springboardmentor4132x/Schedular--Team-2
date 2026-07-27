@@ -117,11 +117,15 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
         {/* Avatar */}
         {user && (
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold cursor-pointer flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, var(--primary), var(--secondary))' }}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold cursor-pointer flex-shrink-0 overflow-hidden border"
+            style={{ background: 'linear-gradient(135deg, var(--primary), var(--secondary))', borderColor: 'var(--border)' }}
             title={user.name}
           >
-            {user.name?.[0]?.toUpperCase() ?? 'U'}
+            {user.avatar ? (
+              <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+            ) : (
+              user.name?.[0]?.toUpperCase() ?? 'U'
+            )}
           </div>
         )}
       </div>
