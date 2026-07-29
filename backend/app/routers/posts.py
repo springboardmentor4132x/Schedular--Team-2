@@ -16,6 +16,11 @@ from app.services.post_service import (
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
+
+@router.post("/")
+def schedule_post():
+    """Schedules a new post (Saves metadata in Postgres, content in Mongo)."""
+    return {"message": "Pending Implementation (Anwin)"}
 @router.get("/")
 def get_posts():
     return get_all_posts()

@@ -17,10 +17,8 @@ router = APIRouter(
     tags=["Campaigns"]
 )
 
-@router.post("/")
 def create_new_campaign():
     return create_campaign()
-
 
 @router.get("/")
 def get_campaigns():

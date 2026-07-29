@@ -1,5 +1,5 @@
 import os
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "SocialPilot API"
@@ -35,7 +35,10 @@ class Settings(BaseSettings):
             return f"mongodb://{self.MONGO_USER}:{self.MONGO_PASSWORD}@{self.MONGO_SERVER}:{self.MONGO_PORT}/?authSource=admin"
         return f"mongodb://{self.MONGO_SERVER}:{self.MONGO_PORT}/"
     
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+    env_file=".env",
+    extra="ignore"
+    )
 
 settings = Settings()
+
