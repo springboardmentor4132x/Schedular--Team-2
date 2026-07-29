@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { HiUser, HiBuildingOffice2, HiBuildingLibrary, HiMegaphone, HiArrowRight } from 'react-icons/hi2'
+import { HiUser, HiBuildingOffice2, HiShieldCheck, HiMegaphone, HiArrowRight } from 'react-icons/hi2'
 import Logo from '../components/Logo'
 import ThemeToggle from '../components/ThemeToggle'
 import Button from '../components/Button'
@@ -8,6 +8,7 @@ import Button from '../components/Button'
 /**
  * RoleSelection Page
  * 4 role cards — user picks one, continues to Register
+ * Roles: business | marketing | creator | administrator
  * Props: isDark, onToggleTheme
  */
 export default function RoleSelection({ isDark, onToggleTheme }) {
@@ -18,23 +19,23 @@ export default function RoleSelection({ isDark, onToggleTheme }) {
     {
       id: 'creator',
       icon: HiUser,
-      title: 'Creator',
+      title: 'Content Creator',
       desc: 'For individual influencers and content creators building a personal brand.',
       benefits: ['Up to 5 accounts', 'AI scheduling', 'Analytics dashboard'],
     },
     {
       id: 'business',
       icon: HiBuildingOffice2,
-      title: 'Business',
+      title: 'Business User',
       desc: 'For small to mid-sized businesses growing their social presence.',
       benefits: ['Up to 15 accounts', 'Team collaboration', 'Priority support'],
     },
     {
-      id: 'agency',
-      icon: HiBuildingLibrary,
-      title: 'Agency',
-      desc: 'For agencies managing multiple client accounts with advanced workflows.',
-      benefits: ['Unlimited accounts', 'White-label reports', 'Client portals'],
+      id: 'administrator',
+      icon: HiShieldCheck,
+      title: 'Administrator',
+      desc: 'For platform administrators managing users, settings and system-wide controls.',
+      benefits: ['Full access', 'User management', 'System settings'],
     },
     {
       id: 'marketing',

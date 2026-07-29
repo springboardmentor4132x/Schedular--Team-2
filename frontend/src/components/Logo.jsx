@@ -4,8 +4,8 @@
  * Props: variant ('full' | 'icon'), theme ('light' | 'dark')
  */
 export default function Logo({ variant = 'full', theme = 'light' }) {
-  const primaryColor = theme === 'dark' ? '#A7B6D0' : '#0F1E3A'
-  const textColor    = theme === 'dark' ? '#F9FAFB' : '#111827'
+  const primaryColor = theme === 'dark' ? '#A7B6D0' : '#1E3A8A'
+  const textColor    = theme === 'dark' ? '#F8FAFC' : '#1E293B'
 
   if (variant === 'icon') {
     return (

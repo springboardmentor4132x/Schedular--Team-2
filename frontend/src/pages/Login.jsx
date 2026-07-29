@@ -7,172 +7,170 @@ import ThemeToggle from '../components/ThemeToggle'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import Toast from '../components/Toast'
+import { useAuth, ROLE_ROUTES } from '../context/AuthContext'
 
-/**
- * Login page
- * - Field-level validation with user-friendly messages.
- * - Toast notifications for every outcome:
- *     ✅ Login Successful
- *     ❌ Invalid email address
- *     ❌ Incorrect password
- *     ❌ Please fill in all required fields
- * - Loading spinner while "API" call runs.
- * - On success: shows success toast then navigates to /dashboard.
- */
-
-// ── Validation ─────────────────────────────────────────────────────
+/* ── Validation ─────────────────────────────────────────────────── */
 function validate(email, password) {
   const errors = {}
-
   if (!email.trim())
-    errors.email = 'Email address is required.'
+    errors.email = 'Please enter your email address.'
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
     errors.email = 'Please enter a valid email address.'
-
   if (!password)
-    errors.password = 'Password is required.'
+    errors.password = 'Please enter your password.'
   else if (password.length < 8)
     errors.password = 'Password must be at least 8 characters.'
-
   return errors
 }
 
+/* ── Demo accounts (silent — no UI hint shown) ──────────────────── */
+const DEMO_USERS = {
+  'business@demo.com':  { role: 'business',  name: 'Alex Johnson' },
+  'marketing@demo.com': { role: 'marketing', name: 'Sam Rivera'   },
+}
+
+function loadRegisteredUsers() {
+  try {
+    const raw = localStorage.getItem('orbit-registered-users')
+    return raw ? JSON.parse(raw) : {}
+  } catch { return {} }
+}
+
+/* ── Component ──────────────────────────────────────────────────── */
 export default function Login({ isDark, onToggleTheme }) {
-  const navigate = useNavigate()
+  const navigate  = useNavigate()
+  const { login } = useAuth()
 
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const [errors,   setErrors]   = useState({})
+  const [touched,  setTouched]  = useState({})
   const [loading,  setLoading]  = useState(false)
   const [toast,    setToast]    = useState(null)
 
-  // Clear a specific field error when the user edits that field
-  const clearError = (field) => {
-    if (errors[field]) setErrors(prev => { const n = { ...prev }; delete n[field]; return n })
-  }
+  const clearError = field =>
+    setErrors(prev => { const n = { ...prev }; delete n[field]; return n })
 
-  const handleSubmit = async (e) => {
+  const handleBlur = field => () =>
+    setTouched(prev => ({ ...prev, [field]: true }))
+
+  const handleSubmit = async e => {
     e.preventDefault()
-
-    // 1. Check for empty fields first
-    if (!email.trim() && !password) {
-      setToast({ type: 'error', message: 'Please fill in all required fields.' })
-      setErrors({
-        email:    'Email address is required.',
-        password: 'Password is required.',
-      })
-      return
-    }
-
-    // 2. Field-level validation
+    setTouched({ email: true, password: true })
     const errs = validate(email, password)
-    if (Object.keys(errs).length) {
-      setErrors(errs)
-      // Show the most relevant error as a toast
-      const firstMessage = Object.values(errs)[0]
-      setToast({ type: 'error', message: firstMessage })
-      return
-    }
+    if (Object.keys(errs).length) { setErrors(errs); return }
 
-    // 3. Simulate API call ─────────────────────────────────────────
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1400))
+    await new Promise(r => setTimeout(r, 700))
 
-    // ── Simulated responses ───────────────────────────────────────
-    // For demo purposes: any email that starts with "wrong@" triggers
-    // "Account not found", anything with wrong password length shows
-    // "Incorrect password". Remove this block when wiring real API.
-    if (email.toLowerCase().startsWith('wrong@')) {
-      setLoading(false)
-      setErrors({ email: 'No account found with this email.' })
-      setToast({ type: 'error', message: '❌ Account not found.' })
-      return
-    }
-    if (password === '00000000') {
-      setLoading(false)
-      setErrors({ password: 'The password you entered is incorrect.' })
-      setToast({ type: 'error', message: '❌ Incorrect password. Please try again.' })
-      return
-    }
-    // ─────────────────────────────────────────────────────────────
+    const emailKey = email.toLowerCase()
+    let userInfo = DEMO_USERS[emailKey]
 
+    // Check registered users
+    if (!userInfo) {
+      const registered = loadRegisteredUsers()
+      const regUser = registered[emailKey]
+      if (regUser) {
+        if (password !== regUser.password) {
+          setLoading(false)
+          setErrors({ password: 'The password you entered is incorrect.' })
+          setToast({ type: 'error', message: 'Incorrect password.' })
+          return
+        }
+        userInfo = { role: regUser.role, name: regUser.name }
+      }
+    }
+
+    // Fallback — default to business role
+    if (!userInfo) {
+      const name = emailKey.split('@')[0]
+        .replace(/[._-]/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase())
+      // If email contains "market" treat as marketing, else business
+      const role = emailKey.includes('market') ? 'marketing' : 'business'
+      userInfo = { role, name }
+    }
+
+    login({ email: emailKey, name: userInfo.name, role: userInfo.role })
     setLoading(false)
-    setToast({ type: 'success', message: '✅ Login successful! Redirecting…' })
-
-    // Navigate to dashboard after the toast is visible
-    setTimeout(() => navigate('/dashboard'), 1800)
+    setToast({ type: 'success', message: `Welcome back, ${userInfo.name}!` })
+    setTimeout(() => navigate(ROLE_ROUTES[userInfo.role] ?? '/dashboard'), 700)
   }
 
   return (
-    <div className="min-h-screen bg-mesh flex flex-col">
-
-      {/* Toast notification */}
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: 'var(--bg)' }}
+    >
       <Toast toast={toast} onClose={() => setToast(null)} />
 
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-4">
+      {/* ── Top bar ── */}
+      <header className="flex items-center justify-between px-6 py-4 flex-shrink-0">
         <Logo variant="full" theme={isDark ? 'dark' : 'light'} />
         <ThemeToggle isDark={isDark} onToggle={onToggleTheme} />
-      </div>
+      </header>
 
-      {/* Card */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md fade-in">
+      {/* ── Main content ── */}
+      <main className="flex-1 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-[420px] fade-in">
 
-          {/* Glassmorphism card */}
+          {/* ── Card ── */}
           <div
-            className="relative overflow-hidden rounded-[var(--r-xl)] shadow-[var(--shadow-lg)] px-8 py-10"
+            className="rounded-[var(--r-xl)] shadow-[var(--shadow-lg)] overflow-hidden"
             style={{
-              background: isDark ? 'rgba(23,32,51,0.80)' : 'rgba(255,255,255,0.90)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+              background: isDark
+                ? 'rgba(30,41,59,0.95)'
+                : 'rgba(255,255,255,1)',
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'var(--border)'}`,
             }}
           >
-            {/* Decorative blob */}
+            {/* Gradient top bar */}
             <div
-              className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl pointer-events-none opacity-20"
-              style={{ background: 'radial-gradient(circle, var(--primary), transparent)' }}
-              aria-hidden="true"
+              className="h-1.5 w-full"
+              style={{ background: 'linear-gradient(90deg, #1E3A8A, #4F46E5)' }}
             />
 
-            <div className="relative z-10">
+            <div className="px-8 py-9">
 
-              {/* ── Header ── */}
-              <div className="text-center mb-8">
+              {/* Header */}
+              <div className="mb-7">
                 <h1
-                  className="text-2xl sm:text-3xl font-extrabold mb-2"
+                  className="text-2xl font-extrabold mb-1.5"
                   style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--text)' }}
                 >
-                  Welcome Back
+                  Sign in to Orbit Social
                 </h1>
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  Sign in to continue managing your social media accounts.
+                  Welcome back. Enter your credentials to continue.
                 </p>
               </div>
 
-              {/* ── Google button (UI only) ── */}
+              {/* Google SSO */}
               <button
                 type="button"
-                className="w-full h-11 rounded-[var(--r-md)] border flex items-center justify-center gap-2 text-sm font-medium mb-6 transition-all duration-200 hover:shadow-[var(--shadow-sm)]"
-                style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                className="w-full h-11 rounded-[var(--r-md)] border flex items-center justify-center gap-2.5 text-sm font-medium mb-5 transition-all duration-200 hover:shadow-[var(--shadow-sm)] active:scale-[.99]"
+                style={{
+                  background: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text)',
+                }}
               >
                 <FcGoogle size={18} aria-hidden="true" />
                 Continue with Google
               </button>
 
-              {/* ── Divider ── */}
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex-1 h-px" style={{ background: 'var(--border)' }} aria-hidden="true" />
-                <span className="text-xs font-medium" style={{ color: 'var(--text-subtle)' }}>
-                  or continue with email
+              {/* Divider */}
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                <span className="text-xs font-medium px-1" style={{ color: 'var(--text-subtle)' }}>
+                  or sign in with email
                 </span>
-                <div className="flex-1 h-px" style={{ background: 'var(--border)' }} aria-hidden="true" />
+                <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
               </div>
 
-              {/* ── Form ── */}
+              {/* Form */}
               <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
 
                 {/* Email */}
@@ -180,40 +178,45 @@ export default function Login({ isDark, onToggleTheme }) {
                   label="Email address"
                   type="email"
                   required
-                  placeholder="alex@example.com"
+                  placeholder="you@company.com"
                   leftIcon={<HiEnvelope size={16} />}
                   value={email}
                   onChange={e => { setEmail(e.target.value); clearError('email') }}
-                  error={errors.email}
+                  onBlur={handleBlur('email')}
+                  error={touched.email ? errors.email : undefined}
+                  valid={touched.email && !errors.email && email.trim().length > 0}
                   autoComplete="email"
                 />
 
-                {/* Password — label row has Forgot password link */}
+                {/* Password */}
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
                     <label
-                      htmlFor="input-password"
+                      htmlFor="login-password"
                       className="text-sm font-medium"
                       style={{ color: 'var(--text)' }}
                     >
-                      Password <span className="text-red-500" aria-hidden="true">*</span>
+                      Password{' '}
+                      <span style={{ color: '#EF4444' }} aria-hidden="true">*</span>
                     </label>
                     <a
                       href="#"
-                      className="text-xs font-semibold hover:underline"
+                      className="text-xs font-semibold transition-colors hover:underline"
                       style={{ color: 'var(--primary)' }}
                     >
                       Forgot password?
                     </a>
                   </div>
                   <Input
-                    id="input-password"
+                    id="login-password"
                     type={showPass ? 'text' : 'password'}
-                    placeholder="Your password"
+                    placeholder="Min. 8 characters"
                     leftIcon={<HiLockClosed size={16} />}
                     value={password}
                     onChange={e => { setPassword(e.target.value); clearError('password') }}
-                    error={errors.password}
+                    onBlur={handleBlur('password')}
+                    error={touched.password ? errors.password : undefined}
+                    valid={touched.password && !errors.password && password.length >= 8}
                     autoComplete="current-password"
                     rightSlot={
                       <button
@@ -222,11 +225,8 @@ export default function Login({ isDark, onToggleTheme }) {
                         aria-label={showPass ? 'Hide password' : 'Show password'}
                         style={{
                           color: 'var(--text-subtle)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: 0,
-                          display: 'flex',
+                          background: 'none', border: 'none',
+                          cursor: 'pointer', padding: 0, display: 'flex',
                         }}
                       >
                         {showPass ? <HiEyeSlash size={17} /> : <HiEye size={17} />}
@@ -236,7 +236,7 @@ export default function Login({ isDark, onToggleTheme }) {
                 </div>
 
                 {/* Remember me */}
-                <label className="flex items-center gap-2.5 cursor-pointer w-fit">
+                <label className="flex items-center gap-2.5 cursor-pointer w-fit select-none">
                   <input
                     type="checkbox"
                     checked={remember}
@@ -245,7 +245,7 @@ export default function Login({ isDark, onToggleTheme }) {
                     style={{ accentColor: 'var(--primary)' }}
                   />
                   <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                    Remember me
+                    Remember me for 30 days
                   </span>
                 </label>
 
@@ -255,37 +255,43 @@ export default function Login({ isDark, onToggleTheme }) {
                   variant="primary"
                   size="lg"
                   loading={loading}
-                  className="w-full mt-2"
+                  className="w-full mt-1"
                 >
                   {loading ? 'Signing in…' : 'Sign in'}
                 </Button>
               </form>
 
-              {/* Sign-up link */}
+              {/* Footer link */}
               <p className="text-center text-sm mt-6" style={{ color: 'var(--text-muted)' }}>
                 Don't have an account?{' '}
                 <Link
                   to="/role-selection"
-                  className="font-semibold hover:underline"
+                  className="font-semibold hover:underline transition-colors"
                   style={{ color: 'var(--primary)' }}
                 >
-                  Sign Up
+                  Create one free
                 </Link>
               </p>
+
             </div>
           </div>
 
-          {/* Trust note */}
-          <p
-            className="text-center text-xs mt-5 flex items-center justify-center gap-3"
+          {/* Trust badges */}
+          <div
+            className="flex items-center justify-center gap-4 mt-5 text-xs"
             style={{ color: 'var(--text-subtle)' }}
           >
-            <span>🔒 256-bit encryption</span>
-            <span>·</span>
+            <span className="flex items-center gap-1">
+              <span aria-hidden="true">🔒</span> 256-bit encryption
+            </span>
+            <span aria-hidden="true">·</span>
             <span>SOC 2 compliant</span>
-          </p>
+            <span aria-hidden="true">·</span>
+            <span>GDPR ready</span>
+          </div>
+
         </div>
-      </div>
+      </main>
     </div>
   )
 }

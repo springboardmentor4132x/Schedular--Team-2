@@ -10,43 +10,50 @@
 
   /* ── Light Mode Tokens ── */
   :root {
-    /* Brand */
-    --primary:        #0F1E3A;
-    --primary-hover:  #1A315A;
-    --primary-light:  rgba(15, 30, 58, 0.07);
-    --secondary:      #2E4F7F;
-    --secondary-hover:#3E5F92;
+    /* Brand — Orbit Social spec palette */
+    --primary:        #1E3A8A;
+    --primary-hover:  #1e40af;
+    --primary-light:  rgba(30, 58, 138, 0.08);
+    --secondary:      #4F46E5;
+    --secondary-hover:#4338CA;
     --accent:         #A7B6D0;
     --accent-hover:   #8FA3C0;
     --accent-light:   rgba(167, 182, 208, 0.15);
 
     /* Surfaces */
-    --bg:             #FFFFFF;
-    --bg-alt:         #F8FAFC;
+    --bg:             #F8FAFC;
+    --bg-alt:         #EEF4FF;
     --card:           #FFFFFF;
     --card-hover:     #F8FAFC;
 
     /* Text */
-    --text:           #111827;
-    --text-muted:     #6B7280;
-    --text-subtle:    #9CA3AF;
+    --text:           #1E293B;
+    --text-muted:     #64748B;
+    --text-subtle:    #94A3B8;
 
     /* Borders */
-    --border:         #E5E7EB;
-    --border-focus:   #0F1E3A;
+    --border:         #E2E8F0;
+    --border-focus:   #1E3A8A;
 
     /* Semantic */
-    --success:        #16A34A;
+    --success:        #22C55E;
     --warning:        #F59E0B;
-    --error:          #DC2626;
+    --error:          #EF4444;
 
-    /* Shadows — navy-tinted, subtle */
-    --shadow-xs:  0 1px 2px rgba(15,30,58,.04);
-    --shadow-sm:  0 1px 3px rgba(15,30,58,.06), 0 1px 2px rgba(0,0,0,.04);
-    --shadow-md:  0 4px 16px rgba(15,30,58,.08), 0 2px 6px rgba(0,0,0,.04);
-    --shadow-lg:  0 10px 40px rgba(15,30,58,.10), 0 4px 12px rgba(0,0,0,.05);
-    --shadow-glow:0 0 0 3px rgba(15,30,58,.12);
-    --shadow-card:0 4px 24px rgba(15,30,58,.08);
+    /* Sidebar (always dark navy) */
+    --sidebar-bg:     #0F172A;
+    --sidebar-text:   #94A3B8;
+    --sidebar-active: #3B82F6;
+    --sidebar-hover:  rgba(255,255,255,0.06);
+    --sidebar-border: rgba(255,255,255,0.08);
+
+    /* Shadows — indigo-tinted, soft */
+    --shadow-xs:  0 1px 2px rgba(30,58,138,.04);
+    --shadow-sm:  0 1px 3px rgba(30,58,138,.07), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-md:  0 4px 16px rgba(30,58,138,.09), 0 2px 6px rgba(0,0,0,.04);
+    --shadow-lg:  0 10px 40px rgba(30,58,138,.11), 0 4px 12px rgba(0,0,0,.05);
+    --shadow-glow:0 0 0 3px rgba(30,58,138,.14);
+    --shadow-card:0 4px 24px rgba(30,58,138,.09);
 
     /* Radius */
     --r-sm:  8px;
@@ -58,36 +65,43 @@
 
   /* ── Dark Mode Tokens ── */
   .dark {
-    --bg:             #0B1220;
-    --bg-alt:         #111827;
-    --card:           #172033;
-    --card-hover:     #1E2A40;
+    --bg:             #0F172A;
+    --bg-alt:         #1E293B;
+    --card:           #1E293B;
+    --card-hover:     #263248;
 
-    --text:           #F9FAFB;
+    --text:           #F8FAFC;
     --text-muted:     #CBD5E1;
     --text-subtle:    #64748B;
 
-    --border:         #374151;
-    --border-focus:   #A7B6D0;
+    --border:         #334155;
+    --border-focus:   #60A5FA;
 
-    --primary:        #2E4F7F;
-    --primary-hover:  #3E5F92;
-    --primary-light:  rgba(46, 79, 127, 0.20);
-    --secondary:      #3E5F92;
-    --secondary-hover:#4E6FA2;
-    --accent:         #A7B6D0;
-    --accent-hover:   #C0CEDF;
-    --accent-light:   rgba(167, 182, 208, 0.12);
+    --primary:        #3B82F6;
+    --primary-hover:  #2563EB;
+    --primary-light:  rgba(59, 130, 246, 0.15);
+    --secondary:      #818CF8;
+    --secondary-hover:#6366F1;
+    --accent:         #60A5FA;
+    --accent-hover:   #93C5FD;
+    --accent-light:   rgba(96, 165, 250, 0.12);
 
     --success:        #22C55E;
     --warning:        #FBBF24;
     --error:          #EF4444;
 
+    /* Sidebar stays dark even in dark mode */
+    --sidebar-bg:     #0F172A;
+    --sidebar-text:   #94A3B8;
+    --sidebar-active: #3B82F6;
+    --sidebar-hover:  rgba(255,255,255,0.06);
+    --sidebar-border: rgba(255,255,255,0.08);
+
     --shadow-xs:  0 1px 2px rgba(0,0,0,.50);
     --shadow-sm:  0 1px 4px rgba(0,0,0,.55);
     --shadow-md:  0 4px 20px rgba(0,0,0,.50);
     --shadow-lg:  0 12px 48px rgba(0,0,0,.60);
-    --shadow-glow:0 0 0 3px rgba(167,182,208,.18);
+    --shadow-glow:0 0 0 3px rgba(96,165,250,.18);
     --shadow-card:0 8px 36px rgba(0,0,0,.45);
   }
 
@@ -136,9 +150,9 @@
 /* ── Utilities ── */
 @layer utilities {
 
-  /* Gradient text — Deep Navy → Muted Navy */
+  /* Gradient text — Indigo → Blue */
   .text-gradient {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    background: linear-gradient(135deg, #1E3A8A 0%, #4F46E5 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -146,16 +160,16 @@
 
   /* Primary brand gradient */
   .bg-brand {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    background: linear-gradient(135deg, #1E3A8A 0%, #4F46E5 100%);
   }
 
-  /* Clean white / off-white background with very faint navy tint */
+  /* Clean background with faint orbit-tinted gradient */
   .bg-mesh {
     background-color: var(--bg);
     background-image:
-      radial-gradient(at 15% 10%, rgba(15,30,58,.03) 0px, transparent 60%),
-      radial-gradient(at 85% 20%, rgba(46,79,127,.02) 0px, transparent 55%),
-      radial-gradient(at 50% 90%, rgba(15,30,58,.02) 0px, transparent 55%);
+      radial-gradient(at 15% 10%, rgba(30,58,138,.04) 0px, transparent 60%),
+      radial-gradient(at 85% 20%, rgba(79,70,229,.03) 0px, transparent 55%),
+      radial-gradient(at 50% 90%, rgba(30,58,138,.03) 0px, transparent 55%);
   }
 
   /* Card — white with soft shadow */
@@ -230,4 +244,29 @@
   .shake {
     animation: shake 0.45s cubic-bezier(.36,.07,.19,.97) both;
   }
+
+  /* Orbit rotation animations */
+  @keyframes orbitSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes orbitSpinReverse {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(-360deg); }
+  }
+  .orbit-spin        { animation: orbitSpin        18s linear infinite; }
+  .orbit-spin-slow   { animation: orbitSpin        28s linear infinite; }
+  .orbit-spin-reverse{ animation: orbitSpinReverse 22s linear infinite; }
+
+  /* Counter-rotate icon so it stays upright while orbit spins */
+  .orbit-icon-upright { animation: orbitSpinReverse 18s linear infinite; }
+  .orbit-icon-upright-slow   { animation: orbitSpin 28s linear infinite; }
+  .orbit-icon-upright-reverse{ animation: orbitSpin 22s linear infinite; }
+
+  /* Orbit glow pulse */
+  @keyframes orbitPulse {
+    0%, 100% { opacity: 0.5; }
+    50%       { opacity: 1;   }
+  }
+  .orbit-pulse { animation: orbitPulse 3s ease-in-out infinite; }
 }
