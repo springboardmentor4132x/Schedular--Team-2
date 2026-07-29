@@ -14,9 +14,8 @@ import DashboardLayout from './layouts/DashboardLayout'
 // Role dashboards
 import BusinessDashboard  from './pages/dashboard/BusinessDashboard'
 import MarketingDashboard from './pages/dashboard/MarketingDashboard'
-import CreatorDashboard   from './pages/dashboard/CreatorDashboard'
-import AdminDashboard     from './pages/dashboard/AdminDashboard'
-
+import CreatorDashboard from './creator-dashboard/pages/CreatorDashboard'
+import AdminDashboard from './admin-dashboard/pages/Dashboard'
 // Shared feature pages
 import AnalyticsPage         from './pages/dashboard/Analytics'
 import Notifications         from './pages/dashboard/Notifications'
