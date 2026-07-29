@@ -7,7 +7,6 @@ from app.core.config import settings
 # =====================================================
 # POSTGRESQL SETUP (Relational Database)
 # =====================================================
-
 engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
 
 SessionLocal = sessionmaker(
