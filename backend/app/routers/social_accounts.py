@@ -175,4 +175,3 @@ def sync_social_account(account_id: int, current_user: User = Depends(get_curren
     db.commit()
     db.refresh(account)
     return account
-

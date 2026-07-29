@@ -17,6 +17,7 @@ from app.routers import (
     social_accounts,
     workspaces,
 )
+
 from app.routers import settings as settings_router
 
 # Initialize the FastAPI App
@@ -25,6 +26,7 @@ app = FastAPI(
     version=settings.VERSION,
     description="Social Media Scheduler & Campaign Management Platform API",
 )
+
 # CORS
 origins = [
     "http://localhost:3000",
@@ -39,7 +41,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # Include Routers
 app.include_router(auth.router, prefix="/api/v1", tags=["Authentication"])
 app.include_router(campaigns.router, prefix="/api/v1", tags=["Campaigns"])
@@ -48,7 +49,6 @@ app.include_router(users.router, prefix="/api/v1", tags=["Users"])
 app.include_router(workspaces.router, prefix="/api/v1", tags=["Workspaces"])
 app.include_router(settings_router.router, prefix="/api/v1", tags=["Settings"])
 app.include_router(social_accounts.router, prefix="/api/v1", tags=["Social Accounts"])
-
 
 @app.get("/")
 def root():
