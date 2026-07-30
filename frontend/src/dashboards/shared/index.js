@@ -1,0 +1,7 @@
+export { default as DashboardLayout } from './layouts/DashboardLayout'
+export { default as RoleGuard } from './components/RoleGuard'
+export { default as AnalyticsPage } from './pages/Analytics'
+export { default as Notifications } from './pages/Notifications'
+export { default as Settings } from './pages/Settings'
+export { default as Profile } from './pages/Profile'
+export { default as Inbox } from '../../shared/pages/Inbox'

@@ -1,5 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useSidebar } from '../hooks/useSidebar'
+import { useTheme } from '../hooks/useTheme'
+import Logo from '../../components/Logo'
 
 export default function BaseSidebar({
   navItems,
@@ -9,6 +11,8 @@ export default function BaseSidebar({
   panelTitle = 'Navigation'
 }) {
   const { isCollapsed, toggleSidebar, isMobileOpen, closeMobile } = useSidebar()
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
 
   return (
     <>
@@ -23,11 +27,12 @@ export default function BaseSidebar({
       {/* Sidebar Aside element */}
       <aside
         className={`
-          flex flex-col min-h-screen bg-sidebar-bg border-r border-sidebar-border flex-shrink-0
+          flex flex-col min-h-screen flex-shrink-0
           transition-all duration-300 ease-in-out z-30 select-none
           fixed md:relative inset-y-0 left-0
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           ${isCollapsed ? 'w-[72px]' : 'w-[280px]'}
+          ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-[0_18px_40px_rgba(15,23,42,0.08)]'}
         `}
       >
         {/* Brand / Logo Header */}
@@ -35,20 +40,14 @@ export default function BaseSidebar({
           onClick={toggleSidebar}
           title={isCollapsed ? 'Click to expand sidebar' : 'Click to collapse sidebar'}
           className={`
-            flex items-center gap-3 py-5 border-b border-white/5 cursor-pointer
-            hover:bg-white/[0.03] transition-colors duration-200 group
+            flex items-center gap-3 py-4 min-h-[64px] border-b cursor-pointer
+            transition-colors duration-200 group
             ${isCollapsed ? 'px-4 justify-center' : 'px-5'}
+            ${isDark ? 'border-white/5 hover:bg-white/[0.03]' : 'border-slate-200 hover:bg-slate-50'}
           `}
         >
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md group-hover:scale-105 transition-transform duration-200">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="w-5 h-5 text-white"
-            >
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
-            </svg>
+          <div className="flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
+            <Logo variant={isCollapsed ? 'icon' : 'full'} theme={isDark ? 'dark' : 'light'} />
           </div>
 
           <div
@@ -56,11 +55,8 @@ export default function BaseSidebar({
               isCollapsed ? 'opacity-0 w-0 pointer-events-none hidden' : 'opacity-100 w-auto'
             }`}
           >
-            <span className="text-white font-extrabold text-lg tracking-tight truncate">
-              OrbitSocial
-            </span>
             {brandBadge && (
-              <span className="text-[10px] bg-indigo-500/20 text-indigo-300 font-bold px-2 py-0.5 rounded-full border border-indigo-500/30 flex-shrink-0">
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0 ${isDark ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-indigo-50 text-indigo-700 border-indigo-200'}`}>
                 {brandBadge}
               </span>
             )}
@@ -70,7 +66,7 @@ export default function BaseSidebar({
         {/* Navigation List */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
           {!isCollapsed && (
-            <p className="px-3 mb-2 text-xs font-bold text-slate-500 uppercase tracking-widest transition-opacity duration-300">
+            <p className={`px-3 mb-2 text-xs font-bold uppercase tracking-widest transition-opacity duration-300 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
               {panelTitle}
             </p>
           )}
@@ -86,8 +82,12 @@ export default function BaseSidebar({
                   ${isCollapsed ? 'justify-center px-0 py-3' : 'gap-3.5 px-3.5 py-2.5'}
                   ${
                     isActive
-                      ? 'text-white bg-indigo-600/20 border-l-4 border-indigo-500 pl-3 shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-sidebar-hover'
+                      ? isDark
+                        ? 'text-white bg-indigo-600/20 border-l-4 border-indigo-500 pl-3 shadow-sm'
+                        : 'text-indigo-700 bg-indigo-50 border-l-4 border-indigo-500 pl-3 shadow-sm'
+                      : isDark
+                        ? 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                   }
                 `}
               >
@@ -103,7 +103,7 @@ export default function BaseSidebar({
               </NavLink>
 
               {isCollapsed && (
-                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg text-xs font-bold whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50 transform -translate-x-1 group-hover:translate-x-0">
+                <div className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50 transform -translate-x-1 group-hover:translate-x-0 ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 border border-slate-200'}`}>
                   {label}
                 </div>
               )}
@@ -112,12 +112,13 @@ export default function BaseSidebar({
         </nav>
 
         {/* Profile Footer Section */}
-        <div className="p-3 border-t border-white/5 space-y-2">
+        <div className={`p-3 border-t space-y-2 ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
           <div className="relative group">
             <div
               className={`
                 flex items-center rounded-xl hover:bg-sidebar-hover transition-all duration-200 cursor-pointer
                 ${isCollapsed ? 'justify-center p-2' : 'gap-3 p-2'}
+                ${isDark ? '' : 'hover:bg-slate-50'}
               `}
             >
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-md flex-shrink-0">
@@ -126,16 +127,16 @@ export default function BaseSidebar({
 
               {!isCollapsed && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-bold truncate">{user.name}</p>
-                  <p className="text-slate-500 text-xs truncate">{user.email}</p>
+                  <p className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{user.name}</p>
+                  <p className={`text-xs truncate ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{user.email}</p>
                 </div>
               )}
             </div>
 
             {isCollapsed && (
-              <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg text-xs whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50">
+              <div className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-2 rounded-lg text-xs whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50 ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 border border-slate-200'}`}>
                 <p className="font-bold">{user.name}</p>
-                <p className="text-[10px] text-slate-400 dark:text-slate-600">{user.email}</p>
+                <p className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{user.email}</p>
               </div>
             )}
           </div>
@@ -146,8 +147,9 @@ export default function BaseSidebar({
                 type="button"
                 onClick={onLogout}
                 className={`
-                  w-full flex items-center rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-950/20 transition-all duration-200 font-semibold text-sm
+                  w-full flex items-center rounded-xl transition-all duration-200 font-semibold text-sm
                   ${isCollapsed ? 'justify-center p-2.5' : 'gap-3.5 px-3.5 py-2.5'}
+                  ${isDark ? 'text-rose-400 hover:text-rose-300 hover:bg-rose-950/20' : 'text-rose-600 hover:text-rose-700 hover:bg-rose-50'}
                 `}
               >
                 <svg
@@ -169,7 +171,7 @@ export default function BaseSidebar({
               </button>
 
               {isCollapsed && (
-                <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50">
+                <div className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50 ${isDark ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
                   Logout
                 </div>
               )}

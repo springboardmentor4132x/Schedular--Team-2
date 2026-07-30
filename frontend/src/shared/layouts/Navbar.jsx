@@ -24,6 +24,16 @@ const pageTitles = {
   '/creator/notifications': { label: 'Notifications', sub: 'Stay updated with your audience and reviewer feedback' },
   '/creator/profile': { label: 'Creator Profile', sub: 'Manage your creator profile details' },
   '/creator/settings': { label: 'Creator Settings', sub: 'Manage your creator preference settings' },
+  '/dashboard/admin/dashboard': { label: 'Admin Dashboard', sub: 'Manage users, teams, campaigns and platform operations' },
+  '/dashboard/creator/dashboard': { label: 'Creator Dashboard', sub: 'Create, schedule, and manage your content' },
+  '/dashboard/creator/my-posts': { label: 'My Posts', sub: 'Manage your created posts and drafts' },
+  '/dashboard/creator/create-post': { label: 'Create Post', sub: 'Compose, schedule, and publish new content' },
+  '/dashboard/creator/content-scheduling': { label: 'Content Scheduling', sub: 'Plan your content publishing times' },
+  '/dashboard/creator/publishing-calendar': { label: 'Publishing Calendar', sub: 'Visual schedule of posts' },
+  '/dashboard/creator/campaigns': { label: 'Campaigns', sub: 'Track campaign collaborations' },
+  '/dashboard/creator/notifications': { label: 'Notifications', sub: 'Stay updated with your audience and reviewer feedback' },
+  '/dashboard/creator/profile': { label: 'Creator Profile', sub: 'Manage your creator profile details' },
+  '/dashboard/creator/settings': { label: 'Creator Settings', sub: 'Manage your creator preferences' },
 }
 
 const MenuIcon = () => (
@@ -144,10 +154,10 @@ export default function Navbar() {
   const sidebarCtx = useSidebar()
 
   return (
-    <header className="relative flex items-center justify-between px-6 py-4
+    <header className="relative flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4
                        bg-white dark:bg-slate-800
                        border-b border-slate-100 dark:border-slate-700 z-20">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         {sidebarCtx && (
           <button
             type="button"
@@ -158,17 +168,17 @@ export default function Navbar() {
             <MenuIcon />
           </button>
         )}
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight truncate">
             {page.label}
           </h1>
           {page.sub && (
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{page.sub}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">{page.sub}</p>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
         <div className="relative hidden sm:flex items-center">
           <span className="absolute left-3 pointer-events-none">
             <SearchIcon />

@@ -8,48 +8,46 @@ import Register      from './pages/Register'
 import Login         from './pages/Login'
 import Terms         from './pages/Terms'
 
-// Dashboard layout
-import DashboardLayout from './layouts/DashboardLayout'
-
-// Role dashboards
-import BusinessDashboard  from './pages/dashboard/BusinessDashboard'
-import MarketingDashboard from './pages/dashboard/MarketingDashboard'
-import CreatorDashboard from './creator-dashboard/pages/CreatorDashboard'
-import AdminDashboard from './admin-dashboard/pages/Dashboard'
-// Shared feature pages
-import AnalyticsPage         from './pages/dashboard/Analytics'
-import Notifications         from './pages/dashboard/Notifications'
-import Settings              from './pages/dashboard/Settings'
-import Profile               from './pages/dashboard/Profile'
-
-// Business-only pages
-import Campaigns         from './pages/dashboard/Campaigns'
-import ConnectedAccounts from './pages/dashboard/ConnectedAccounts'
-import MarketingTeams    from './pages/dashboard/MarketingTeams'
-import ScheduledPosts    from './pages/dashboard/ScheduledPosts'
-import PublishedPosts    from './pages/dashboard/PublishedPosts'
-import Reports           from './pages/dashboard/Reports'
-import BrandGuidelines   from './pages/dashboard/BrandGuidelines'
-import ClientRequirements from './pages/dashboard/ClientRequirements'
-import MarketingActivity from './pages/dashboard/MarketingActivity'
-
-// Marketing Team pages (under /dashboard/mkt/*)
-import MktClients           from './pages/dashboard/mkt/Clients'
-import MktClientRequests    from './pages/dashboard/mkt/ClientRequests'
-import MktClientWorkspace   from './pages/dashboard/mkt/ClientWorkspace'
-import MktConnectedApps     from './pages/dashboard/mkt/ConnectedApps'
-import MktContentManagement from './pages/dashboard/mkt/ContentManagement'
-import MktContentScheduling from './pages/dashboard/mkt/ContentScheduling'
-import MktPublishingCalendar from './pages/dashboard/mkt/PublishingCalendar'
-import MktCampaigns         from './pages/dashboard/mkt/CampaignManagement'
-import MktBrandGuidelines   from './pages/dashboard/mkt/BrandGuidelines'
-import MktAnalytics         from './pages/dashboard/mkt/Analytics'
-import MktReports           from './pages/dashboard/mkt/Reports'
+// Dashboard areas grouped by responsibility
+import {
+  DashboardLayout,
+  RoleGuard,
+  AnalyticsPage,
+  Notifications,
+  Settings,
+  Profile,
+} from './dashboards/shared'
+import {
+  BusinessDashboard,
+  Campaigns,
+  ConnectedAccounts,
+  MarketingTeams,
+  ScheduledPosts,
+  PublishedPosts,
+  Reports,
+  BrandGuidelines,
+  ClientRequirements,
+  MarketingActivity,
+} from './dashboards/business'
+import {
+  MarketingDashboard,
+  MktClients,
+  MktClientRequests,
+  MktClientWorkspace,
+  MktConnectedApps,
+  MktContentManagement,
+  MktContentScheduling,
+  MktPublishingCalendar,
+  MktCampaigns,
+  MktBrandGuidelines,
+  MktAnalytics,
+  MktReports,
+} from './dashboards/marketing'
+import { adminRoutes } from './dashboards/admin'
+import { creatorRoutes } from './dashboards/creator'
+import { ThemeProvider } from './shared/context/ThemeContext'
 
 // Route protection
-import RoleGuard from './components/RoleGuard'
-
-// Auth
 import { useAuth } from './context/AuthContext'
 
 export default function App() {
@@ -68,16 +66,20 @@ export default function App() {
   const themeProps    = { isDark, onToggleTheme }
 
   return (
-    <Routes>
-      {/* ── Public ── */}
-      <Route path="/"               element={<Landing       {...themeProps} />} />
-      <Route path="/role-selection" element={<RoleSelection {...themeProps} />} />
-      <Route path="/register"       element={<Register      {...themeProps} />} />
-      <Route path="/login"          element={<Login         {...themeProps} />} />
-      <Route path="/terms"          element={<Terms         {...themeProps} />} />
+    <ThemeProvider value={themeProps}>
+      <Routes>
+        {/* ── Public ── */}
+        <Route path="/"               element={<Landing       {...themeProps} />} />
+        <Route path="/role-selection" element={<RoleSelection {...themeProps} />} />
+        <Route path="/register"       element={<Register      {...themeProps} />} />
+        <Route path="/login"          element={<Login         {...themeProps} />} />
+        <Route path="/terms"          element={<Terms         {...themeProps} />} />
 
-      {/* ── Dashboard (auth-guarded by DashboardLayout) ── */}
-      <Route path="/dashboard" element={<DashboardLayout {...themeProps} />}>
+        {adminRoutes}
+        {creatorRoutes}
+
+        {/* ── Dashboard (auth-guarded by DashboardLayout) ── */}
+        <Route path="/dashboard" element={<DashboardLayout {...themeProps} />}>
 
         {/* Index → role-specific home */}
         <Route index element={<RoleRedirect />} />
@@ -85,8 +87,6 @@ export default function App() {
         {/* ── Role home dashboards ── */}
         <Route path="business"  element={<RoleGuard allowed={['business']}>      <BusinessDashboard  /></RoleGuard>} />
         <Route path="marketing" element={<RoleGuard allowed={['marketing']}>     <MarketingDashboard /></RoleGuard>} />
-        <Route path="creator"   element={<RoleGuard allowed={['creator']}>       <CreatorDashboard   /></RoleGuard>} />
-        <Route path="admin"     element={<RoleGuard allowed={['administrator']}> <AdminDashboard     /></RoleGuard>} />
 
         {/* ── Business-only routes ── */}
         <Route path="campaigns"           element={<RoleGuard allowed={['business']}><Campaigns         /></RoleGuard>} />
@@ -120,11 +120,12 @@ export default function App() {
 
         {/* Unknown sub-path → role home */}
         <Route path="*" element={<RoleRedirect />} />
-      </Route>
+        </Route>
 
-      {/* Global catch-all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Global catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </ThemeProvider>
   )
 }
 
