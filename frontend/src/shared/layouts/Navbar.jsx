@@ -34,6 +34,7 @@ const pageTitles = {
   '/dashboard/creator/notifications': { label: 'Notifications', sub: 'Stay updated with your audience and reviewer feedback' },
   '/dashboard/creator/profile': { label: 'Creator Profile', sub: 'Manage your creator profile details' },
   '/dashboard/creator/settings': { label: 'Creator Settings', sub: 'Manage your creator preferences' },
+  '/dashboard/creator/social-accounts': {label: 'Social Accounts', sub: 'Manage all connected social media accounts'},
 }
 
 const MenuIcon = () => (

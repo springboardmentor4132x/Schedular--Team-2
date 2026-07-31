@@ -41,6 +41,7 @@ def exchange_code_for_access_token(code: str):
         TOKEN_URL,
         data=data,
         auth=(settings.TWITTER_CLIENT_ID, settings.TWITTER_CLIENT_SECRET),
+        timeout=30
     )
 
     response.raise_for_status()

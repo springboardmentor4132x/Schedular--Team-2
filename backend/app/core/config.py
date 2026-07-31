@@ -33,7 +33,9 @@ class Settings(BaseSettings):
     TWITTER_CLIENT_SECRET: str = os.getenv("TWITTER_CLIENT_SECRET", "")
     TWITTER_REDIRECT_URI: str = os.getenv("TWITTER_REDIRECT_URI", "")
 
-    
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI", "")
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
@@ -52,9 +54,9 @@ class Settings(BaseSettings):
             return f"mongodb://{self.MONGO_USER}:{self.MONGO_PASSWORD}@{self.MONGO_SERVER}:{self.MONGO_PORT}/?authSource=admin"
         return f"mongodb://{self.MONGO_SERVER}:{self.MONGO_PORT}/"
     
-model_config = SettingsConfigDict(
-    env_file=".env",
-    extra="ignore"
-)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore"
+    )
 
 settings = Settings()

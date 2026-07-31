@@ -15,6 +15,7 @@ def get_youtube_login_url():
         "scope": "https://www.googleapis.com/auth/youtube.readonly",
         "access_type": "offline",
         "prompt": "consent",
+        "state": "youtube_oauth",
     }
 
     return GOOGLE_AUTH_URL + "?" + urlencode(params)
@@ -29,7 +30,11 @@ def exchange_code_for_access_token(code: str):
         "code": code,
     }
 
-    response = requests.post(GOOGLE_TOKEN_URL, data=data)
+    response = requests.post(
+        GOOGLE_TOKEN_URL, 
+        data=data,
+        timeout=30,
+        )
 
     if response.status_code != 200:
         raise Exception(response.json())

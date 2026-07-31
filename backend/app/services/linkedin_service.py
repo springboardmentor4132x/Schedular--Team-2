@@ -13,6 +13,7 @@ def get_linkedin_login_url():
         "client_id": settings.LINKEDIN_CLIENT_ID,
         "redirect_uri": settings.LINKEDIN_REDIRECT_URI,
         "scope": "openid profile email",
+        "state": "socialpilot",
     }
 
     url = LINKEDIN_AUTH_URL + "?" + urlencode(params)
@@ -38,6 +39,7 @@ def exchange_code_for_access_token(code: str):
         headers={
             "Content-Type": "application/x-www-form-urlencoded"
         },
+        timeout=30,
     )
 
     if response.status_code != 200:

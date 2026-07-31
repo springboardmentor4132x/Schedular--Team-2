@@ -10,6 +10,7 @@ import {
 import { useAuth, ROLE_LABELS } from '../../context/AuthContext'
 import Logo from '../Logo'
 
+
 /**
  * Sidebar — always dark navy, collapsible.
  *
@@ -284,8 +285,9 @@ export default function Sidebar({ isDark, collapsed, onCollapse }) {
       {/* ── User badge ── */}
       {!collapsed && user && (
         <div
-          className="mx-3 mb-3 px-3 py-2.5 rounded-[10px] flex items-center gap-2.5"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+            onClick={() => navigate("/dashboard/profile")}
+            className="mx-3 mb-3 px-3 py-2.5 rounded-[10px] flex items-center gap-2.5 cursor-pointer"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden border"
@@ -305,7 +307,9 @@ export default function Sidebar({ isDark, collapsed, onCollapse }) {
       )}
 
       {collapsed && user && (
-        <div className="flex items-center justify-center pb-3">
+        <div className="flex items-center justify-center pb-3 cursor-pointer"
+        onClick={() => navigate("/dashboard/profile")}
+        >
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold overflow-hidden border"
             style={{ background: 'linear-gradient(135deg, #1E3A8A, #4F46E5)', borderColor: 'rgba(255,255,255,0.16)' }}

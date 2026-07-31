@@ -1,5 +1,8 @@
+import email
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import  OAuth2PasswordRequestForm
+from httpx import request
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -8,6 +11,11 @@ from app.schemas.user import UserCreate, UserResponse, Token
 from app.auth.dependencies import get_current_user
 from app.auth.security import hash_password, verify_password
 from app.auth.jwt import create_access_token
+
+from fastapi import Request
+from fastapi.responses import RedirectResponse
+from app.auth.google_oauth import oauth
+from app.core.config import settings
 
 router = APIRouter(
     prefix="/auth",
@@ -56,15 +64,15 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     
     return new_user
 
-# @router.post("/login", response_model=Token)
-# def login(
-#     form_data: OAuth2PasswordRequestForm = Depends(),
-#     db: Session = Depends(get_db)
-# ):
+@router.post("/login", response_model=Token)
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
 
-@router.post("/login")
-def login():
-    return {"message": "login test"}
+# @router.post("/login")
+# def login():
+#     return {"message": "login test"}
 
     user = db.query(User).filter(User.email == form_data.username).first()
 
@@ -103,4 +111,78 @@ def update_me(user_update: dict, current_user: User = Depends(get_current_user),
     db.refresh(current_user)
     return current_user
 
+@router.get("/google/login")
+async def google_login(request: Request, role: str = "business"):
+    request.session["role"] = role
 
+    return await oauth.google.authorize_redirect(
+        request,
+        settings.GOOGLE_REDIRECT_URI,
+    )
+
+@router.get("/google/callback")
+async def google_callback(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    token = await oauth.google.authorize_access_token(request)
+
+    user_info = token.get("userinfo")
+
+    email = user_info["email"]
+
+    user = db.query(User).filter(
+        User.email == email
+    ).first()
+
+    role = request.session.get("role", "business")
+
+    if user:
+        if user.role != role:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"This account already belongs to the "
+                    f"{user.role} role."
+                ),
+            )
+    else:
+        user = User(
+            first_name=user_info.get("given_name", ""),
+            last_name=user_info.get("family_name", ""),
+            username=email.split("@")[0],
+            email=email,
+            password_hash="google_oauth",
+            role=role,
+        )
+
+        print("Adding user to database")
+        db.add(user)
+
+        print("Committing changes")
+        db.commit()
+        db.refresh(user)
+
+
+    print("Google callback started")
+    print(user_info)
+    print(role)
+    print(user)
+
+    user = db.query(User).filter(
+        User.email == email
+    ).first()
+
+    routes = {
+        "creator": "http://localhost:5173/dashboard/creator",
+        "business": "http://localhost:5173/dashboard/business",
+        "marketing": "http://localhost:5173/dashboard/marketing",
+        "administrator": "http://localhost:5173/dashboard/admin",
+    }
+
+    return RedirectResponse(
+        url=routes.get(
+            role,
+            "http://localhost:5173/dashboard/business",
+        )
+    )

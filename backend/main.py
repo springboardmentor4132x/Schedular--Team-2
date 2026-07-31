@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.database.database import engine, Base
 import app.models  # Import all models to register with Base
+from starlette.middleware.sessions import SessionMiddleware
 
 # Auto-generate database tables if they don't exist
 Base.metadata.create_all(bind=engine)
@@ -34,13 +35,26 @@ origins = [
     "http://127.0.0.1:5173",
 ]
 
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=origins,
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="socialpilot_session_secret"
+)
+
 # Include Routers
 app.include_router(auth.router, prefix="/api/v1", tags=["Authentication"])
 app.include_router(campaigns.router, prefix="/api/v1", tags=["Campaigns"])

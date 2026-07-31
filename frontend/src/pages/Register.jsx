@@ -12,6 +12,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import Toast from '../components/Toast'
+import { registerUser } from "../services/registerService";
 
 /* ─────────────────────────────────────────────────────────────────
    sessionStorage persistence
@@ -235,6 +236,11 @@ export default function Register({ isDark, onToggleTheme }) {
     )
   }, [form])
 
+  const handleGoogleLogin = () => {
+    window.location.href =
+        `http://127.0.0.1:8000/api/v1/auth/google/login?role=${urlRole}`;
+};
+
   /* ── Derive valid state: touched, no error, and field has a value ── */
   const isValid = useCallback((key) =>
     touched[key] && !errors[key] && Boolean(
@@ -264,15 +270,39 @@ export default function Register({ isDark, onToggleTheme }) {
       // No global error toast — each field shows its own inline message
       return
     }
+    // change loading state to true before making the API call
+    try {
+        setLoading(true);
 
-    setLoading(true)
-    await new Promise(r => setTimeout(r, 1400))  // TODO: replace with real API
-    setLoading(false)
-    setSuccess(true)
-    saveRegisteredUser(form, roleId)
-    clearDraft()
-    setToast({ type: 'success', message: 'Account created successfully!' })
-    setTimeout(() => navigate('/login'), 2000)
+        const names = form.fullName.trim().split(" ");
+
+        await registerUser({
+            first_name: names[0] || "",
+            last_name: names.slice(1).join(" ") || "",
+            username: form.username,
+            email: form.email,
+            phone: form.phone,
+            password: form.password,
+            role: roleId || "business",
+        });
+
+        setSuccess(true);
+        clearDraft();
+
+        setToast({
+          type: "success",
+          message: "Account created successfully!",
+        });
+
+        setTimeout(() => navigate("/login"), 2000);
+    } catch (error) {
+        setToast({
+            type: "error",
+            message: error.response?.data?.detail || "Registration failed.",
+        });
+    } finally {
+        setLoading(false);
+    }
   }
 
   /* ─────────────────────────────────────────────────────────────── */
@@ -346,6 +376,7 @@ export default function Register({ isDark, onToggleTheme }) {
             {/* Google button */}
             <button
               type="button"
+              onClick={handleGoogleLogin}
               className="w-full h-11 rounded-[var(--r-md)] border flex items-center justify-center gap-2 text-sm font-medium mb-6 transition-all duration-200 hover:shadow-[var(--shadow-sm)]"
               style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
             >

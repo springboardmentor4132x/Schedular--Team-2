@@ -9,12 +9,13 @@ TOKEN_URL = "https://api.instagram.com/oauth/access_token"
 
 
 def get_instagram_login_url():
-    print(settings.INSTAGRAM_REDIRECT_URI)
+    
     params = {
         "client_id": settings.INSTAGRAM_CLIENT_ID,
         "redirect_uri": settings.INSTAGRAM_REDIRECT_URI,
         "scope": "instagram_business_basic,instagram_business_content_publish",
         "response_type": "code",
+        "state": "socialpilot",
     }
 
     return f"{AUTH_URL}?{urlencode(params)}"
@@ -30,7 +31,7 @@ def exchange_code_for_access_token(code: str):
         "code": code,
     }
 
-    response = requests.post(TOKEN_URL, data=payload)
+    response = requests.post(TOKEN_URL, data=payload,timeout=30,)
 
     response.raise_for_status()
 

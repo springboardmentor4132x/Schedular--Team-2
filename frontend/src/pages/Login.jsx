@@ -8,6 +8,7 @@ import Input from '../components/Input'
 import Button from '../components/Button'
 import Toast from '../components/Toast'
 import { useAuth, ROLE_ROUTES } from '../context/AuthContext'
+import { loginUser, getCurrentUser } from "../services/authService";
 
 /* ── Validation ─────────────────────────────────────────────────── */
 function validate(email, password) {
@@ -56,17 +57,56 @@ export default function Login({ isDark, onToggleTheme }) {
   const handleBlur = field => () =>
     setTouched(prev => ({ ...prev, [field]: true }))
 
+  const handleGoogleLogin = () => {
+    window.location.href =
+      "http://127.0.0.1:8000/api/v1/auth/google/login";
+  };
   const handleSubmit = async e => {
     e.preventDefault()
     setTouched({ email: true, password: true })
     const errs = validate(email, password)
     if (Object.keys(errs).length) { setErrors(errs); return }
 
-    setLoading(true)
-    await new Promise(r => setTimeout(r, 700))
+    try {
+        setLoading(true);
 
-    const emailKey = email.toLowerCase()
-    let userInfo = DEMO_USERS[emailKey]
+        const tokenData = await loginUser(email, password);
+
+        localStorage.setItem(
+            "token",
+            tokenData.access_token
+        );
+
+        const currentUser = await getCurrentUser();
+
+        login({
+            id: currentUser.id,
+            name: `${currentUser.first_name} ${currentUser.last_name}`,
+            email: currentUser.email,
+            role: currentUser.role,
+        });
+
+        setToast({
+            type: "success",
+            message: "Login successful!",
+        });
+
+        setTimeout(() => {
+            navigate(
+                ROLE_ROUTES[currentUser.role] || "/dashboard"
+            );
+        }, 700);
+
+    } catch (error) {
+        setToast({
+            type: "error",
+            message:
+                error.response?.data?.detail ||
+                "Login failed.",
+        });
+    } finally {
+        setLoading(false);
+    }
 
     // Check registered users
     if (!userInfo) {
@@ -150,6 +190,7 @@ export default function Login({ isDark, onToggleTheme }) {
               {/* Google SSO */}
               <button
                 type="button"
+                onClick={handleGoogleLogin}
                 className="w-full h-11 rounded-[var(--r-md)] border flex items-center justify-center gap-2.5 text-sm font-medium mb-5 transition-all duration-200 hover:shadow-[var(--shadow-sm)] active:scale-[.99]"
                 style={{
                   background: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
@@ -199,13 +240,14 @@ export default function Login({ isDark, onToggleTheme }) {
                       Password{' '}
                       <span style={{ color: '#EF4444' }} aria-hidden="true">*</span>
                     </label>
-                    <a
-                      href="#"
-                      className="text-xs font-semibold transition-colors hover:underline"
-                      style={{ color: 'var(--primary)' }}
+                    import { Link } from "react-router-dom";
+                    <Link
+                    to="/forgot-password"
+                    className="text-xs font-semibold transition-colors hover:underline"
+                    style={{ color: "var(--primary)" }}
                     >
                       Forgot password?
-                    </a>
+                    </Link>
                   </div>
                   <Input
                     id="login-password"

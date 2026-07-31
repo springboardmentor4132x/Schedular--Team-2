@@ -4,6 +4,7 @@ import { useState } from 'react'
 import ThemeToggle from '../ThemeToggle'
 import { useAuth } from '../../context/AuthContext'
 import { useClient } from '../../context/ClientContext'
+import { useNavigate } from "react-router-dom";
 
 /**
  * TopBar — sticky top navigation inside the dashboard layout.
@@ -45,6 +46,8 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
   const { activeClient } = useClient()
   const { pathname } = useLocation()
   const [searchOpen, setSearchOpen] = useState(false)
+
+  const navigate = useNavigate()
 
   const pageTitle = ROUTE_LABELS[pathname] ?? 'Dashboard'
 
@@ -117,18 +120,26 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
         {/* Avatar */}
         {user && (
           <div
+            onClick={() => navigate("/dashboard/profile")}
             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold cursor-pointer flex-shrink-0 overflow-hidden border"
-            style={{ background: 'linear-gradient(135deg, var(--primary), var(--secondary))', borderColor: 'var(--border)' }}
+            style={{
+              background:
+                "linear-gradient(135deg, var(--primary), var(--secondary))",
+              borderColor: "var(--border)",
+            }}
             title={user.name}
           >
             {user.avatar ? (
-              <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="h-full w-full object-cover"
+              />
             ) : (
-              user.name?.[0]?.toUpperCase() ?? 'U'
+              user.name?.[0]?.toUpperCase() ?? "U"
             )}
           </div>
         )}
-      </div>
 
       {/* Inline search bar */}
       {searchOpen && (
@@ -149,6 +160,7 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
           />
         </div>
       )}
+    </div>
     </header>
   )
 }

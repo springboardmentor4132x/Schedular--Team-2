@@ -26,9 +26,10 @@ def exchange_code_for_access_token(code: str):
         "client_secret": settings.FACEBOOK_CLIENT_SECRET,
         "redirect_uri": settings.FACEBOOK_REDIRECT_URI,
         "code": code,
+        "state": "socialpilot",  # Optional: You can include a state parameter for CSRF protection
     }
 
-    response = requests.get(url, params=params)
+    response = requests.get(url, params=params, timeout=30)
 
     if response.status_code != 200:
         raise Exception(response.json())
