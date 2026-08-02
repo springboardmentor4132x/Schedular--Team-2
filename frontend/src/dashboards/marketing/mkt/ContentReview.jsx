@@ -1,20 +1,12 @@
 ﻿import { useState } from 'react'
+import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FileText, Search, Eye, X, Users, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useClient } from '../../../context/ClientContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
-import { MOCK_CLIENT_POSTS } from '../../../services/mockData'
-
-const PLATFORM_META = {
-  instagram: { icon: FileText, color: '#E1306C', label: 'Instagram' },
-  facebook: { icon: FileText, color: '#1877F2', label: 'Facebook' },
-  linkedin: { icon: FileText, color: '#0A66C2', label: 'LinkedIn' },
-  x: { icon: FileText, color: '#374151', label: 'X' },
-  youtube: { icon: FileText, color: '#FF0000', label: 'YouTube' },
-  pinterest: { icon: FileText, color: '#E60023', label: 'Pinterest' },
-}
+import { contentApi } from '../../../services/contentApi'
 
 const STATUS_STYLES = {
   draft: { label: 'Draft', color: '#64748B', bg: 'rgba(100,116,139,.12)' },
@@ -83,8 +75,22 @@ export function ReviewPanel() {
   const [platform, setPlatform] = useState('all')
   const [preview, setPreview] = useState(null)
   const { activeClient } = useClient()
+  const [allPosts, setAllPosts] = useState([])
 
-  const posts = activeClient ? (MOCK_CLIENT_POSTS[activeClient.id] ?? { drafts: [], scheduled: [], published: [] }) : { drafts: [], scheduled: [], published: [] }
+  useEffect(() => {
+    if (!activeClient) return
+    let cancelled = false
+    contentApi.getLibraryByClient(activeClient.id)
+      .then(data => { if (cancelled) return; setAllPosts(data) })
+      .catch(() => { if (!cancelled) setAllPosts([]) })
+    return () => { cancelled = true }
+  }, [activeClient])
+
+  const posts = {
+    drafts: allPosts.filter(post => ['draft', 'review'].includes(post.status)),
+    scheduled: allPosts.filter(post => post.status === 'scheduled'),
+    published: allPosts.filter(post => post.status === 'published'),
+  }
   const items = tab === 'Drafts' ? posts.drafts : tab === 'Scheduled' ? posts.scheduled : posts.published
 
   const filtered = items.filter(item => {

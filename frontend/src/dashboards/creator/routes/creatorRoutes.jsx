@@ -3,13 +3,18 @@ import { Route, Navigate } from 'react-router-dom'
 import CreatorLayout from '../layouts/CreatorLayout'
 import CreatorDashboard from '../pages/CreatorDashboard'
 import MyPosts from '../pages/MyPosts'
-import CreatePost from '../pages/CreatePost'
 import ContentScheduling from '../pages/ContentScheduling'
 import PublishingCalendar from '../pages/PublishingCalendar'
 import CreatorProfile from '../pages/CreatorProfile'
 import CreatorSettings from '../pages/CreatorSettings'
-import CreatorPlaceholder from '../pages/CreatorPlaceholder'
 import SocialAccounts from '../pages/SocialAccounts'
+import CampaignDashboard from '../pages/CampaignDashboard'
+import CreateCampaign from '../pages/CreateCampaign'
+import CampaignDetails from '../pages/CampaignDetails'
+import CampaignAssignPosts from '../pages/CampaignAssignPosts'
+import CampaignTimeline from '../pages/CampaignTimeline'
+import CampaignAnalytics from '../pages/CampaignAnalytics'
+import Notifications from '../../shared/pages/Notifications'
 
 export const creatorRoutes = (
   <Route element={<CreatorLayout />}>
@@ -36,7 +41,7 @@ export const creatorRoutes = (
 
     <Route
       path="/dashboard/creator/create-post"
-      element={<CreatePost />}
+      element={<Navigate to="/dashboard/creator/content-scheduling" replace />}
     />
 
     <Route
@@ -60,13 +65,33 @@ export const creatorRoutes = (
     />
 
     <Route
+      path="/dashboard/creator/campaigns/new"
+      element={<CreateCampaign />}
+    />
+
+    <Route
+      path="/dashboard/creator/campaigns/:id/assign-posts"
+      element={<CampaignAssignPosts />}
+    />
+
+    <Route
+      path="/dashboard/creator/campaigns/:id/timeline"
+      element={<CampaignTimeline />}
+    />
+
+    <Route
+      path="/dashboard/creator/campaigns/:id/analytics"
+      element={<CampaignAnalytics />}
+    />
+
+    <Route
+      path="/dashboard/creator/campaigns/:id"
+      element={<CampaignDetails />}
+    />
+
+    <Route
       path="/dashboard/creator/campaigns"
-      element={
-        <CreatorPlaceholder
-          title="Campaigns"
-          description="Manage sponsored brand promotions, tracking client requests, briefs, guidelines, and asset hand-ins."
-        />
-      }
+      element={<CampaignDashboard />}
     />
 
     <Route
@@ -76,12 +101,7 @@ export const creatorRoutes = (
 
     <Route
       path="/dashboard/creator/notifications"
-      element={
-        <CreatorPlaceholder
-          title="Notifications"
-          description="Manage all notifications, direct reviewer feedback comments, and follower activities."
-        />
-      }
+      element={<Notifications />}
     />
 
     <Route

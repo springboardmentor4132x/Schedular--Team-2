@@ -1,13 +1,50 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
+from typing import Optional
 
-class CreatePostRequest(BaseModel):
-    title: str = Field(..., min_length=3, max_length=100)
+from pydantic import BaseModel, ConfigDict, Field
 
-    caption: str = Field(..., min_length=5, max_length=1000)
 
-    media_url: str | None = None
+class PostCreate(BaseModel):
+    workspace_id: Optional[int] = None
+    title: Optional[str] = Field(default=None, max_length=150)
+    caption: Optional[str] = Field(default=None, max_length=2000)
+    content_type: str = Field(default="text", max_length=50)
+    media_url: Optional[str] = None
+    scheduled_for: Optional[datetime] = None
+    timezone: str = Field(default="UTC", max_length=50)
+    social_account_ids: list[int] = Field(default_factory=list)
+    campaign_id: Optional[int] = None
+    status: str = Field(default="Draft", max_length=50)
+    platform: Optional[str] = Field(default=None, max_length=50)
 
-    scheduled_time: datetime | None = None
 
-    social_accounts: list[int] | None = None
+class PostUpdate(BaseModel):
+    workspace_id: Optional[int] = None
+    title: Optional[str] = Field(default=None, max_length=150)
+    caption: Optional[str] = Field(default=None, max_length=2000)
+    content_type: Optional[str] = Field(default=None, max_length=50)
+    media_url: Optional[str] = None
+    scheduled_for: Optional[datetime] = None
+    timezone: Optional[str] = Field(default=None, max_length=50)
+    social_account_ids: Optional[list[int]] = None
+    campaign_id: Optional[int] = None
+    status: Optional[str] = Field(default=None, max_length=50)
+
+
+class PostResponse(BaseModel):
+    id: int
+    user_id: int
+    workspace_id: Optional[int] = None
+    campaign_id: Optional[int] = None
+    title: Optional[str] = None
+    caption: Optional[str] = None
+    content_type: str = "text"
+    media_file_path: Optional[str] = None
+    status: str = "Draft"
+    scheduled_for: Optional[datetime] = None
+    timezone: str = "UTC"
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    social_account_ids: list[int] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)

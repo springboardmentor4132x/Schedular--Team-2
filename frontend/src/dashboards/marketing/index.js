@@ -1,6 +1,7 @@
 export { default as MarketingDashboard } from './MarketingDashboard'
 export { default as MktClients } from './mkt/Clients'
 export { default as MktClientRequests } from './mkt/ClientRequests'
+export { default as MktConnectionRequests } from './mkt/ConnectionRequests'
 export { default as MktClientWorkspace } from './mkt/ClientWorkspace'
 export { default as MktConnectedApps } from './mkt/ConnectedApps'
 export { default as MktContentManagement } from './mkt/ContentManagement'

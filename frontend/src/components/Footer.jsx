@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { FiTwitter, FiGithub, FiLinkedin, FiMail } from 'react-icons/fi'
 import Logo from './Logo'
 

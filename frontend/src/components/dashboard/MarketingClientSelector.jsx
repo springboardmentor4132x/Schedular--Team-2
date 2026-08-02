@@ -1,28 +1,20 @@
 import { useMemo } from 'react'
-import { Building2, ChevronDown, Megaphone, Orbit, Sparkles } from 'lucide-react'
+import { Building2, ChevronDown, Megaphone, Orbit } from 'lucide-react'
 import { useClient } from '../../context/ClientContext'
-import { MOCK_CLIENTS, MOCK_CLIENT_CAMPAIGNS, MOCK_MARKETING_TEAMS } from '../../services/mockData'
-
-function readApprovedClients() {
-  if (typeof window === 'undefined') return []
-  try {
-    return JSON.parse(localStorage.getItem('orbit-approved-clients') ?? '[]')
-  } catch {
-    return []
-  }
-}
+import { useAuth } from '../../context/AuthContext'
 
 export default function MarketingClientSelector() {
-  const { activeClient, selectClient } = useClient()
-
-  const clients = useMemo(() => {
-    const approved = readApprovedClients()
-    return approved.length > 0 ? approved : MOCK_CLIENTS
-  }, [])
-  const assignedTeam = MOCK_MARKETING_TEAMS.find(team => team.isAssigned) ?? MOCK_MARKETING_TEAMS[0]
+  const { activeClient, clients, selectClient } = useClient()
+  const { user } = useAuth()
 
   const activeSummary = activeClient ?? null
-  const activeCampaigns = (activeClient ? (MOCK_CLIENT_CAMPAIGNS[activeClient.id] ?? []) : []).length
+  const activeCampaigns = activeSummary?.activeCampaigns ?? 0
+  const teamName = user?.name?.trim() || user?.email?.split('@')[0]?.trim() || 'Marketing Team'
+
+  const sortedClients = useMemo(
+    () => [...clients].sort((a, b) => String(a.name ?? '').localeCompare(String(b.name ?? ''))),
+    [clients],
+  )
 
   return (
     <div className="card p-4 mb-5 border-l-4" style={{ borderColor: 'var(--primary)', background: 'linear-gradient(135deg, rgba(30,58,138,.06), rgba(79,70,229,.05))' }}>
@@ -52,17 +44,18 @@ export default function MarketingClientSelector() {
               className="w-full h-11 pl-3 pr-10 text-sm rounded-[var(--r-md)] border outline-none appearance-none"
               style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
             >
-              {clients.map(client => (
+              {sortedClients.length === 0 && <option value="">No clients assigned</option>}
+              {sortedClients.map(client => (
                 <option key={client.id} value={client.id}>{client.name}</option>
               ))}
             </select>
             <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+          <div className="grid grid-cols-3 gap-2 text-xs">
             <div className="rounded-[var(--r-md)] px-3 py-2" style={{ background: 'var(--card)' }}>
               <div className="flex items-center gap-1 text-[10px] uppercase" style={{ color: 'var(--text-muted)' }}><Building2 size={10} /> Team</div>
-              <p className="font-semibold mt-1" style={{ color: 'var(--text)' }}>{assignedTeam?.name || 'Team'}</p>
+              <p className="font-semibold mt-1 truncate max-w-[120px]" style={{ color: 'var(--text)' }}>{teamName}</p>
             </div>
             <div className="rounded-[var(--r-md)] px-3 py-2" style={{ background: 'var(--card)' }}>
               <div className="flex items-center gap-1 text-[10px] uppercase" style={{ color: 'var(--text-muted)' }}><Orbit size={10} /> Platforms</div>
@@ -78,8 +71,7 @@ export default function MarketingClientSelector() {
 
       <div className="mt-4 flex flex-wrap gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
         <span className="px-2.5 py-1 rounded-full" style={{ background: 'var(--bg-alt)' }}>Industry: {activeSummary?.industry || '—'}</span>
-        <span className="px-2.5 py-1 rounded-full" style={{ background: 'var(--bg-alt)' }}>Connected platforms: {(activeSummary?.connectedPlatforms || []).join(', ')}</span>
-        <span className="px-2.5 py-1 rounded-full" style={{ background: 'var(--bg-alt)' }}>Assigned team: {assignedTeam?.name || '—'}</span>
+        <span className="px-2.5 py-1 rounded-full" style={{ background: 'var(--bg-alt)' }}>Connected platforms: {(activeSummary?.connectedPlatforms || []).join(', ') || '—'}</span>
         <span className="px-2.5 py-1 rounded-full" style={{ background: 'var(--bg-alt)' }}>Active campaigns: {activeCampaigns}</span>
       </div>
     </div>

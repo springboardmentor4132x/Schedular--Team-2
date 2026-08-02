@@ -7,8 +7,8 @@ SECRET_KEY = "a3f9d5c8e7b2f1a6d4c9e8b7f5a2c1d6e9f3b8a7c5d2e1f4"
 # JWT Algorithm
 ALGORITHM = "HS256"
 
-# Token Expiry Time (30 Minutes)
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# Token Expiry Time (24 Hours)
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
 
 # Create JWT Access Token

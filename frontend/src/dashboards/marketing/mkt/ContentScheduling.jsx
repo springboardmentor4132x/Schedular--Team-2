@@ -1,16 +1,16 @@
 ﻿import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  CalendarDays, List, Search, Plus, Clock,
-  CheckCircle2, X, RefreshCw, ArrowLeft, Users,
-  GripVertical, Trash2, ChevronLeft, ChevronRight,
+  CalendarDays, Search, Plus,
+  X, ArrowLeft, Users,
+  GripVertical, Trash2,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import { useNavigate } from 'react-router-dom'
 import { useClient } from '../../../context/ClientContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
-import { MOCK_CLIENT_POSTS, MOCK_CLIENT_CAMPAIGNS } from '../../../services/mockData'
+import { marketingService } from '../../../services/marketingService'
 
 const PLATFORM_META = {
   instagram:{ icon:FaInstagram, color:'#E1306C', label:'Instagram' },
@@ -20,29 +20,20 @@ const PLATFORM_META = {
   youtube:  { icon:FaYoutube,   color:'#FF0000', label:'YouTube'   },
   pinterest:{ icon:FaPinterest, color:'#E60023', label:'Pinterest' },
 }
-const STATUS_STYLES = {
-  scheduled:{ label:'Scheduled', color:'#1E3A8A', bg:'rgba(30,58,138,.12)'  },
-  pending:  { label:'Pending',   color:'#F59E0B', bg:'rgba(245,158,11,.12)' },
-}
-const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 function isoDate(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
 
 export function SchedulingPanel() {
-  const navigate = useNavigate()
   const { activeClient } = useClient()
   const [view,setView]=useState('list')
   const [search,setSearch]=useState('')
   const [platform,setPlatform]=useState('all')
-  const [year,setYear]=useState(new Date().getFullYear())
-  const [month,setMonth]=useState(new Date().getMonth())
+  const [year]=useState(new Date().getFullYear())
+  const [month]=useState(new Date().getMonth())
   const [showModal,setShowModal]=useState(false)
   const [toast,setToast]=useState(null)
   const [form,setForm]=useState({ title:'', platform:'instagram', date:'', time:'', campaign:'', caption:'', mediaFile:null, mediaPreview:null })
   const [queue,setQueue]=useState([])
-
-  const posts = activeClient ? (MOCK_CLIENT_POSTS[activeClient.id] ?? { scheduled: [] }) : { scheduled: [] }
-  const campaigns = activeClient ? (MOCK_CLIENT_CAMPAIGNS[activeClient.id] ?? []) : []
 
   const filtered = queue.filter(p => {
     const matchSearch = p.title.toLowerCase().includes(search.toLowerCase())
@@ -51,34 +42,29 @@ export function SchedulingPanel() {
   })
 
   useEffect(() => {
-    if (!activeClient) {
-      setQueue([])
-      return
-    }
-    setQueue(MOCK_CLIENT_POSTS[activeClient.id]?.scheduled ?? [])
+    if (!activeClient) return
+    let cancelled = false
+    marketingService.workspace(activeClient.id).then(data => {
+      if (cancelled) return
+      setQueue((data.posts || []).filter(post => post.status === 'scheduled'))
+    }).catch(() => { if (!cancelled) setQueue([]) })
+    return () => { cancelled = true }
   }, [activeClient])
 
   const showToast=(msg,type='success')=>{ setToast({msg,type}); setTimeout(()=>setToast(null),3000) }
 
-  const handleSchedule=()=>{
+  const handleSchedule=async()=>{
     if(!form.title||!form.date||!form.time){ showToast('Fill in all required fields.','error'); return }
-    const newPost={
-      id:`s${Date.now()}`,
-      title:form.title,
-      platform:form.platform,
-      scheduledAt:`${form.date}T${form.time}`,
-      status:'scheduled',
-      campaign:form.campaign||null,
-      caption:form.caption || '',
-      media: form.mediaFile ? { type: form.mediaFile.type, name: form.mediaFile.name, preview: form.mediaPreview } : null,
-    }
-    setQueue(prev=>[...prev,newPost])
+    try {
+      const post = await marketingService.createPost(activeClient.id, { title:form.title, caption:form.caption || '', status:'Scheduled', scheduled_for:`${form.date}T${form.time}`, timezone:Intl.DateTimeFormat().resolvedOptions().timeZone, campaign_id:Number(form.campaign) || null, platform:form.platform })
+      setQueue(prev=>[...prev,{ id:post.id,title:post.title,caption:post.caption,platform:form.platform,status:'scheduled',scheduledAt:post.scheduled_for,campaign:form.campaign || null }])
+    } catch (error) { showToast(error.response?.data?.detail || 'Could not schedule post.','error'); return }
     setShowModal(false)
     setForm({ title:'', platform:'instagram', date:'', time:'', campaign:'', caption:'', mediaFile:null, mediaPreview:null })
     showToast('Post scheduled!')
   }
 
-  const removePost=id=>{ setQueue(prev=>prev.filter(p=>p.id!==id)); showToast('Post removed.') }
+  const removePost=async id=>{ try { await marketingService.updatePost(activeClient.id, id, { status:'Cancelled' }); setQueue(prev=>prev.filter(p=>p.id!==id)); showToast('Post cancelled.') } catch { showToast('Could not cancel post.','error') } }
   const selectMedia=(file)=>{
     if(!file) return
     const preview = URL.createObjectURL(file)
@@ -162,7 +148,6 @@ export function SchedulingPanel() {
           ) : (
             <div className="space-y-3">
               {filtered.map((post, index) => {
-                const meta = PLATFORM_META[post.platform]
                 const dt = new Date(post.scheduledAt)
                 return (
                   <motion.div key={post.id} initial={{ opacity:0,y:8 }} animate={{ opacity:1,y:0 }} transition={{ delay:index*0.03 }}

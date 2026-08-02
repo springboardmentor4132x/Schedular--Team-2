@@ -2,14 +2,21 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CalendarDays, Search, X, Eye, Clock, ChevronLeft, ChevronRight,
-  Image as ImageIcon, Sparkles, BarChart3, RefreshCw, CheckCircle2,
-  Megaphone, Send, CalendarRange
+  Image as ImageIcon, Sparkles, BarChart3, RefreshCw,
+  Megaphone, Send
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
 import StatCard from '../../../components/dashboard/StatCard'
-import { MOCK_CAMPAIGNS, MOCK_PUBLISHED_POSTS, MOCK_SCHEDULED_POSTS } from '../../../services/mockData'
+import {
+  fetchAssignedTeam,
+  fetchCampaignProgress,
+  fetchCampaigns,
+  fetchPublishedPosts,
+  fetchScheduledPosts,
+  fetchSocialAccounts,
+} from '../services/businessService'
 
 const PLATFORM_META = {
   instagram: { icon: FaInstagram, color: '#E1306C', label: 'Instagram' },
@@ -37,12 +44,9 @@ const STATUS_STYLES = {
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
-const MILESTONES = [
-  { id: 'ms-1', title: 'Summer Sale Campaign Starts', date: '2025-08-01', description: 'Campaign launch milestone', type: 'milestone', platform: 'instagram' },
-  { id: 'ms-2', title: 'Product Launch', date: '2025-08-15', description: 'Core product announcement', type: 'milestone', platform: 'linkedin' },
-  { id: 'ms-3', title: 'Festival Sale', date: '2025-08-20', description: 'Festival promotion goes live', type: 'milestone', platform: 'facebook' },
-  { id: 'ms-4', title: 'Summer Sale Campaign Ends', date: '2025-08-31', description: 'Campaign wrap-up milestone', type: 'milestone', platform: 'x' },
-]
+const MILESTONES = []
+
+const normalizeStatus = (value) => String(value ?? '').toLowerCase()
 
 function isoDate(y, m, d) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
@@ -118,7 +122,7 @@ function EventDrawer({ event, onClose }) {
               <div className="grid gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                 <div className="flex items-center justify-between"><span>Campaign</span><span className="font-semibold" style={{ color: 'var(--text)' }}>{event.campaign ?? 'No campaign'}</span></div>
                 <div className="flex items-center justify-between"><span>Publishing Status</span><span className="font-semibold" style={{ color: 'var(--text)' }}>Queued</span></div>
-                <div className="flex items-center justify-between"><span>Marketing Team</span><span className="font-semibold" style={{ color: 'var(--text)' }}>Orbit Growth Team</span></div>
+                <div className="flex items-center justify-between"><span>Marketing Team</span><span className="font-semibold" style={{ color: 'var(--text)' }}>{event.marketingTeam ?? 'Assigned marketing team'}</span></div>
               </div>
               <div className="rounded-[var(--r-md)] border p-3" style={{ borderColor: 'var(--border)' }}>
                 <div className="flex items-center gap-2 mb-2"><ImageIcon size={13} style={{ color: 'var(--text-muted)' }} /><span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>Preview</span></div>
@@ -298,74 +302,117 @@ export default function ScheduledPosts() {
   const [month, setMonth] = useState(new Date().getMonth())
   const [year, setYear] = useState(new Date().getFullYear())
   const [isLoading, setIsLoading] = useState(true)
+  const [data, setData] = useState({ campaigns: [], scheduled: [], published: [], socialAccounts: [], marketingTeamName: null })
 
   useEffect(() => {
-    const id = setTimeout(() => setIsLoading(false), 450)
-    return () => clearTimeout(id)
+    let active = true
+
+    const load = async () => {
+      try {
+        const [campaignsData, scheduledData, publishedData, accountsData, assignedTeamData] = await Promise.all([
+          fetchCampaigns(),
+          fetchScheduledPosts(),
+          fetchPublishedPosts(),
+          fetchSocialAccounts(),
+          fetchAssignedTeam(),
+        ])
+
+        const marketingTeamName = assignedTeamData?.team?.members?.[0]?.name ?? null
+
+        const campaignsWithProgress = await Promise.all((campaignsData ?? []).map(async item => {
+          try {
+            const progress = await fetchCampaignProgress(item.id)
+            return { ...item, progress: progress?.progress ?? {} }
+          } catch {
+            return { ...item, progress: {} }
+          }
+        }))
+
+        if (active) {
+          setData({
+            campaigns: campaignsWithProgress,
+            scheduled: scheduledData ?? [],
+            published: publishedData ?? [],
+            socialAccounts: accountsData ?? [],
+            marketingTeamName,
+          })
+          setIsLoading(false)
+        }
+      } catch {
+        if (active) setIsLoading(false)
+      }
+    }
+
+    load()
+    return () => { active = false }
   }, [])
 
   const baseEvents = useMemo(() => {
-    const scheduled = MOCK_SCHEDULED_POSTS.map(post => ({
-      id: `scheduled-${post.id}`,
-      type: 'scheduled',
-      title: post.title,
-      date: post.scheduledAt?.split('T')[0] ?? getDateValue(new Date()),
-      time: post.scheduledAt?.split('T')[1] ?? '',
-      platform: post.platform,
-      campaign: post.campaign,
-      status: post.status,
-      caption: post.caption,
-      marketingTeam: 'Orbit Growth Team',
-      source: 'scheduled',
-    }))
+    const accountsById = new Map((data.socialAccounts ?? []).map(account => [account.id, account]))
+    const campaignById = new Map((data.campaigns ?? []).map(item => [item.id, item]))
 
-    const published = MOCK_PUBLISHED_POSTS.map(post => ({
-      id: `published-${post.id}`,
-      type: 'published',
-      title: post.title,
-      date: post.publishedAt?.split('T')[0] ?? getDateValue(new Date()),
-      platform: post.platform,
-      campaign: post.campaign,
-      status: 'published',
-      engagement: `${post.engagement ?? 0} engagements`,
-      reach: `${post.reach?.toLocaleString() ?? 0} reach`,
-      likes: post.likes ?? 0,
-      comments: post.comments ?? 0,
-      shares: post.shares ?? 0,
-      source: 'published',
-    }))
+    const scheduled = (data.scheduled ?? []).map(post => {
+      const platformId = accountsById.get(post.social_account_ids?.[0])?.platform ?? 'instagram'
+      const campaignItem = campaignById.get(post.campaign_id)
+      const scheduledFor = post.scheduled_for ?? post.created_at
 
-    const campaigns = MOCK_CAMPAIGNS.map(campaign => ({
-      id: `campaign-${campaign.id}`,
-      type: 'campaign',
-      title: campaign.name,
-      startDate: campaign.start,
-      endDate: campaign.end,
-      date: campaign.start,
-      objective: campaign.objective,
-      budget: campaign.budget,
-      progress: campaign.progress,
-      totalPosts: campaign.posts,
-      scheduledPosts: Math.round(campaign.posts * 0.6),
-      publishedPosts: Math.round(campaign.posts * 0.4),
-      status: campaign.status,
-      platform: 'instagram',
-      source: 'campaign',
-    }))
+      return {
+        id: `scheduled-${post.id}`,
+        type: 'scheduled',
+        title: post.title ?? `Post ${post.id}`,
+        date: scheduledFor ? new Date(scheduledFor).toISOString().split('T')[0] : getDateValue(new Date()),
+        time: scheduledFor ? new Date(scheduledFor).toISOString().slice(11, 16) : '',
+        platform: platformId,
+        campaign: campaignItem?.name ?? null,
+        status: normalizeStatus(post.status),
+        caption: post.caption,
+        marketingTeam: data.marketingTeamName,
+        source: 'scheduled',
+      }
+    })
 
-    const milestones = MILESTONES.map(item => ({
-      id: item.id,
-      type: 'milestone',
-      title: item.title,
-      date: item.date,
-      platform: item.platform,
-      description: item.description,
-      status: 'completed',
-      source: 'milestone',
-    }))
+    const published = (data.published ?? [])
+      .filter(post => normalizeStatus(post.status) === 'published')
+      .map(post => {
+        const platformId = accountsById.get(post.social_account_ids?.[0])?.platform ?? 'instagram'
+        const campaignItem = campaignById.get(post.campaign_id)
+        const publishedAt = post.scheduled_for ?? post.created_at
 
-    return [...scheduled, ...published, ...campaigns, ...milestones]
-  }, [])
+        return {
+          id: `published-${post.id}`,
+          type: 'published',
+          title: post.title ?? `Post ${post.id}`,
+          date: publishedAt ? new Date(publishedAt).toISOString().split('T')[0] : getDateValue(new Date()),
+          platform: platformId,
+          campaign: campaignItem?.name ?? null,
+          status: 'published',
+          source: 'published',
+        }
+      })
+
+    const campaigns = (data.campaigns ?? []).map(item => {
+      const progress = item.progress ?? {}
+      return {
+        id: `campaign-${item.id}`,
+        type: 'campaign',
+        title: item.name,
+        startDate: item.start_date ? new Date(item.start_date).toISOString().split('T')[0] : null,
+        endDate: item.end_date ? new Date(item.end_date).toISOString().split('T')[0] : null,
+        date: item.start_date ? new Date(item.start_date).toISOString().split('T')[0] : getDateValue(new Date()),
+        objective: item.objective,
+        budget: item.budget,
+        progress: progress.completion_percentage ?? 0,
+        totalPosts: progress.total_posts ?? 0,
+        scheduledPosts: progress.scheduled ?? 0,
+        publishedPosts: progress.published ?? 0,
+        status: normalizeStatus(item.status),
+        platform: (item.target_platforms ?? [])[0] ?? 'instagram',
+        source: 'campaign',
+      }
+    })
+
+    return [...scheduled, ...published, ...campaigns, ...MILESTONES]
+  }, [data.campaigns, data.published, data.scheduled, data.socialAccounts, data.marketingTeamName])
 
   const filteredEvents = useMemo(() => {
     const q = search.toLowerCase()
@@ -407,7 +454,7 @@ export default function ScheduledPosts() {
     ]
   }, [filteredEvents])
 
-  const upcoming = useMemo(() => filteredEvents.filter(event => event.type === 'scheduled' || event.type === 'milestone').sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 4), [filteredEvents])
+  const upcoming = useMemo(() => filteredEvents.filter(event => event.type === 'scheduled' || event.type === 'campaign').sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 4), [filteredEvents])
   const campaigns = useMemo(() => Array.from(new Set(baseEvents.filter(e => e.type === 'campaign').map(e => e.title))), [baseEvents])
 
   const resetFilters = () => {
@@ -423,7 +470,7 @@ export default function ScheduledPosts() {
 
   return (
     <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
-      <PageHeader title="Activity Calendar" subtitle="Read-only timeline of scheduled posts, published posts, campaigns and milestones." />
+      <PageHeader title="Publishing Calendar" subtitle="Live timeline of scheduled posts, published posts, and campaigns from the database." />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {summaryCards.map(card => (

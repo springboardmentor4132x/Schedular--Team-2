@@ -61,6 +61,10 @@
     --shadow-glow:0 0 0 3px rgba(30,58,138,.14);
     --shadow-card:0 4px 24px rgba(30,58,138,.09);
 
+    /* Subtle brand-tinted glow used on dashboard content backgrounds */
+    --glow-a: rgba(30, 58, 138, 0.05);
+    --glow-b: rgba(79, 70, 229, 0.04);
+
     /* Radius */
     --r-sm:  8px;
     --r-md:  12px;
@@ -71,44 +75,49 @@
 
   /* ── Dark Mode Tokens ── */
   .dark {
-    --bg:             #0F172A;
-    --bg-alt:         #1E293B;
-    --card:           #1E293B;
-    --card-hover:     #263248;
+    /* Elevation ramp: --bg (deepest) < --card < --bg-alt (hovers/highlights) */
+    --bg:             #0D1426;
+    --bg-alt:         #1E2B47;
+    --card:           #18233B;
+    --card-hover:     #1D2A45;
 
-    --text:           #F8FAFC;
-    --text-muted:     #CBD5E1;
-    --text-subtle:    #64748B;
+    --text:           #F2F5FB;
+    --text-muted:     #B8C4DC;
+    --text-subtle:    #7B8CAC;
 
-    --border:         #334155;
+    --border:         #2A3755;
     --border-focus:   #60A5FA;
 
     --primary:        #3B82F6;
     --primary-hover:  #2563EB;
-    --primary-light:  rgba(59, 130, 246, 0.15);
+    --primary-light:  rgba(59, 130, 246, 0.16);
     --secondary:      #818CF8;
     --secondary-hover:#6366F1;
     --accent:         #60A5FA;
     --accent-hover:   #93C5FD;
-    --accent-light:   rgba(96, 165, 250, 0.12);
+    --accent-light:   rgba(96, 165, 250, 0.14);
 
-    --success:        #22C55E;
+    --success:        #34D399;
     --warning:        #FBBF24;
-    --error:          #EF4444;
+    --error:          #F87171;
 
-    /* Sidebar stays dark even in dark mode */
-    --sidebar-bg:     #0F172A;
+    /* Sidebar — deepest panel, separated from the page by tone + shadow */
+    --sidebar-bg:     #0A111F;
     --sidebar-text:   #94A3B8;
     --sidebar-active: #3B82F6;
     --sidebar-hover:  rgba(255,255,255,0.06);
-    --sidebar-border: rgba(255,255,255,0.08);
+    --sidebar-border: rgba(255,255,255,0.10);
 
-    --shadow-xs:  0 1px 2px rgba(0,0,0,.50);
-    --shadow-sm:  0 1px 4px rgba(0,0,0,.55);
-    --shadow-md:  0 4px 20px rgba(0,0,0,.50);
-    --shadow-lg:  0 12px 48px rgba(0,0,0,.60);
-    --shadow-glow:0 0 0 3px rgba(96,165,250,.18);
-    --shadow-card:0 8px 36px rgba(0,0,0,.45);
+    /* Soft, diffused elevation shadows on dark */
+    --shadow-xs:  0 1px 2px rgba(0,0,0,.35);
+    --shadow-sm:  0 1px 3px rgba(0,0,0,.40), 0 1px 2px rgba(0,0,0,.30);
+    --shadow-md:  0 8px 24px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.35);
+    --shadow-lg:  0 18px 52px rgba(0,0,0,.55), 0 4px 12px rgba(0,0,0,.35);
+    --shadow-glow:0 0 0 3px rgba(96,165,250,.25);
+    --shadow-card:inset 0 1px 0 rgba(255,255,255,.05), 0 10px 30px rgba(0,0,0,.45);
+
+    --glow-a: rgba(59, 130, 246, 0.10);
+    --glow-b: rgba(99, 102, 241, 0.07);
   }
 
   /* ── Reset & Base ── */
@@ -210,11 +219,40 @@
     border-color: rgba(15,30,58,.14);
   }
 
+  /* Dark mode — elevated surfaces: cards lift off the page bg */
+  .dark .card,
+  .dark .stat-card {
+    border-color: var(--border);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.05),
+      0 1px 2px rgba(0,0,0,.4);
+  }
+  .dark .card:hover,
+  .dark .stat-card:hover {
+    border-color: rgba(96,165,250,.40);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.06),
+      0 14px 40px rgba(0,0,0,.5);
+  }
+
+  /* Dark mode — subtle brand-tinted background glow */
+  .dark .bg-mesh {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(at 15% 10%, rgba(59,130,246,.12) 0px, transparent 60%),
+      radial-gradient(at 85% 20%, rgba(99,102,241,.09) 0px, transparent 55%),
+      radial-gradient(at 50% 90%, rgba(59,130,246,.07) 0px, transparent 55%);
+  }
+
   /* Dashboard pages combine dense grids with flexible card layouts. These
      safeguards let lengthy account names, labels, and feedback wrap inside
      their panels instead of widening the viewport on smaller screens. */
   .dashboard-main {
     scrollbar-gutter: stable;
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(1000px 420px at 12% -6%, var(--glow-a), transparent 60%),
+      radial-gradient(820px 360px at 88% -12%, var(--glow-b), transparent 60%);
   }
   .dashboard-main :is(.flex > *, .grid > *) {
     min-width: 0;
@@ -319,4 +357,142 @@
     50%       { opacity: 1;   }
   }
   .orbit-pulse { animation: orbitPulse 3s ease-in-out infinite; }
+}
+
+/* =============================================
+   Form Controls — Component Layer
+   (input-base / select-base / label-base / btn-*)
+   ============================================= */
+@layer components {
+
+  .label-base {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text-muted);
+  }
+
+  /* ── Text inputs ── */
+  .input-base {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    font-weight: 500;
+    color: var(--text);
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    box-shadow: var(--shadow-xs);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  }
+  .input-base::placeholder { color: var(--text-subtle); font-weight: 400; }
+  .input-base:hover:not(:disabled):not(:read-only) { border-color: var(--accent); }
+  .input-base:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: var(--shadow-glow);
+  }
+  .input-base:disabled { opacity: 0.55; cursor: not-allowed; }
+  .input-base:read-only { background-color: var(--bg-alt); }
+
+  .input-error {
+    border-color: var(--error) !important;
+  }
+  .input-error:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14) !important;
+  }
+
+  /* ── Selects ──
+     Native arrow is removed and replaced with a chevron so the selected
+     text is always fully visible (padding-right keeps it clear of the arrow). */
+  .select-base {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
+    padding-right: 2.6rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    background-size: 1rem;
+  }
+  .dark .select-base {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+  /* Native dropdown panel colours */
+  .select-base { color-scheme: light; }
+  .dark .select-base { color-scheme: dark; }
+  .select-base option { color: #1E293B; background-color: #FFFFFF; }
+  .dark .select-base option { color: #F8FAFC; background-color: #1E293B; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    border: 1px solid transparent;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: var(--shadow-xs);
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+                color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:focus-visible { box-shadow: var(--shadow-glow); outline: none; }
+
+  .btn-primary { background-color: var(--primary); color: #FFFFFF; }
+  .btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); }
+
+  .btn-secondary { background-color: var(--secondary); color: #FFFFFF; }
+  .btn-secondary:hover:not(:disabled) { background-color: var(--secondary-hover); }
+
+  .btn-success { background-color: var(--success); color: #FFFFFF; }
+  .btn-success:hover:not(:disabled) { filter: brightness(0.94); }
+
+  .btn-danger { background-color: var(--error); color: #FFFFFF; }
+  .btn-danger:hover:not(:disabled) { filter: brightness(0.94); }
+
+  .btn-warning { background-color: var(--warning); color: #FFFFFF; }
+  .btn-warning:hover:not(:disabled) { filter: brightness(0.94); }
+
+  .btn-info { background-color: #0284C7; color: #FFFFFF; }
+  .btn-info:hover:not(:disabled) { background-color: #0369A1; }
+
+  .btn-outline {
+    background-color: transparent;
+    border-color: var(--border);
+    color: var(--text);
+    box-shadow: none;
+  }
+  .btn-outline:hover:not(:disabled) {
+    border-color: var(--secondary);
+    color: var(--secondary);
+    background-color: var(--accent-light);
+  }
+
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--text-muted);
+    box-shadow: none;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--accent-light);
+    color: var(--text);
+  }
+
+  /* ── Button sizes ── */
+  .btn-xs { padding: 0.3rem 0.625rem; font-size: 0.75rem; border-radius: 6px; }
+  .btn-sm { padding: 0.45rem 0.875rem; font-size: 0.8125rem; }
+  .btn-md { padding: 0.625rem 1.25rem; }
+  .btn-lg { padding: 0.75rem 1.5rem; font-size: 0.9375rem; }
+  .btn-xl { padding: 0.875rem 2rem; font-size: 1rem; }
 }

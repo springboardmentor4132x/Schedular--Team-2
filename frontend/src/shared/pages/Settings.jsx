@@ -661,11 +661,6 @@ export default function Settings() {
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-end pt-2">
-                  <Button variant="primary" size="md" onClick={() => navigate('/social-accounts')}>
-                    Manage Social Accounts
-                  </Button>
-                </div>
               </div>
             </SettingsCard>
           )}

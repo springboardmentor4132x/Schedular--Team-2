@@ -1,0 +1,26 @@
+import API from '../shared/api/api'
+
+export const getNotifications = async () => {
+  const response = await API.get('/notifications/')
+  return response.data
+}
+
+export const markNotificationRead = async (id) => {
+  const response = await API.post(`/notifications/${id}/read`)
+  return response.data
+}
+
+export const markAllNotificationsRead = async () => {
+  const response = await API.post('/notifications/read-all')
+  return response.data
+}
+
+export const deleteNotification = async (id) => {
+  const response = await API.delete(`/notifications/${id}`)
+  return response.data
+}
+
+export const clearAllNotifications = async () => {
+  const response = await API.delete('/notifications/')
+  return response.data
+}

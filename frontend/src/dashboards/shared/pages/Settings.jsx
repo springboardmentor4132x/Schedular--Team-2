@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Sun, Moon, Monitor, Bell, Lock, Globe,
+  Sun, Moon, Monitor, Lock, Globe,
   Shield, Trash2, Download, ChevronRight,
   CheckCircle2, Save,
 } from 'lucide-react'
-import { useAuth } from '../../../context/AuthContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import { useTheme } from '../../../shared/hooks/useTheme'
 
@@ -53,19 +52,20 @@ const THEMES = [
 ]
 
 export default function Settings({ isDark, onToggleTheme }) {
-  const { user, logout } = useAuth()
   const themeCtx = useTheme()
 
   const activeIsDark = isDark !== undefined ? isDark : (themeCtx.theme === 'dark')
   const activeOnToggleTheme = onToggleTheme || themeCtx.toggleTheme
 
   const [theme,    setTheme]    = useState(activeIsDark ? 'dark' : 'light')
+  const [prevIsDark, setPrevIsDark] = useState(activeIsDark)
   const [lang,     setLang]     = useState('English (US)')
   const [saved,    setSaved]    = useState(false)
 
-  useEffect(() => {
+  if (prevIsDark !== activeIsDark) {
+    setPrevIsDark(activeIsDark)
     setTheme(activeIsDark ? 'dark' : 'light')
-  }, [activeIsDark])
+  }
 
   /* Notification toggles */
   const [notifs, setNotifs] = useState({

@@ -1,5 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback } from 'react'
 import { clearStoredProfileImage, getStoredProfileImage, saveStoredProfileImage } from '../services/profileImageService'
+import { ROLE_ROUTES } from './authRoles'
 
 /**
  * AuthContext
@@ -11,22 +13,6 @@ import { clearStoredProfileImage, getStoredProfileImage, saveStoredProfileImage 
  */
 
 const AuthContext = createContext(null)
-
-// Role → default dashboard route
-export const ROLE_ROUTES = {
-  business:      '/dashboard/business',
-  marketing:     '/dashboard/marketing',
-  creator:       '/dashboard/creator',
-  administrator: '/dashboard/admin',
-}
-
-// Role → human-readable label
-export const ROLE_LABELS = {
-  business:      'Business User',
-  marketing:     'Marketing Team',
-  creator:       'Content Creator',
-  administrator: 'Administrator',
-}
 
 function loadUser() {
   try {

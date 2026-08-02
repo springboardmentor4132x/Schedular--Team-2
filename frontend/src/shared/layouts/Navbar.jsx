@@ -2,20 +2,45 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTheme } from '../hooks/useTheme'
 import { useSidebar } from '../hooks/useSidebar'
+import { useAuth } from '../../context/AuthContext'
+import {
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+} from '../../services/notificationService'
+
+const TYPE_BADGE_COLORS = {
+  success: 'bg-emerald-500',
+  error: 'bg-rose-500',
+  info: 'bg-indigo-500',
+  campaign: 'bg-amber-500',
+}
+
+const timeAgo = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const diff = Math.max(0, Date.now() - date.getTime())
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins} min ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`
+  return date.toLocaleDateString()
+}
 
 const pageTitles = {
-  '/dashboard': { label: 'Dashboard',  sub: 'Welcome back, John 👋' },
+  '/dashboard': { label: 'Dashboard',  sub: 'welcome' },
   '/calendar':  { label: 'Calendar',   sub: 'Manage your scheduled posts' },
   '/analytics': { label: 'Analytics',  sub: 'Track your performance' },
   '/team':      { label: 'Team',       sub: 'Manage team members' },
   '/inbox':     { label: 'Inbox',      sub: 'Your messages and notifications' },
   '/profile':   { label: 'My Profile', sub: 'Manage your personal information' },
   '/settings':  { label: 'Account Settings', sub: 'Manage your OrbitSocial account preferences and security' },
-  '/social-accounts': { label: 'Social Accounts', sub: 'Manage all connected social media platforms from one place' },
-  '/creator/dashboard': { label: 'Creator Dashboard', sub: 'Welcome back, Creator 👋' },
+  '/creator/dashboard': { label: 'Creator Dashboard', sub: 'welcome' },
   '/creator/my-posts': { label: 'My Posts', sub: 'Manage your created posts and drafts' },
   '/creator/posts': { label: 'My Posts', sub: 'Manage your created posts and drafts' },
-  '/creator/create-post': { label: 'Create Post', sub: 'Compose, schedule, and publish new content' },
   '/creator/content-scheduling': { label: 'Content Scheduling', sub: 'Plan your content publishing times' },
   '/creator/scheduling': { label: 'Content Scheduling', sub: 'Plan your content publishing times' },
   '/creator/campaigns': { label: 'Campaigns', sub: 'Track campaign collaborations' },
@@ -27,7 +52,6 @@ const pageTitles = {
   '/dashboard/admin/dashboard': { label: 'Admin Dashboard', sub: 'Manage users, teams, campaigns and platform operations' },
   '/dashboard/creator/dashboard': { label: 'Creator Dashboard', sub: 'Create, schedule, and manage your content' },
   '/dashboard/creator/my-posts': { label: 'My Posts', sub: 'Manage your created posts and drafts' },
-  '/dashboard/creator/create-post': { label: 'Create Post', sub: 'Compose, schedule, and publish new content' },
   '/dashboard/creator/content-scheduling': { label: 'Content Scheduling', sub: 'Plan your content publishing times' },
   '/dashboard/creator/publishing-calendar': { label: 'Publishing Calendar', sub: 'Visual schedule of posts' },
   '/dashboard/creator/campaigns': { label: 'Campaigns', sub: 'Track campaign collaborations' },
@@ -88,34 +112,72 @@ export default function Navbar() {
   const { pathname } = useLocation()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const page = pageTitles[pathname] ?? { label: 'Page', sub: '' }
+  const firstName = user?.name?.split(' ')[0] || 'there'
+  const pageSub = page.sub === 'welcome' ? `Welcome back, ${firstName} 👋` : page.sub
+  const initials =
+    (user?.name || '?')
+      .split(/\s+/)
+      .map((part) => part[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || 'U'
 
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: 'comment', title: 'Sarah Miller', message: 'commented on product launch copy', time: '10 min ago', read: false },
-    { id: 2, type: 'access', title: 'Alex Johnson', message: 'requested workspace access', time: '1 hour ago', read: false },
-    { id: 3, type: 'facebook', title: 'Facebook Sync', message: 'connection updated successfully', time: '5 hours ago', read: true },
-    { id: 4, type: 'alert', title: 'Instagram Token', message: 'expires in 3 days', time: '2 days ago', read: true },
-  ])
+  const [notifications, setNotifications] = useState([])
+  const [notifLoading, setNotifLoading] = useState(true)
 
   const notifRef = useRef(null)
   const userMenuRef = useRef(null)
 
   const unreadCount = notifications.filter(n => !n.read).length
 
-  const handleMarkAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })))
+  const loadNotifications = async () => {
+    try {
+      const data = await getNotifications()
+      setNotifications(data)
+    } catch (err) {
+      console.error('Failed to load notifications', err)
+    } finally {
+      setNotifLoading(false)
+    }
   }
 
-  const handleNotificationClick = (id) => {
+  useEffect(() => {
+    let active = true
+    getNotifications()
+      .then((data) => { if (active) setNotifications(data) })
+      .catch((err) => console.error('Failed to load notifications', err))
+      .finally(() => { if (active) setNotifLoading(false) })
+    return () => { active = false }
+  }, [])
+
+  const handleMarkAllRead = async () => {
+    setNotifications(notifications.map(n => ({ ...n, read: true })))
+    try {
+      await markAllNotificationsRead()
+    } catch (err) {
+      console.error('Failed to mark all notifications as read', err)
+    }
+  }
+
+  const handleNotificationClick = async (id) => {
     setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n))
+    try {
+      await markNotificationRead(id)
+    } catch (err) {
+      console.error('Failed to mark notification as read', err)
+    }
   }
 
   const handleLogout = () => {
     setShowUserMenu(false)
+    logout()
     navigate('/login')
   }
 
@@ -173,8 +235,8 @@ export default function Navbar() {
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight truncate">
             {page.label}
           </h1>
-          {page.sub && (
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">{page.sub}</p>
+          {pageSub && (
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">{pageSub}</p>
           )}
         </div>
       </div>
@@ -220,6 +282,7 @@ export default function Navbar() {
             onClick={() => {
               setShowNotifications(!showNotifications)
               setShowUserMenu(false)
+              if (!showNotifications) loadNotifications()
             }}
             className={`relative p-2 rounded-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
               showNotifications
@@ -252,12 +315,16 @@ export default function Navbar() {
                 )}
               </div>
               <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/60">
-                {notifications.length === 0 ? (
+                {notifLoading ? (
+                  <div className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                    Loading notifications…
+                  </div>
+                ) : notifications.length === 0 ? (
                   <div className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
                     No new notifications
                   </div>
                 ) : (
-                  notifications.map((item) => (
+                  notifications.slice(0, 8).map((item) => (
                     <div
                       key={item.id}
                       onClick={() => handleNotificationClick(item.id)}
@@ -268,17 +335,15 @@ export default function Navbar() {
                       }`}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${
-                        item.type === 'comment' ? 'bg-indigo-500' :
-                        item.type === 'access' ? 'bg-emerald-500' :
-                        item.type === 'facebook' ? 'bg-blue-600' : 'bg-amber-500'
+                        TYPE_BADGE_COLORS[item.type] || 'bg-indigo-500'
                       }`}>
-                        {item.title.split(' ').map(n => n[0]).join('')}
+                        {item.title.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-slate-600 dark:text-slate-300 leading-snug">
-                          <span className="font-bold text-slate-800 dark:text-slate-100">{item.title}</span> {item.message}
+                          <span className="font-bold text-slate-800 dark:text-slate-100">{item.title}</span>{item.message ? ` ${item.message}` : ''}
                         </p>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">{item.time}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">{timeAgo(item.created_at)}</span>
                       </div>
                       {!item.read && (
                         <div className="w-2 h-2 rounded-full bg-indigo-600 self-center flex-shrink-0" />
@@ -290,7 +355,10 @@ export default function Navbar() {
               <div className="border-t border-slate-100 dark:border-slate-700 p-2 text-center bg-slate-50 dark:bg-slate-800/80">
                 <button
                   type="button"
-                  onClick={() => setShowNotifications(false)}
+                  onClick={() => {
+                    setShowNotifications(false)
+                    navigate('/dashboard/creator/notifications')
+                  }}
                   className="w-full text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 py-1.5 focus:outline-none"
                 >
                   View all notifications
@@ -319,10 +387,18 @@ export default function Navbar() {
             aria-expanded={showUserMenu}
             aria-haspopup="true"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600
-                            flex items-center justify-center text-white text-xs font-bold shadow-sm">
-              JD
-            </div>
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="w-8 h-8 rounded-full object-cover shadow-sm"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600
+                              flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                {initials}
+              </div>
+            )}
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
               className={`w-4 h-4 text-slate-400 dark:text-slate-500 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`}>
@@ -333,12 +409,20 @@ export default function Navbar() {
           {showUserMenu && (
             <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-2xl shadow-card-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-slate-100 dark:border-slate-700 overflow-hidden transform origin-top-right transition-all duration-200 ease-out z-50">
               <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
-                  JD
-                </div>
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-10 h-10 rounded-full object-cover shadow-sm flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
+                    {initials}
+                  </div>
+                )}
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">John Doe</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">john@orbitsocial.com</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{user?.name || 'User'}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email || ''}</p>
                   <span className="inline-block mt-1 text-[10px] font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full">
                     Pro Plan
                   </span>
@@ -349,7 +433,6 @@ export default function Navbar() {
                 {[
                   { label: 'Profile', to: '/profile' },
                   { label: 'Settings', to: '/settings' },
-                  { label: 'Social Accounts', to: '/social-accounts' },
                 ].map((item) => (
                   <button
                     key={item.label}

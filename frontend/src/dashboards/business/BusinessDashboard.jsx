@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   AreaChart, Area, BarChart, Bar,
@@ -5,50 +6,14 @@ import {
 } from 'recharts'
 import {
   Link2, Megaphone, CalendarCheck, Send,
-  CalendarDays, BarChart2, Users, TrendingUp,
-  CheckCircle2, Clock, AlertCircle, FileText,
+  BarChart2, Users, TrendingUp, Clock, FileText,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter } from 'react-icons/fa6'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import StatCard from '../../components/dashboard/StatCard'
 import ActivityFeed from '../../components/dashboard/ActivityFeed'
-import PageHeader from '../../components/dashboard/PageHeader'
-import {
-  MOCK_CONNECTED_ACCOUNTS,
-  MOCK_CAMPAIGNS,
-  MOCK_SCHEDULED_POSTS,
-  MOCK_PUBLISHED_POSTS,
-  MOCK_ANALYTICS,
-} from '../../services/mockData'
-
-/* ── Derived counts from mock data ────────────────────────────── */
-const connectedCount  = MOCK_CONNECTED_ACCOUNTS.filter(a => a.status === 'connected' || a.status === 'warning').length
-const campaignCount   = MOCK_CAMPAIGNS.filter(c => c.status === 'active').length
-const scheduledCount  = MOCK_SCHEDULED_POSTS.filter(p => p.status === 'scheduled').length
-const publishedCount  = MOCK_PUBLISHED_POSTS.length
-
-/* ── Quick actions ────────────────────────────────────────────── */
-const QUICK_ACTIONS = [
-  { label: 'Marketing Teams',    href: '/dashboard/marketing-teams',    color: '#1E3A8A', bg: 'rgba(30,58,138,.10)',   icon: Users },
-  { label: 'Campaigns',          href: '/dashboard/campaigns',           color: '#4F46E5', bg: 'rgba(79,70,229,.10)',   icon: Megaphone },
-  { label: 'Scheduled Posts',    href: '/dashboard/scheduled-posts',     color: '#22C55E', bg: 'rgba(34,197,94,.10)',   icon: CalendarCheck },
-  { label: 'Connected Accounts', href: '/dashboard/connected-accounts',  color: '#F59E0B', bg: 'rgba(245,158,11,.10)',  icon: Link2 },
-  { label: 'Analytics',          href: '/dashboard/analytics',           color: '#E1306C', bg: 'rgba(225,48,108,.10)',  icon: BarChart2 },
-  { label: 'Reports',            href: '/dashboard/reports',             color: '#0A66C2', bg: 'rgba(10,102,194,.10)', icon: FileText },
-]
-
-/* ── Recent activity ──────────────────────────────────────────── */
-const ACTIVITY = [
-  { id:1, icon:CheckCircle2, iconColor:'#22C55E', iconBg:'rgba(34,197,94,.1)',   title:'Post published successfully',  description:'Instagram · Summer Sale Announcement',  time:'2m ago',  badge:'Published', badgeColor:'#22C55E' },
-  { id:2, icon:Clock,        iconColor:'#1E3A8A', iconBg:'rgba(30,58,138,.1)',   title:'Post scheduled',               description:'LinkedIn · Product Launch Teaser',      time:'14m ago', badge:'Scheduled', badgeColor:'#1E3A8A' },
-  { id:3, icon:AlertCircle,  iconColor:'#F59E0B', iconBg:'rgba(245,158,11,.1)',  title:'Campaign budget at 80%',       description:'Brand Awareness campaign',             time:'1h ago',  badge:'Warning',   badgeColor:'#F59E0B' },
-  { id:4, icon:Users,        iconColor:'#4F46E5', iconBg:'rgba(79,70,229,.1)',   title:'Marketing team assigned',      description:'Digital Spark Agency · Summer Sale',   time:'2h ago',  badge:'Assigned',  badgeColor:'#4F46E5' },
-  { id:5, icon:TrendingUp,   iconColor:'#E1306C', iconBg:'rgba(225,48,108,.1)', title:'Engagement spike detected',    description:'+34% above average this week',         time:'3h ago'  },
-]
-
-/* ── Upcoming scheduled posts (from mock) ─────────────────────── */
-const UPCOMING = MOCK_SCHEDULED_POSTS.slice(0, 4)
+import { fetchBusinessDashboard } from './services/businessService'
 
 const PLATFORM_ICONS = {
   instagram: { icon: FaInstagram, color: '#E1306C' },
@@ -80,11 +45,103 @@ function ChartTip({ active, payload, label }) {
   )
 }
 
+/* ── Quick actions ────────────────────────────────────────────── */
+const QUICK_ACTIONS = [
+  { label: 'Marketing Teams',    href: '/dashboard/marketing-teams',    color: '#1E3A8A', bg: 'rgba(30,58,138,.10)',   icon: Users },
+  { label: 'Campaigns',          href: '/dashboard/campaigns',           color: '#4F46E5', bg: 'rgba(79,70,229,.10)',   icon: Megaphone },
+  { label: 'Scheduled Posts',    href: '/dashboard/scheduled-posts',     color: '#22C55E', bg: 'rgba(34,197,94,.10)',   icon: CalendarCheck },
+  { label: 'Connected Accounts', href: '/dashboard/connected-accounts',  color: '#F59E0B', bg: 'rgba(245,158,11,.10)',  icon: Link2 },
+  { label: 'Analytics',          href: '/dashboard/analytics',           color: '#E1306C', bg: 'rgba(225,48,108,.10)',  icon: BarChart2 },
+  { label: 'Reports',            href: '/dashboard/reports',             color: '#0A66C2', bg: 'rgba(10,102,194,.10)', icon: FileText },
+]
+
 export default function BusinessDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [dashboard, setDashboard] = useState(null)
+  const [loading, setLoading] = useState(true)
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+
+  useEffect(() => {
+    fetchBusinessDashboard()
+      .then(data => {
+        setDashboard(data)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
+        <div className="animate-pulse space-y-6">
+          <div className="h-32 rounded-[var(--r-xl)]" style={{ background: 'linear-gradient(135deg, #1E3A8A 0%, #4F46E5 100%)' }} />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-[var(--r-md)]" style={{ background: 'var(--bg-alt)' }} />)}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {QUICK_ACTIONS.map(a => <div key={a.label} className="h-20 rounded-[var(--r-md)]" style={{ background: 'var(--bg-alt)' }} />)}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 h-72 rounded-[var(--r-md)]" style={{ background: 'var(--bg-alt)' }} />
+            <div className="h-72 rounded-[var(--r-md)]" style={{ background: 'var(--bg-alt)' }} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const connectedCount = dashboard?.connected_accounts ?? 0
+  const campaignCount = dashboard?.active_campaigns ?? 0
+  const scheduledCount = dashboard?.scheduled_posts ?? 0
+  const publishedCount = dashboard?.published_posts ?? 0
+  const upcomingPosts = dashboard?.upcoming_posts ?? []
+  const activeCampaignsList = dashboard?.active_campaigns_list ?? []
+  const analytics = dashboard?.analytics ?? { weekly: [], platformSplit: [] }
+  const totalPosts = analytics.weekly?.reduce((sum, item) => sum + (item.posts ?? 0), 0) ?? 0
+  const hasWeeklyAnalytics = (analytics.weekly ?? []).length > 0
+
+  const platformSplit = (analytics.platformSplit ?? []).map(p => ({ name: p.name, value: p.value ?? 0 }))
+  const platformTotal = platformSplit.reduce((sum, p) => sum + p.value, 0)
+  const platformChartData = platformTotal > 0
+    ? platformSplit.map(p => ({ name: p.name, value: Math.round((p.value / platformTotal) * 100) }))
+    : []
+  const activityItems = [
+    upcomingPosts[0] && {
+      id: `upcoming-${upcomingPosts[0].id}`,
+      icon: Clock,
+      iconColor: '#1E3A8A',
+      iconBg: 'rgba(30,58,138,.1)',
+      title: 'Upcoming scheduled post',
+      description: `${upcomingPosts[0].title}${upcomingPosts[0].campaign ? ` · ${upcomingPosts[0].campaign}` : ''}`,
+      time: 'Next in queue',
+      badge: 'Scheduled',
+      badgeColor: '#1E3A8A',
+    },
+    activeCampaignsList[0] && {
+      id: `campaign-${activeCampaignsList[0].id}`,
+      icon: Users,
+      iconColor: '#4F46E5',
+      iconBg: 'rgba(79,70,229,.1)',
+      title: 'Active campaign progress',
+      description: `${activeCampaignsList[0].name} · ${activeCampaignsList[0].progress}% complete`,
+      time: 'Live from DB',
+      badge: 'Campaign',
+      badgeColor: '#4F46E5',
+    },
+    hasWeeklyAnalytics && {
+      id: 'analytics',
+      icon: TrendingUp,
+      iconColor: '#E1306C',
+      iconBg: 'rgba(225,48,108,.1)',
+      title: 'Analytics updated',
+      description: `${totalPosts.toLocaleString()} posts tracked this week`,
+      time: 'Live data',
+      badge: 'Analytics',
+      badgeColor: '#E1306C',
+    },
+  ].filter(Boolean)
 
   return (
     <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
@@ -144,12 +201,12 @@ export default function BusinessDashboard() {
         <StatCard
           title="Scheduled Posts" value={scheduledCount}
           icon={CalendarCheck} iconColor="#22C55E" iconBg="rgba(34,197,94,.12)"
-          trend={12} index={2}
+          index={2}
         />
         <StatCard
           title="Published Posts" value={publishedCount}
           icon={Send} iconColor="#F59E0B" iconBg="rgba(245,158,11,.12)"
-          trend={8} index={3}
+          index={3}
         />
       </div>
 
@@ -199,7 +256,7 @@ export default function BusinessDashboard() {
               Analytics Overview
             </h2>
             <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>
-              {[[C.primary,'Reach'],[C.secondary,'Engagement']].map(([c,n]) => (
+              {[[C.primary,'Posts']].map(([c,n]) => (
                 <span key={n} className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: c }} />{n}
                 </span>
@@ -207,39 +264,34 @@ export default function BusinessDashboard() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={MOCK_ANALYTICS.weekly} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+            <AreaChart data={analytics.weekly} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
               <defs>
                 <linearGradient id="bizReachGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor={C.primary}    stopOpacity={0.2} />
                   <stop offset="95%" stopColor={C.primary}    stopOpacity={0}   />
-                </linearGradient>
-                <linearGradient id="bizEngGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor={C.secondary}  stopOpacity={0.2} />
-                  <stop offset="95%" stopColor={C.secondary}  stopOpacity={0}   />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="day"  tick={{ fontSize: 11, fill: 'var(--text-subtle)' }} axisLine={false} tickLine={false} />
               <YAxis               tick={{ fontSize: 11, fill: 'var(--text-subtle)' }} axisLine={false} tickLine={false} />
               <Tooltip content={<ChartTip />} />
-              <Area type="monotone" dataKey="reach"      name="Reach"      stroke={C.primary}   strokeWidth={2} fill="url(#bizReachGrad)" />
-              <Area type="monotone" dataKey="engagement" name="Engagement" stroke={C.secondary} strokeWidth={2} fill="url(#bizEngGrad)"  />
+              <Area type="monotone" dataKey="posts"     name="Posts"     stroke={C.primary}   strokeWidth={2} fill="url(#bizReachGrad)" />
             </AreaChart>
           </ResponsiveContainer>
-          <div className="mt-3 pt-3 border-t flex gap-4" style={{ borderColor: 'var(--border)' }}>
-            {[
-              { label: 'Total Reach', value: '61K' },
-              { label: 'Engagement', value: '9.2K' },
-              { label: 'Impressions', value: '89K' },
-            ].map(s => (
-              <div key={s.label} className="text-center">
-                <p className="text-base font-extrabold" style={{ color: 'var(--text)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{s.value}</p>
-                <p className="text-[11px]" style={{ color: 'var(--text-subtle)' }}>{s.label}</p>
+          <div className="mt-3 pt-3 border-t flex gap-4 items-center" style={{ borderColor: 'var(--border)' }}>
+            {hasWeeklyAnalytics ? (
+              <div className="text-center">
+                <p className="text-base font-extrabold" style={{ color: 'var(--text)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{totalPosts.toLocaleString()}</p>
+                <p className="text-[11px]" style={{ color: 'var(--text-subtle)' }}>Posts this week</p>
               </div>
-            ))}
+            ) : (
+              <p className="text-xs" style={{ color: 'var(--text-subtle)' }}>
+                No analytics yet — publish posts to start tracking content activity.
+              </p>
+            )}
             <button
               onClick={() => navigate('/dashboard/analytics')}
-              className="ml-auto text-xs font-semibold hover:underline self-end"
+              className="ml-auto text-xs font-semibold hover:underline self-center"
               style={{ color: 'var(--primary)' }}
             >
               Full analytics →
@@ -260,17 +312,22 @@ export default function BusinessDashboard() {
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart
-              data={MOCK_ANALYTICS.platformSplit.map(p => ({ name: p.name, value: p.value }))}
+              data={platformChartData}
               layout="vertical"
               margin={{ top: 0, right: 8, bottom: 0, left: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--text-subtle)' }} axisLine={false} tickLine={false} unit="%" />
+              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--text-subtle)' }} axisLine={false} tickLine={false} unit="%" />
               <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={70} />
               <Tooltip formatter={v => [`${v}%`, 'Share']} />
               <Bar dataKey="value" name="Share" fill="var(--primary)" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          {platformChartData.length === 0 && (
+            <div className="text-center py-2 text-xs" style={{ color: 'var(--text-subtle)' }}>
+              No published content yet
+            </div>
+          )}
         </motion.div>
       </div>
 
@@ -294,7 +351,7 @@ export default function BusinessDashboard() {
             </button>
           </div>
           <div className="flex flex-col gap-2">
-            {UPCOMING.map(post => {
+            {upcomingPosts.map(post => {
               const meta  = PLATFORM_ICONS[post.platform]
               const Icon  = meta?.icon
               const s     = STATUS_STYLE[post.status] ?? STATUS_STYLE.scheduled
@@ -329,6 +386,11 @@ export default function BusinessDashboard() {
                 </div>
               )
             })}
+            {upcomingPosts.length === 0 && (
+              <div className="text-center py-4 text-slate-500 dark:text-slate-400">
+                No upcoming scheduled posts
+              </div>
+            )}
           </div>
         </motion.div>
 
@@ -351,7 +413,7 @@ export default function BusinessDashboard() {
             </button>
           </div>
           <div className="flex flex-col gap-4">
-            {MOCK_CAMPAIGNS.filter(c => c.status === 'active').map(c => (
+            {activeCampaignsList.map(c => (
               <div key={c.id}>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{c.name}</span>
@@ -372,6 +434,11 @@ export default function BusinessDashboard() {
                 </div>
               </div>
             ))}
+            {activeCampaignsList.length === 0 && (
+              <div className="text-center py-4 text-slate-500 dark:text-slate-400">
+                No active campaigns
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
@@ -381,7 +448,7 @@ export default function BusinessDashboard() {
         initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.3 }}
       >
-        <ActivityFeed items={ACTIVITY} title="Recent Activity" />
+        <ActivityFeed items={activityItems} title="Recent Activity" />
       </motion.div>
     </div>
   )

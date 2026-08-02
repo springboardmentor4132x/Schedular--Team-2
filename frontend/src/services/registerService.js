@@ -8,3 +8,8 @@ export const registerUser = async (userData) => {
 
     return response.data;
 };
+
+export const adminExists = async () => {
+    const response = await API.get("/auth/admin-exists");
+    return response.data.admin_exists;
+};

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { HiCheckCircle, HiXCircle, HiExclamationCircle, HiXMark } from 'react-icons/hi2'
 
 /**
@@ -15,18 +15,25 @@ import { HiCheckCircle, HiXCircle, HiExclamationCircle, HiXMark } from 'react-ic
  *   duration — ms before auto-dismiss (default 3500)
  */
 export default function Toast({ toast, onClose, duration = 3500 }) {
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(Boolean(toast))
+  const [prevToast, setPrevToast] = useState(toast)
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
 
-  // Animate in when a new toast arrives, auto-dismiss after duration
+  if (prevToast !== toast) {
+    setPrevToast(toast)
+    setVisible(Boolean(toast))
+  }
+
+  // Auto-dismiss after duration
   useEffect(() => {
-    if (!toast) { setVisible(false); return }
-    setVisible(true)
+    if (!toast) return
     const timer = setTimeout(() => {
       setVisible(false)
-      setTimeout(onClose, 300) // wait for fade-out before clearing
+      setTimeout(() => onCloseRef.current(), 300) // wait for fade-out before clearing
     }, duration)
     return () => clearTimeout(timer)
-  }, [toast])
+  }, [toast, duration])
 
   if (!toast) return null
 

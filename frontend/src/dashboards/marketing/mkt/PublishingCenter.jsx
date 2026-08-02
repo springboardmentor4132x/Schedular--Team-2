@@ -36,15 +36,12 @@ export function PublishingPanel() {
   const [queue,  setQueue]  = useState([])
   const [filter, setFilter] = useState('all')
   const [toast,  setToast]  = useState(null)
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!activeClient) return
     let mounted = true
-    setLoading(true)
     contentApi.getLibraryByClient(activeClient.id)
       .then(items => { if (mounted) setQueue(items.filter(item => ['scheduled','ready','published','failed','pending_approval','cancelled'].includes(item.status))) })
-      .finally(() => { if (mounted) setLoading(false) })
     return () => { mounted = false }
   }, [activeClient])
 

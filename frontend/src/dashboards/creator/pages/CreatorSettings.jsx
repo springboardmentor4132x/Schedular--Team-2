@@ -1,12 +1,11 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useTheme } from '../../../shared/hooks/useTheme'
 import Card from '../../../shared/components/ui/Card'
 import Button from '../../../shared/components/Button'
 import Input from '../../../shared/components/Input'
-import Select from '../../../shared/components/ui/Select'
 import StatusBadge from '../../../shared/components/ui/StatusBadge'
 import Modal from '../../../shared/components/ui/Modal'
+import { CardSkeleton } from '../../../shared/components/ui/Skeleton'
 import { 
   User, 
   UserCircle, 
@@ -17,12 +16,10 @@ import {
   Link as LinkIcon, 
   Layout, 
   HelpCircle, 
-  Check, 
   Sparkles, 
   Sun, 
   Moon, 
   Lock, 
-  Laptop, 
   RefreshCw, 
   Download, 
   ExternalLink,
@@ -32,18 +29,57 @@ import {
   Mail,
   Info
 } from 'lucide-react'
-
+import { getPlatformIcon, getPlatformLabel } from '../../../services/postAdapter'
 import {
-  initialAccountSettings,
-  initialProfileSettings,
-  initialNotificationSettings,
-  initialPrivacySettings,
-  initialSecuritySettings,
-  initialAppearanceSettings,
-  initialConnectedAccounts,
-  initialWorkspacePreferences,
-  supportInfo
-} from '../mock/creatorSettingsData'
+  getMe,
+  updateMe,
+  getSettings,
+  updateSettings,
+  changePassword,
+  fetchSocialAccounts,
+  connectSocialAccount,
+  disconnectSocialAccount,
+} from '../services/creatorService'
+
+const LANGUAGE_OPTIONS = [
+  { value: 'en', label: 'English (US)' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'fr', label: 'French' },
+  { value: 'de', label: 'German' },
+]
+
+const TIMEZONE_OPTIONS = [
+  { value: 'Pacific Time (US & Canada)', label: 'Pacific Time (US & Canada)' },
+  { value: 'Eastern Time (US & Canada)', label: 'Eastern Time (US & Canada)' },
+  { value: 'UTC / GMT', label: 'UTC / GMT' },
+  { value: 'Central European Time', label: 'Central European Time' },
+]
+
+const DATE_FORMAT_OPTIONS = [
+  { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
+  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
+  { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
+]
+
+const TIME_FORMAT_OPTIONS = [
+  { value: '12-hour (AM/PM)', label: '12-hour (AM/PM)' },
+  { value: '24-hour', label: '24-hour' },
+]
+
+const NOTIFICATION_FIELDS = {
+  emailNotifications: 'email_notifications',
+  pushNotifications: 'push_notifications',
+  weeklySummary: 'weekly_summary',
+  securityAlerts: 'security_alerts',
+  productUpdates: 'product_updates',
+}
+
+const PRIVACY_FIELDS = {
+  publicProfile: 'public_profile',
+  showContactInfo: 'show_email',
+  showActivityStatus: 'show_activity_status',
+  allowSearchEngines: 'allow_search_engines',
+}
 
 // Settings Card Wrapper matching OrbitSocial Settings style
 function SettingsCard({ title, icon: IconComponent, children }) {
@@ -117,22 +153,47 @@ function ToggleSwitch({ checked, onChange, label, description, id }) {
   )
 }
 
+const supportInfo = {
+  helpCenterUrl: 'https://help.orbitsocial.app',
+  documentationUrl: 'https://docs.orbitsocial.app',
+  contactEmail: 'support@orbitsocial.app',
+  appVersion: 'v2.4.0 (Build 2026.07)',
+}
+
 export default function CreatorSettings() {
-  const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
 
   // Active Tab State (Account by default)
   const [activeTab, setActiveTab] = useState('account')
 
   // Form & Settings States
-  const [account, setAccount] = useState(initialAccountSettings)
-  const [profile, setProfile] = useState(initialProfileSettings)
-  const [notifications, setNotifications] = useState(initialNotificationSettings)
-  const [privacy, setPrivacy] = useState(initialPrivacySettings)
-  const [security, setSecurity] = useState(initialSecuritySettings)
-  const [appearance, setAppearance] = useState(initialAppearanceSettings)
-  const [socials, setSocials] = useState(initialConnectedAccounts)
-  const [workspacePref, setWorkspacePref] = useState(initialWorkspacePreferences)
+  const [account, setAccount] = useState({
+    fullName: '',
+    username: '',
+    email: '',
+    phone: '',
+    language: 'en',
+    timezone: 'UTC / GMT',
+    dateFormat: 'MM/DD/YYYY',
+    timeFormat: '12-hour (AM/PM)',
+  })
+  const [profile, setProfile] = useState({ bio: '', website: '', location: '', profileVisibility: true })
+  const [notifications, setNotifications] = useState({
+    emailNotifications: true,
+    pushNotifications: true,
+    weeklySummary: true,
+    securityAlerts: true,
+    productUpdates: true,
+  })
+  const [privacy, setPrivacy] = useState({
+    publicProfile: true,
+    showContactInfo: false,
+    showActivityStatus: true,
+    allowSearchEngines: true,
+  })
+  const [security, setSecurity] = useState({ twoFactorEnabled: false })
+  const [socials, setSocials] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
 
   // Modals & Feedback
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
@@ -144,70 +205,191 @@ export default function CreatorSettings() {
     setTimeout(() => setToastMessage(''), 3000)
   }
 
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      try {
+        const [me, settings, accounts] = await Promise.all([
+          getMe(),
+          getSettings().catch(() => null),
+          fetchSocialAccounts().catch(() => []),
+        ])
+        if (!mounted) return
+
+        if (me) {
+          setAccount(prev => ({
+            ...prev,
+            fullName: [me.first_name, me.last_name].filter(Boolean).join(' ') || me.username,
+            username: me.username || '',
+            email: me.email || '',
+            phone: me.phone || '',
+          }))
+          setProfile(prev => ({
+            ...prev,
+            bio: me.bio || '',
+            website: me.website || '',
+            location: me.location || '',
+          }))
+        }
+
+        if (settings) {
+          setAccount(prev => ({
+            ...prev,
+            language: LANGUAGE_OPTIONS.some((o) => o.value === settings.language) ? settings.language : 'en',
+            timezone: TIMEZONE_OPTIONS.some((o) => o.value === settings.timezone) ? settings.timezone : 'UTC / GMT',
+            dateFormat: DATE_FORMAT_OPTIONS.some((o) => o.value === settings.date_format) ? settings.date_format : 'MM/DD/YYYY',
+            timeFormat: settings.time_format === '24h' ? '24-hour' : '12-hour (AM/PM)',
+          }))
+          setNotifications({
+            emailNotifications: Boolean(settings.email_notifications),
+            pushNotifications: Boolean(settings.push_notifications),
+            weeklySummary: Boolean(settings.weekly_summary),
+            securityAlerts: Boolean(settings.security_alerts),
+            productUpdates: Boolean(settings.product_updates),
+          })
+          setPrivacy({
+            publicProfile: Boolean(settings.public_profile),
+            showContactInfo: Boolean(settings.show_email),
+            showActivityStatus: Boolean(settings.show_activity_status),
+            allowSearchEngines: Boolean(settings.allow_search_engines),
+          })
+          setSecurity({ twoFactorEnabled: Boolean(settings.two_factor_auth) })
+        }
+
+        setSocials(accounts)
+      } catch {
+        /* keep defaults */
+      } finally {
+        if (mounted) setIsLoading(false)
+      }
+    }
+    load()
+    return () => { mounted = false }
+  }, [])
+
+  const toSettingsPayload = () => ({
+    email_notifications: notifications.emailNotifications,
+    push_notifications: notifications.pushNotifications,
+    weekly_summary: notifications.weeklySummary,
+    security_alerts: notifications.securityAlerts,
+    product_updates: notifications.productUpdates,
+    public_profile: privacy.publicProfile,
+    show_email: privacy.showContactInfo,
+    show_activity_status: privacy.showActivityStatus,
+    allow_search_engines: privacy.allowSearchEngines,
+    two_factor_auth: security.twoFactorEnabled,
+    language: account.language,
+    timezone: account.timezone,
+    date_format: account.dateFormat,
+    time_format: account.timeFormat === '24-hour' ? '24h' : '12h',
+  })
+
   // Handlers
-  const handleSaveAccount = (e) => {
+  const handleSaveAccount = async (e) => {
     e.preventDefault()
-    showToast('Account settings saved successfully!')
+    const parts = (account.fullName || '').trim().split(/\s+/)
+    const userPayload = {
+      first_name: parts[0] || '',
+      last_name: parts.slice(1).join(' '),
+      username: account.username,
+      phone: account.phone || null,
+    }
+    try {
+      await Promise.all([updateMe(userPayload), updateSettings(toSettingsPayload())])
+      showToast('Account settings saved successfully!')
+    } catch {
+      showToast('Failed to save account settings.')
+    }
   }
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault()
-    showToast('Creator profile settings saved!')
+    const userPayload = {
+      bio: profile.bio || null,
+      website: profile.website || null,
+      location: profile.location || null,
+    }
+    try {
+      await Promise.all([updateMe(userPayload), updateSettings(toSettingsPayload())])
+      showToast('Creator profile settings saved!')
+    } catch {
+      showToast('Failed to save profile settings.')
+    }
   }
 
-  const handleSaveWorkspacePref = (e) => {
-    e.preventDefault()
-    showToast('Workspace preferences saved!')
+  const persistSetting = async (payload, successMsg, rollback) => {
+    try {
+      await updateSettings(payload)
+      showToast(successMsg)
+    } catch {
+      if (rollback) rollback()
+      showToast('Failed to save setting.')
+    }
   }
 
   const handleToggleNotification = (key) => {
-    setNotifications(prev => {
-      const next = !prev[key]
-      showToast('Notification preference updated.')
-      return { ...prev, [key]: next }
-    })
+    const next = !notifications[key]
+    setNotifications(prev => ({ ...prev, [key]: next }))
+    persistSetting(
+      { [NOTIFICATION_FIELDS[key]]: next },
+      'Notification preference updated.',
+      () => setNotifications(prev => ({ ...prev, [key]: !next }))
+    )
   }
 
   const handleTogglePrivacy = (key) => {
-    setPrivacy(prev => {
-      const next = !prev[key]
-      showToast('Privacy setting updated.')
-      return { ...prev, [key]: next }
-    })
+    const next = !privacy[key]
+    setPrivacy(prev => ({ ...prev, [key]: next }))
+    persistSetting(
+      { [PRIVACY_FIELDS[key]]: next },
+      'Privacy setting updated.',
+      () => setPrivacy(prev => ({ ...prev, [key]: !next }))
+    )
   }
 
-  const handleToggleSocialConnect = (id) => {
-    setSocials(prev => prev.map(s => {
-      if (s.id === id) {
-        const nextState = !s.connected
-        showToast(`${s.platform} ${nextState ? 'connected' : 'disconnected'}.`)
-        return { ...s, connected: nextState, status: nextState ? 'Connected' : 'Disconnected' }
+  const handleToggleTwoFactor = () => {
+    const next = !security.twoFactorEnabled
+    setSecurity({ twoFactorEnabled: next })
+    persistSetting(
+      { two_factor_auth: next },
+      `2FA ${next ? 'enabled' : 'disabled'}.`,
+      () => setSecurity({ twoFactorEnabled: !next })
+    )
+  }
+
+  const handleToggleSocialConnect = async (social) => {
+    try {
+      if (social.status === 'Connected') {
+        await disconnectSocialAccount(social.id)
+        showToast(`${getPlatformLabel(social.platform)} disconnected.`)
+      } else {
+        await connectSocialAccount(social.platform)
+        showToast(`${getPlatformLabel(social.platform)} connected.`)
       }
-      return s
-    }))
+      setSocials(await fetchSocialAccounts())
+    } catch (err) {
+      showToast(err?.response?.data?.detail || 'Failed to update account.')
+    }
   }
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault()
     if (passwordForm.next !== passwordForm.confirm) {
       showToast('Error: Passwords do not match!')
       return
     }
-    setIsPasswordModalOpen(false)
-    setPasswordForm({ current: '', next: '', confirm: '' })
-    showToast('Password changed successfully.')
+    try {
+      await changePassword({ current_password: passwordForm.current, new_password: passwordForm.next })
+      setIsPasswordModalOpen(false)
+      setPasswordForm({ current: '', next: '', confirm: '' })
+      showToast('Password changed successfully.')
+    } catch (err) {
+      showToast(err?.response?.data?.detail || 'Failed to change password.')
+    }
   }
 
   const handleDownloadData = () => {
     showToast('Preparing your creator data download ZIP file...')
-  }
-
-  const handleRevokeSessions = () => {
-    setSecurity(prev => ({
-      ...prev,
-      activeSessions: prev.activeSessions.filter(s => s.activeNow)
-    }))
-    showToast('All other active sessions revoked.')
   }
 
   // Navigation Tabs Definition
@@ -222,6 +404,18 @@ export default function CreatorSettings() {
     { id: 'workspace',          label: 'Workspace Preferences', icon: Layout },
     { id: 'support',            label: 'Support',            icon: HelpCircle },
   ]
+
+  if (isLoading) {
+    return (
+      <div className="max-w-[1400px] mx-auto space-y-6 pb-16">
+        <div className="card p-5 sm:p-6 h-24 animate-pulse bg-slate-100/60 dark:bg-slate-800/40"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
+          <div className="h-72 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 animate-pulse"></div>
+          <CardSkeleton />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6 animate-fade-in pb-16">
@@ -279,87 +473,57 @@ export default function CreatorSettings() {
             <SettingsCard title="Account Settings" icon={User}>
               <form onSubmit={handleSaveAccount} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input 
-                    label="Full Name" 
-                    value={account.fullName} 
-                    onChange={(e) => setAccount({ ...account, fullName: e.target.value })} 
-                    required 
+                  <Input
+                    label="Full Name"
+                    value={account.fullName}
+                    onChange={(e) => setAccount({ ...account, fullName: e.target.value })}
+                    required
                   />
-                  <Input 
-                    label="Username" 
-                    value={account.username} 
-                    onChange={(e) => setAccount({ ...account, username: e.target.value })} 
-                    required 
+                  <Input
+                    label="Username"
+                    value={account.username}
+                    onChange={(e) => setAccount({ ...account, username: e.target.value })}
+                    required
                   />
-                  <Input 
-                    label="Email Address" 
-                    type="email" 
-                    value={account.email} 
-                    onChange={(e) => setAccount({ ...account, email: e.target.value })} 
-                    required 
+                  <Input
+                    label="Email Address"
+                    type="email"
+                    value={account.email}
+                    onChange={(e) => setAccount({ ...account, email: e.target.value })}
+                    readOnly
                   />
-                  <Input 
-                    label="Phone Number" 
-                    value={account.phone} 
-                    onChange={(e) => setAccount({ ...account, phone: e.target.value })} 
+                  <Input
+                    label="Phone Number"
+                    value={account.phone}
+                    onChange={(e) => setAccount({ ...account, phone: e.target.value })}
                   />
-                  <SettingsDropdown 
-                    id="account-country" 
-                    label="Country" 
-                    value={account.country} 
-                    onChange={(val) => setAccount({ ...account, country: val })}
-                    options={[
-                      { value: 'United States', label: 'United States' },
-                      { value: 'Canada', label: 'Canada' },
-                      { value: 'United Kingdom', label: 'United Kingdom' },
-                      { value: 'Germany', label: 'Germany' },
-                      { value: 'Australia', label: 'Australia' },
-                    ]}
-                  />
-                  <SettingsDropdown 
-                    id="account-language" 
-                    label="Language" 
-                    value={account.language} 
+                  <SettingsDropdown
+                    id="account-language"
+                    label="Language"
+                    value={account.language}
                     onChange={(val) => setAccount({ ...account, language: val })}
-                    options={[
-                      { value: 'English (US)', label: 'English (US)' },
-                      { value: 'Spanish', label: 'Spanish' },
-                      { value: 'French', label: 'French' },
-                      { value: 'German', label: 'German' },
-                    ]}
+                    options={LANGUAGE_OPTIONS}
                   />
-                  <SettingsDropdown 
-                    id="account-timezone" 
-                    label="Timezone" 
-                    value={account.timezone} 
+                  <SettingsDropdown
+                    id="account-timezone"
+                    label="Timezone"
+                    value={account.timezone}
                     onChange={(val) => setAccount({ ...account, timezone: val })}
-                    options={[
-                      { value: 'Pacific Time (US & Canada)', label: 'Pacific Time (US & Canada)' },
-                      { value: 'Eastern Time (US & Canada)', label: 'Eastern Time (US & Canada)' },
-                      { value: 'UTC / GMT', label: 'UTC / GMT' },
-                      { value: 'Central European Time', label: 'Central European Time' },
-                    ]}
+                    options={TIMEZONE_OPTIONS}
                   />
-                  <SettingsDropdown 
-                    id="account-date-format" 
-                    label="Date Format" 
-                    value={account.dateFormat} 
+                  <SettingsDropdown
+                    id="account-date-format"
+                    label="Date Format"
+                    value={account.dateFormat}
                     onChange={(val) => setAccount({ ...account, dateFormat: val })}
-                    options={[
-                      { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
-                      { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
-                      { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
-                    ]}
+                    options={DATE_FORMAT_OPTIONS}
                   />
-                  <SettingsDropdown 
-                    id="account-time-format" 
-                    label="Time Format" 
-                    value={account.timeFormat} 
+                  <SettingsDropdown
+                    id="account-time-format"
+                    label="Time Format"
+                    value={account.timeFormat}
                     onChange={(val) => setAccount({ ...account, timeFormat: val })}
-                    options={[
-                      { value: '12-hour (AM/PM)', label: '12-hour (AM/PM)' },
-                      { value: '24-hour', label: '24-hour' },
-                    ]}
+                    options={TIME_FORMAT_OPTIONS}
                   />
                 </div>
 
@@ -378,82 +542,40 @@ export default function CreatorSettings() {
               <form onSubmit={handleSaveProfile} className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="label-base">Creator Biography</label>
-                  <textarea 
-                    rows={3} 
-                    className="input-base" 
-                    value={profile.bio} 
-                    onChange={(e) => setProfile({ ...profile, bio: e.target.value })} 
+                  <textarea
+                    rows={3}
+                    className="input-base"
+                    value={profile.bio}
+                    onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input 
-                    label="Website URL" 
-                    value={profile.website} 
-                    onChange={(e) => setProfile({ ...profile, website: e.target.value })} 
+                  <Input
+                    label="Website URL"
+                    value={profile.website}
+                    onChange={(e) => setProfile({ ...profile, website: e.target.value })}
                   />
-                  <Input 
-                    label="Location" 
-                    value={profile.location} 
-                    onChange={(e) => setProfile({ ...profile, location: e.target.value })} 
+                  <Input
+                    label="Location"
+                    value={profile.location}
+                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
                   />
-                  <SettingsDropdown 
-                    id="profile-category" 
-                    label="Creator Category" 
-                    value={profile.category} 
-                    onChange={(val) => setProfile({ ...profile, category: val })}
-                    options={[
-                      { value: 'Tech & Digital Culture', label: 'Tech & Digital Culture' },
-                      { value: 'Education & Tutorials', label: 'Education & Tutorials' },
-                      { value: 'Lifestyle & Travel', label: 'Lifestyle & Travel' },
-                      { value: 'Gaming & Entertainment', label: 'Gaming & Entertainment' },
-                    ]}
-                  />
-                  <Input 
-                    label="Portfolio Public Link" 
-                    value={profile.portfolioLink} 
-                    onChange={(e) => setProfile({ ...profile, portfolioLink: e.target.value })} 
-                  />
-                </div>
-
-                <div className="space-y-2 pt-2">
-                  <label className="label-base">Creator Specialization Tags</label>
-                  <div className="flex flex-wrap gap-2">
-                    {['Technology', 'Education', 'Lifestyle', 'Frontend', 'Gadgets', 'Photography', 'Gaming'].map((tag) => {
-                      const isSelected = profile.creatorTags.includes(tag)
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => {
-                            const updated = isSelected 
-                              ? profile.creatorTags.filter(t => t !== tag)
-                              : [...profile.creatorTags, tag]
-                            setProfile({ ...profile, creatorTags: updated })
-                          }}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 ${
-                            isSelected
-                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                              : 'bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
-                          }`}
-                        >
-                          {isSelected && <Check size={12} />}
-                          <span>{tag}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <ToggleSwitch 
+                  <ToggleSwitch
                     id="profile-visibility-toggle"
                     label="Profile Visibility"
                     description="Make your creator profile discoverable in directory"
                     checked={profile.profileVisibility}
                     onChange={(val) => {
                       setProfile({ ...profile, profileVisibility: val })
-                      showToast(`Profile visibility set to ${val ? 'Public' : 'Private'}.`)
+                      persistSetting(
+                        { public_profile: val },
+                        `Profile visibility set to ${val ? 'Public' : 'Private'}.`,
+                        () => setProfile(prev => ({ ...prev, profileVisibility: !val }))
+                      )
                     }}
                   />
                 </div>
@@ -471,59 +593,41 @@ export default function CreatorSettings() {
           {activeTab === 'notifications' && (
             <SettingsCard title="Notification Preferences" icon={Bell}>
               <div className="space-y-3">
-                <ToggleSwitch 
+                <ToggleSwitch
                   id="notif-email"
                   label="Email Notifications"
                   description="Weekly digests, major workspace updates, and account alerts"
                   checked={notifications.emailNotifications}
                   onChange={() => handleToggleNotification('emailNotifications')}
                 />
-                <ToggleSwitch 
+                <ToggleSwitch
                   id="notif-push"
                   label="Push Notifications"
                   description="Real-time browser pop-up alerts for urgent comments and publishing status"
                   checked={notifications.pushNotifications}
                   onChange={() => handleToggleNotification('pushNotifications')}
                 />
-                <ToggleSwitch 
-                  id="notif-content-review"
-                  label="Content Review Alerts"
-                  description="Notifications when brand reviewers comment or approve post drafts"
-                  checked={notifications.contentReviewAlerts}
-                  onChange={() => handleToggleNotification('contentReviewAlerts')}
+                <ToggleSwitch
+                  id="notif-security"
+                  label="Security Alerts"
+                  description="Notifications for login activity and security events"
+                  checked={notifications.securityAlerts}
+                  onChange={() => handleToggleNotification('securityAlerts')}
                 />
-                <ToggleSwitch 
-                  id="notif-publishing"
-                  label="Publishing Alerts"
-                  description="Instant notification when scheduled content publishes or encounters errors"
-                  checked={notifications.publishingAlerts}
-                  onChange={() => handleToggleNotification('publishingAlerts')}
+                <ToggleSwitch
+                  id="notif-product"
+                  label="Product Updates"
+                  description="Announcements and new feature releases"
+                  checked={notifications.productUpdates}
+                  onChange={() => handleToggleNotification('productUpdates')}
                 />
-                <ToggleSwitch 
+                <ToggleSwitch
                   id="notif-weekly-summary"
                   label="Weekly Summary"
                   description="Comprehensive weekly content analytics delivered every Monday morning"
                   checked={notifications.weeklySummary}
                   onChange={() => handleToggleNotification('weeklySummary')}
                 />
-                <ToggleSwitch 
-                  id="notif-followers"
-                  label="New Followers"
-                  description="Alerts when new followers engage with your creator profile"
-                  checked={notifications.newFollowers}
-                  onChange={() => handleToggleNotification('newFollowers')}
-                />
-
-                {/* Campaign Invitations (keep hidden/commented for future use as per rules) */}
-                {/* 
-                <ToggleSwitch 
-                  id="notif-campaign-invites"
-                  label="Campaign Invitations"
-                  description="Direct brand brief proposals and campaign collaboration invites"
-                  checked={false}
-                  onChange={() => {}}
-                /> 
-                */}
               </div>
             </SettingsCard>
           )}
@@ -532,33 +636,33 @@ export default function CreatorSettings() {
           {activeTab === 'privacy' && (
             <SettingsCard title="Privacy & Data Settings" icon={Eye}>
               <div className="space-y-4">
-                <ToggleSwitch 
+                <ToggleSwitch
                   id="priv-public-profile"
                   label="Public Profile"
                   description="Allow public visitors to view your profile banner and statistics"
                   checked={privacy.publicProfile}
                   onChange={() => handleTogglePrivacy('publicProfile')}
                 />
-                <ToggleSwitch 
-                  id="priv-show-analytics"
-                  label="Show Analytics"
-                  description="Display aggregate engagement rates and reach badges publicly"
-                  checked={privacy.showAnalytics}
-                  onChange={() => handleTogglePrivacy('showAnalytics')}
-                />
-                <ToggleSwitch 
-                  id="priv-show-followers"
-                  label="Show Followers"
-                  description="Display follower count across all connected social channels"
-                  checked={privacy.showFollowers}
-                  onChange={() => handleTogglePrivacy('showFollowers')}
-                />
-                <ToggleSwitch 
+                <ToggleSwitch
                   id="priv-show-contact"
                   label="Show Contact Info"
                   description="Display contact email address on public portfolio page"
                   checked={privacy.showContactInfo}
                   onChange={() => handleTogglePrivacy('showContactInfo')}
+                />
+                <ToggleSwitch
+                  id="priv-show-activity"
+                  label="Show Activity Status"
+                  description="Show your online activity status to other users"
+                  checked={privacy.showActivityStatus}
+                  onChange={() => handleTogglePrivacy('showActivityStatus')}
+                />
+                <ToggleSwitch
+                  id="priv-allow-search"
+                  label="Allow Search Engines"
+                  description="Allow search engines to index your public profile"
+                  checked={privacy.allowSearchEngines}
+                  onChange={() => handleTogglePrivacy('allowSearchEngines')}
                 />
 
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -583,7 +687,7 @@ export default function CreatorSettings() {
                   <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/30 flex items-center justify-between">
                     <div>
                       <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">Password</h4>
-                      <p className="text-xs text-slate-400">Last changed 30 days ago</p>
+                      <p className="text-xs text-slate-400">Update your account password</p>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => setIsPasswordModalOpen(true)}>
                       <Lock size={14} />
@@ -596,13 +700,10 @@ export default function CreatorSettings() {
                       <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">Two Factor Auth</h4>
                       <p className="text-xs text-emerald-500 font-semibold">{security.twoFactorEnabled ? 'Enabled' : 'Disabled'}</p>
                     </div>
-                    <Button 
-                      variant={security.twoFactorEnabled ? 'outline' : 'primary'} 
+                    <Button
+                      variant={security.twoFactorEnabled ? 'outline' : 'primary'}
                       size="sm"
-                      onClick={() => {
-                        setSecurity({ ...security, twoFactorEnabled: !security.twoFactorEnabled })
-                        showToast(`2FA ${!security.twoFactorEnabled ? 'enabled' : 'disabled'}.`)
-                      }}
+                      onClick={handleToggleTwoFactor}
                     >
                       {security.twoFactorEnabled ? 'Configure' : 'Enable 2FA'}
                     </Button>
@@ -611,48 +712,11 @@ export default function CreatorSettings() {
 
                 {/* Active Sessions */}
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Active Sessions</h4>
-                    <button 
-                      onClick={handleRevokeSessions}
-                      className="text-xs text-rose-500 hover:underline font-semibold"
-                    >
-                      Revoke All Other Sessions
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    {security.activeSessions.map(sess => (
-                      <div key={sess.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700/60 text-xs">
-                        <div className="flex items-center gap-3">
-                          <Laptop size={16} className="text-indigo-500" />
-                          <div>
-                            <p className="font-bold text-slate-800 dark:text-slate-200">{sess.device}</p>
-                            <p className="text-slate-400">{sess.location} • {sess.ip}</p>
-                          </div>
-                        </div>
-                        {sess.activeNow ? (
-                          <StatusBadge status="active" dot />
-                        ) : (
-                          <span className="text-slate-400 text-[11px]">{sess.lastActive}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Connected Devices */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Connected Devices</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {security.connectedDevices.map((dev, i) => (
-                      <div key={i} className="p-3 rounded-xl border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-700/30 flex items-center gap-3">
-                        <span className="text-xl">{dev.icon}</span>
-                        <div>
-                          <p className="text-xs font-bold text-slate-900 dark:text-slate-100">{dev.name}</p>
-                          <p className="text-[10px] text-slate-400">{dev.os}</p>
-                        </div>
-                      </div>
-                    ))}
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Active Sessions</h4>
+                  <div className="flex flex-col items-center justify-center p-6 text-center text-slate-500 dark:text-slate-400 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
+                    <span className="text-2xl mb-1.5">💻</span>
+                    <p className="font-bold text-sm">No session tracking available</p>
+                    <p className="text-xs mt-1">Session management will be available in a future release.</p>
                   </div>
                 </div>
               </div>
@@ -668,54 +732,15 @@ export default function CreatorSettings() {
                     <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">Theme Mode</h4>
                     <p className="text-xs text-slate-400">Current mode: {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</p>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={toggleTheme}
                     className="flex items-center gap-2"
                   >
                     {theme === 'dark' ? <Sun size={14} className="text-amber-400" /> : <Moon size={14} className="text-indigo-500" />}
                     <span>Switch to {theme === 'dark' ? 'Light' : 'Dark'} Mode</span>
                   </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <SettingsDropdown 
-                    id="app-sidebar-state" 
-                    label="Sidebar Default State" 
-                    value={appearance.sidebarDefault} 
-                    onChange={(val) => {
-                      setAppearance({ ...appearance, sidebarDefault: val })
-                      showToast('Sidebar default state saved.')
-                    }}
-                    options={[
-                      { value: 'Expanded', label: 'Expanded' },
-                      { value: 'Collapsed', label: 'Collapsed' },
-                    ]}
-                  />
-                </div>
-
-                <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <ToggleSwitch 
-                    id="app-compact-mode"
-                    label="Compact Mode"
-                    description="Reduce spacing for high-density dashboard layouts"
-                    checked={appearance.compactMode}
-                    onChange={(val) => {
-                      setAppearance({ ...appearance, compactMode: val })
-                      showToast(`Compact mode ${val ? 'enabled' : 'disabled'}.`)
-                    }}
-                  />
-                  <ToggleSwitch 
-                    id="app-animation-toggle"
-                    label="Animation Toggle"
-                    description="Enable smooth micro-animations and UI transitions"
-                    checked={appearance.animationToggle}
-                    onChange={(val) => {
-                      setAppearance({ ...appearance, animationToggle: val })
-                      showToast(`UI Animations ${val ? 'enabled' : 'disabled'}.`)
-                    }}
-                  />
                 </div>
               </div>
             </SettingsCard>
@@ -724,125 +749,80 @@ export default function CreatorSettings() {
           {/* TAB 7: CONNECTED ACCOUNTS */}
           {activeTab === 'connected-accounts' && (
             <SettingsCard title="Connected Social Accounts" icon={LinkIcon}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {socials.map((social) => (
-                  <Card key={social.id} className="p-5 flex flex-col justify-between space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xl">
-                          {social.icon}
+              {socials.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
+                  <span className="text-2xl mb-1.5">🔗</span>
+                  <p className="font-bold text-sm">No social accounts connected</p>
+                  <p className="text-xs mt-1">Connect social accounts to start publishing content.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {socials.map((social) => {
+                    const PlatformIcon = getPlatformIcon(social.platform)
+                    const connected = social.status === 'Connected'
+                    return (
+                      <Card key={social.id} className="p-5 flex flex-col justify-between space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-indigo-500 dark:text-indigo-400">
+                              <PlatformIcon size={20} />
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{getPlatformLabel(social.platform)}</h4>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">{social.username ? `@${social.username}` : '—'}</p>
+                            </div>
+                          </div>
+                          <StatusBadge status={connected ? 'active' : 'inactive'} dot />
                         </div>
-                        <div>
-                          <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{social.platform}</h4>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">{social.handle}</p>
-                        </div>
-                      </div>
-                      <StatusBadge status={social.connected ? 'active' : 'inactive'} dot />
-                    </div>
 
-                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/60">
-                      {social.connected ? (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            size="xs" 
-                            fullWidth 
-                            onClick={() => showToast(`Reconnecting ${social.platform}...`)}
-                          >
-                            <RefreshCw size={12} />
-                            <span>Reconnect</span>
-                          </Button>
-                          <Button 
-                            variant="danger" 
-                            size="xs" 
-                            fullWidth 
-                            onClick={() => handleToggleSocialConnect(social.id)}
-                          >
-                            Disconnect
-                          </Button>
-                        </>
-                      ) : (
-                        <Button 
-                          variant="primary" 
-                          size="xs" 
-                          fullWidth 
-                          onClick={() => handleToggleSocialConnect(social.id)}
-                        >
-                          Connect
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                          {connected ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="xs"
+                                fullWidth
+                                onClick={() => showToast('Reconnecting through the platform is not supported yet.')}
+                              >
+                                <RefreshCw size={12} />
+                                <span>Reconnect</span>
+                              </Button>
+                              <Button
+                                variant="danger"
+                                size="xs"
+                                fullWidth
+                                onClick={() => handleToggleSocialConnect(social)}
+                              >
+                                Disconnect
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="primary"
+                              size="xs"
+                              fullWidth
+                              onClick={() => handleToggleSocialConnect(social)}
+                            >
+                              Connect
+                            </Button>
+                          )}
+                        </div>
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
             </SettingsCard>
           )}
 
           {/* TAB 8: WORKSPACE PREFERENCES */}
           {activeTab === 'workspace' && (
             <SettingsCard title="Workspace Preferences" icon={Layout}>
-              <form onSubmit={handleSaveWorkspacePref} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <SettingsDropdown 
-                    id="ws-default-platform" 
-                    label="Default Platform" 
-                    value={workspacePref.defaultPlatform} 
-                    onChange={(val) => setWorkspacePref({ ...workspacePref, defaultPlatform: val })}
-                    options={[
-                      { value: 'Instagram', label: 'Instagram' },
-                      { value: 'YouTube', label: 'YouTube' },
-                      { value: 'LinkedIn', label: 'LinkedIn' },
-                      { value: 'Facebook', label: 'Facebook' },
-                      { value: 'X', label: 'X (Twitter)' },
-                    ]}
-                  />
-                  <SettingsDropdown 
-                    id="ws-upload-quality" 
-                    label="Default Upload Quality" 
-                    value={workspacePref.defaultUploadQuality} 
-                    onChange={(val) => setWorkspacePref({ ...workspacePref, defaultUploadQuality: val })}
-                    options={[
-                      { value: '1080p Full HD (Recommended)', label: '1080p Full HD (Recommended)' },
-                      { value: '4K Ultra HD', label: '4K Ultra HD' },
-                      { value: '720p Compressed', label: '720p Compressed' },
-                    ]}
-                  />
-                  <Input 
-                    label="Default Scheduling Time" 
-                    type="time" 
-                    value={workspacePref.defaultSchedulingTime} 
-                    onChange={(e) => setWorkspacePref({ ...workspacePref, defaultSchedulingTime: e.target.value })} 
-                  />
-                  <SettingsDropdown 
-                    id="ws-pref-lang" 
-                    label="Preferred Language" 
-                    value={workspacePref.preferredLanguage} 
-                    onChange={(val) => setWorkspacePref({ ...workspacePref, preferredLanguage: val })}
-                    options={[
-                      { value: 'English (US)', label: 'English (US)' },
-                      { value: 'Spanish', label: 'Spanish' },
-                      { value: 'French', label: 'French' },
-                      { value: 'German', label: 'German' },
-                    ]}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="label-base">Default Caption Template</label>
-                  <textarea 
-                    rows={3} 
-                    className="input-base" 
-                    value={workspacePref.captionTemplate} 
-                    onChange={(e) => setWorkspacePref({ ...workspacePref, captionTemplate: e.target.value })} 
-                  />
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <Button type="submit" variant="primary" size="md">
-                    Save Preferences
-                  </Button>
-                </div>
-              </form>
+              <div className="flex flex-col items-center justify-center p-10 text-center text-slate-500 dark:text-slate-400 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
+                <span className="text-2xl mb-1.5">🖥️</span>
+                <p className="font-bold text-sm">Workspace preferences are not stored yet</p>
+                <p className="text-xs mt-1">Default platform, upload quality and caption templates will be saved here once supported by the backend.</p>
+              </div>
             </SettingsCard>
           )}
 
@@ -850,10 +830,10 @@ export default function CreatorSettings() {
           {activeTab === 'support' && (
             <SettingsCard title="Support & Resources" icon={HelpCircle}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <a 
-                  href={supportInfo.helpCenterUrl} 
-                  target="_blank" 
-                  rel="noreferrer" 
+                <a
+                  href={supportInfo.helpCenterUrl}
+                  target="_blank"
+                  rel="noreferrer"
                   className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/30 hover:border-indigo-400 transition-all flex items-center justify-between group"
                 >
                   <div className="flex items-center gap-3">
@@ -866,10 +846,10 @@ export default function CreatorSettings() {
                   <ExternalLink size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
                 </a>
 
-                <a 
-                  href={supportInfo.documentationUrl} 
-                  target="_blank" 
-                  rel="noreferrer" 
+                <a
+                  href={supportInfo.documentationUrl}
+                  target="_blank"
+                  rel="noreferrer"
                   className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/30 hover:border-indigo-400 transition-all flex items-center justify-between group"
                 >
                   <div className="flex items-center gap-3">
@@ -882,8 +862,8 @@ export default function CreatorSettings() {
                   <ExternalLink size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
                 </a>
 
-                <button 
-                  onClick={() => showToast('Opening contact support dialog...')} 
+                <button
+                  onClick={() => showToast('Opening contact support dialog...')}
                   className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/30 hover:border-indigo-400 transition-all flex items-center justify-between group text-left"
                 >
                   <div className="flex items-center gap-3">
@@ -896,8 +876,8 @@ export default function CreatorSettings() {
                   <ExternalLink size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
                 </button>
 
-                <button 
-                  onClick={() => showToast('Report bug form opened.')} 
+                <button
+                  onClick={() => showToast('Report bug form opened.')}
                   className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/30 hover:border-indigo-400 transition-all flex items-center justify-between group text-left"
                 >
                   <div className="flex items-center gap-3">
@@ -923,26 +903,26 @@ export default function CreatorSettings() {
       {/* Change Password Modal */}
       <Modal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} title="Change Password" size="sm">
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          <Input 
-            label="Current Password" 
-            type="password" 
+          <Input
+            label="Current Password"
+            type="password"
             value={passwordForm.current}
             onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
-            required 
+            required
           />
-          <Input 
-            label="New Password" 
-            type="password" 
+          <Input
+            label="New Password"
+            type="password"
             value={passwordForm.next}
             onChange={(e) => setPasswordForm({ ...passwordForm, next: e.target.value })}
-            required 
+            required
           />
-          <Input 
-            label="Confirm New Password" 
-            type="password" 
+          <Input
+            label="Confirm New Password"
+            type="password"
             value={passwordForm.confirm}
             onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
-            required 
+            required
           />
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-700">
             <Button type="button" variant="outline" size="md" onClick={() => setIsPasswordModalOpen(false)}>Cancel</Button>

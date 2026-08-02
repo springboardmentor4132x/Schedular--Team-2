@@ -71,7 +71,7 @@ function OrbitHero() {
 
       {/* Rotating rings — each ring is a positioned div that spins */}
       {rings.map(ringNum => {
-        const { r: radius, dur, dir } = RING_CONFIG[ringNum]
+        const { r: radius, dir } = RING_CONFIG[ringNum]
         const icons = ORBIT_PLATFORMS.filter(p => p.ring === ringNum)
         // animation direction class
         const spinClass = dir === 'reverse' ? 'orbit-spin-reverse' : ringNum === 3 ? 'orbit-spin-slow' : 'orbit-spin'

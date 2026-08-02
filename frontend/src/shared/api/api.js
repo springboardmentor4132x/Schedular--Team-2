@@ -20,4 +20,20 @@ API.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+API.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem("token")
+            localStorage.removeItem("orbit-user")
+            const { pathname } = window.location
+            const publicPaths = ["/login", "/register", "/role-selection", "/forgot-password", "/oauth/callback"]
+            if (!publicPaths.some(p => pathname.startsWith(p))) {
+                window.location.href = "/login"
+            }
+        }
+        return Promise.reject(error)
+    }
+);
+
 export default API;

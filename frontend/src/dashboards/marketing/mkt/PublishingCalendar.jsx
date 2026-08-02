@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
-  ChevronLeft, ChevronRight, CalendarDays,
-  List, Clock, ArrowLeft, Users,
+  ChevronLeft, ChevronRight,
+  Clock, ArrowLeft, Users,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import { useNavigate } from 'react-router-dom'
@@ -25,7 +25,6 @@ const STATUS_COLORS = {
   published:{ bg:'rgba(34,197,94,.12)',  text:'#22C55E' },
 }
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December']
-const DAYS_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 const DAYS_SHORT=['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 function isoDate(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
 
@@ -38,6 +37,17 @@ export default function PublishingCalendar() {
   const [month,      setMonth]     = useState(now.getMonth())
   const [selected,   setSelected]  = useState(null)
   const [platform,   setPlatform]  = useState('all')
+  const [libraryItems, setLibraryItems] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!activeClient) return
+    let mounted = true
+    contentApi.getLibraryByClient(activeClient.id)
+      .then(items => { if (mounted) setLibraryItems(items) })
+      .finally(() => { if (mounted) setLoading(false) })
+    return () => { mounted = false }
+  }, [activeClient])
 
   if (!activeClient) {
     return <div className="p-6"><div className="card">
@@ -45,19 +55,6 @@ export default function PublishingCalendar() {
         action={{ label:'View Clients', onClick:()=>navigate('/dashboard/mkt/clients') }} />
     </div></div>
   }
-
-  const [libraryItems, setLibraryItems] = useState([])
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!activeClient) return
-    let mounted = true
-    setLoading(true)
-    contentApi.getLibraryByClient(activeClient.id)
-      .then(items => { if (mounted) setLibraryItems(items) })
-      .finally(() => { if (mounted) setLoading(false) })
-    return () => { mounted = false }
-  }, [activeClient])
 
   const allPosts = libraryItems
     .filter(item => ['scheduled','published'].includes(item.status))

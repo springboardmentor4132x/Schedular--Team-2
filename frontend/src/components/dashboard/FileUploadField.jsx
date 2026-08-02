@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Upload, FileText, Image, Video, Music, FileText as FileDoc } from 'lucide-react'
-import { ACCEPTED_FILE_TYPES, CONTENT_MAX_FILE_SIZE, getFileCategory, formatBytes } from '../../services/contentApi'
+import { ACCEPTED_FILE_TYPES, getFileCategory, formatBytes } from '../../services/contentApi'
 
 const ICON_MAP = {
   image: Image,

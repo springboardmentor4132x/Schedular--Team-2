@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Trash2, Edit3, Copy, Save, BookOpen,
-  Send, Search, X, Hash, Smile, Upload,
+  Send, Search, X, Hash, Smile,
   ArrowLeft, Plus, Users,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
@@ -16,7 +16,7 @@ import { ReviewPanel } from './ContentReview'
 import { SchedulingPanel } from './ContentScheduling'
 import { PublishingPanel } from './PublishingCenter'
 import { contentApi, CONTENT_MAX_FILE_SIZE, ACCEPTED_FILE_TYPES } from '../../../services/contentApi'
-import { MOCK_CLIENT_POSTS, MOCK_CLIENT_CAMPAIGNS } from '../../../services/mockData'
+import { marketingService } from '../../../services/marketingService'
 
 const PLATFORMS = [
   { id:'instagram', label:'Instagram', icon:FaInstagram, color:'#E1306C' },
@@ -73,13 +73,18 @@ export default function ContentManagement() {
   const [mediaFiles, setMediaFiles] = useState([])
   const [fileUploadError, setFileUploadError] = useState('')
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [isSaving, setIsSaving] = useState(false)
+  const [workspaceData, setWorkspaceData] = useState({ posts: [], campaigns: [] })
   const [form, setForm] = useState({
     title: '', caption: '', hashtags: '', platforms:['instagram'], campaign:'', status:'draft', scheduleDate:'', scheduleTime:'09:00',
   })
 
-  const clientPosts = activeClient ? (MOCK_CLIENT_POSTS[activeClient.id] ?? { drafts: [], scheduled: [], published: [] }) : { drafts: [], scheduled: [], published: [] }
-  const campaigns = activeClient ? (MOCK_CLIENT_CAMPAIGNS[activeClient.id] ?? []) : []
+  useEffect(() => {
+    if (!activeClient) return
+    marketingService.workspace(activeClient.id).then(setWorkspaceData).catch(() => setWorkspaceData({ posts: [], campaigns: [] }))
+    contentApi.getLibraryByClient(activeClient.id).then(items => setDrafts(items.filter(item => ['draft', 'review'].includes(item.status)))).catch(() => setDrafts([]))
+  }, [activeClient])
+  const clientPosts = { drafts:workspaceData.posts.filter(p=>p.status==='draft'), scheduled:workspaceData.posts.filter(p=>p.status==='scheduled'), published:workspaceData.posts.filter(p=>p.status==='published') }
+  const campaigns = workspaceData.campaigns
   const stats = {
     drafts:  drafts.filter(d => d.status === 'draft').length,
     review:  drafts.filter(d => d.status === 'review').length,
@@ -149,7 +154,6 @@ export default function ContentManagement() {
     }
 
     try {
-      setIsSaving(true)
       const saved = await contentApi.uploadContent(activeClient.id, payload, mediaFiles[0], progress => setUploadProgress(progress))
       setDrafts(prev => [saved, ...prev])
       showToast(status === 'review' ? 'Submitted for review' : 'Content saved successfully.')
@@ -159,8 +163,6 @@ export default function ContentManagement() {
       setForm({ title:'', caption:'', hashtags:'', platforms:['instagram'], campaign:'', status:'draft', scheduleDate:'', scheduleTime:'09:00' })
     } catch (error) {
       showToast(error.message || 'Upload failed. Please try again.', 'error')
-    } finally {
-      setIsSaving(false)
     }
   }
 
@@ -363,7 +365,6 @@ export default function ContentManagement() {
             {filteredDrafts.map((draft, index) => {
               const platform = PLATFORMS.find(item => item.id === draft.platform)
               const Icon = platform?.icon
-              const style = STATUS_STYLES[draft.status] ?? STATUS_STYLES.draft
               return (
                 <motion.div key={draft.id} initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, scale:0.96 }}
                   transition={{ duration:0.2, delay:index * 0.04 }}

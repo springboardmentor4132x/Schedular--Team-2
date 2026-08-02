@@ -17,6 +17,7 @@ class Campaign(Base):
     priority = Column(String(50), default="Medium")  # 'Low', 'Medium', 'High'
     category = Column(String(100), nullable=True)
     status = Column(String(50), default="Planned")  # 'Planned', 'Active', 'Completed', 'Paused'
+    target_platforms = Column(String(500), nullable=True)  # JSON array string, e.g. '["instagram","facebook"]'
     
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)

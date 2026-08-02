@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Camera, Check, Loader2, RotateCcw, RotateCw, Trash2, UploadCloud, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { Camera, Check, Loader2, RotateCcw, RotateCw, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { getProfileInitials } from '../services/profileImageService'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 export default function ProfileImageUpload({ currentImage, onUpload, onRemove, loading = false }) {
-  const [preview, setPreview] = useState(null)
+  const [preview, setPreview] = useState(currentImage || null)
   const [selectedFile, setSelectedFile] = useState(null)
   const [error, setError] = useState('')
   const [isDragging, setIsDragging] = useState(false)
@@ -16,8 +16,10 @@ export default function ProfileImageUpload({ currentImage, onUpload, onRemove, l
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 })
   const [isEditing, setIsEditing] = useState(false)
   const inputRef = useRef(null)
+  const [prevCurrentImage, setPrevCurrentImage] = useState(currentImage)
 
-  useEffect(() => {
+  if (prevCurrentImage !== currentImage) {
+    setPrevCurrentImage(currentImage)
     if (!currentImage) {
       setPreview(null)
       setSelectedFile(null)
@@ -25,11 +27,10 @@ export default function ProfileImageUpload({ currentImage, onUpload, onRemove, l
       setRotation(0)
       setCropOffset({ x: 0, y: 0 })
       setIsEditing(false)
-      return
+    } else {
+      setPreview(currentImage)
     }
-
-    setPreview(currentImage)
-  }, [currentImage])
+  }
 
   const primaryText = useMemo(() => getProfileInitials('User'), [])
 

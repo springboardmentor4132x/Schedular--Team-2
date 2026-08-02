@@ -35,7 +35,6 @@ export default function DashboardLayout({ isDark, onToggleTheme }) {
       {/* ── Desktop Sidebar ── */}
       <div className="hidden lg:flex h-full">
         <Sidebar
-          isDark={isDark}
           collapsed={collapsed}
           onCollapse={() => setCollapsed(v => !v)}
         />
@@ -64,7 +63,6 @@ export default function DashboardLayout({ isDark, onToggleTheme }) {
               style={{ width: 240 }}
             >
               <Sidebar
-                isDark={isDark}
                 collapsed={false}
                 onCollapse={() => setMobileOpen(false)}
               />
@@ -81,7 +79,7 @@ export default function DashboardLayout({ isDark, onToggleTheme }) {
           onOpenMobileSidebar={() => setMobileOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="dashboard-main flex-1 overflow-y-auto">
           {location.pathname.startsWith('/dashboard/mkt') && (
             <div className="p-4 sm:p-6 border-b" style={{ borderColor: 'var(--border)', background: 'var(--bg-alt)' }}>
               <MarketingClientSelector />

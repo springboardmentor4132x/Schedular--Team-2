@@ -16,6 +16,10 @@ class Post(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    # The business workspace this content belongs to.  This is deliberately
+    # separate from user_id: a marketing member creates the post, while the
+    # business owns the client workspace and its connected accounts.
+    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=True, index=True)
     campaign_id = Column(Integer, ForeignKey("campaigns.id", ondelete="SET NULL"), nullable=True)
     
     title = Column(String(150), nullable=True)
@@ -35,6 +39,7 @@ class Post(Base):
 
     # Relationships
     user = relationship("User", back_populates="posts")
+    workspace = relationship("Workspace", back_populates="posts")
     campaign = relationship("Campaign", back_populates="posts")
     social_accounts = relationship(
         "SocialAccount",

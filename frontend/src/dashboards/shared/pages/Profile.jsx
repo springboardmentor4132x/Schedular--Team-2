@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Building2, Globe, Clock, Camera, Save,
-  Plus, CheckCircle2, Shield, CreditCard, Trash2,
+  Globe, Clock, Save,
+  Plus, CheckCircle2, Shield, CreditCard, Trash2, Loader2,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6'
 import { useAuth } from '../../../context/AuthContext'
@@ -10,6 +10,12 @@ import PageHeader from '../../../components/dashboard/PageHeader'
 import Toast from '../../../components/Toast'
 import ProfileImageUpload from '../../../components/ProfileImageUpload'
 import { getStoredProfileImage, removeProfileImage, uploadProfileImage } from '../../../services/profileImageService'
+import { getCurrentUser, updateCurrentUser } from '../../../services/authService'
+import {
+  fetchSocialAccounts,
+  connectSocialAccount,
+  disconnectSocialAccount,
+} from '../../../services/socialAccountsService'
 
 const TIMEZONES = [
   'UTC−08:00 Pacific Time','UTC−05:00 Eastern Time',
@@ -20,11 +26,11 @@ const INDUSTRIES = [
   'Finance','Media & Entertainment','Education','Other',
 ]
 const SOCIAL_PLATFORMS = [
-  { id:'instagram', label:'Instagram', icon:FaInstagram, color:'#E1306C', connected:true  },
-  { id:'facebook',  label:'Facebook',  icon:FaFacebook,  color:'#1877F2', connected:true  },
-  { id:'linkedin',  label:'LinkedIn',  icon:FaLinkedin,  color:'#0A66C2', connected:true  },
-  { id:'x',         label:'X',         icon:FaXTwitter,  color:'#000000', connected:false },
-  { id:'youtube',   label:'YouTube',   icon:FaYoutube,   color:'#FF0000', connected:false },
+  { id:'instagram', label:'Instagram', icon:FaInstagram, color:'#E1306C' },
+  { id:'facebook',  label:'Facebook',  icon:FaFacebook,  color:'#1877F2' },
+  { id:'linkedin',  label:'LinkedIn',  icon:FaLinkedin,  color:'#0A66C2' },
+  { id:'twitter',   label:'X',         icon:FaXTwitter,  color:'#000000' },
+  { id:'youtube',   label:'YouTube',   icon:FaYoutube,   color:'#FF0000' },
 ]
 
 function Section({ title, children }) {
@@ -56,45 +62,116 @@ const inputSty = { background:'var(--bg-alt)', borderColor:'var(--border)', colo
 export default function Profile() {
   const { user, role, updateAvatar, removeAvatar } = useAuth()
   const isMarketing = role === 'marketing'
+  const isBusiness = role === 'business'
 
   const [form, setForm] = useState({
-    company:     isMarketing ? 'Marketing Department' : 'OrbitSocial Inc.',
-    industry:    'Technology',
-    description: isMarketing
-      ? 'We manage social media publishing workflows, content approval, and campaign execution.'
-      : 'We help businesses grow their social media presence through intelligent scheduling and analytics.',
-    website:     'https://orbitsocial.app',
-    timezone:    'UTC+05:30 Mumbai',
-    email:       user?.email ?? (isMarketing ? 'marketing@demo.com' : 'business@demo.com'),
-    phone:       '+1 (555) 000-0000',
-    // Marketing-specific
-    teamName:    'Social Media Team',
-    teamSize:    '4',
+    company:     '',
+    industry:    '',
+    description: '',
+    website:     '',
+    timezone:    '',
+    email:       user?.email ?? '',
+    phone:       '',
+    teamName:    '',
+    teamSize:    '',
   })
-  const [socials, setSocials]  = useState(SOCIAL_PLATFORMS)
+  const [accounts, setAccounts] = useState([])
+  const [accountLoading, setAccountLoading] = useState(false)
+  const [busyId, setBusyId] = useState(null)
   const [saved,   setSaved]    = useState(false)
   const [toast, setToast] = useState(null)
   const [uploading, setUploading] = useState(false)
-  const [avatarUrl, setAvatarUrl] = useState(() => getStoredProfileImage() || user?.avatar || null)
+  const [avatarUrl, setAvatarUrl] = useState(null)
 
   useEffect(() => {
-    const storedAvatar = getStoredProfileImage() || user?.avatar || null
-    setAvatarUrl(storedAvatar)
-  }, [user?.avatar])
+    let active = true
+
+    const load = async () => {
+      try {
+        const me = await getCurrentUser()
+        if (!active) return
+        setForm({
+          company:     me?.company || '',
+          industry:    '',
+          description: me?.bio || '',
+          website:     me?.website || '',
+          timezone:    '',
+          email:       me?.email || user?.email || '',
+          phone:       me?.phone || '',
+          teamName:    me?.company || `${me?.first_name || ''} ${me?.last_name || ''}`.trim() || '',
+          teamSize:    '',
+        })
+      } catch {
+        if (active) setForm(prev => ({ ...prev, email: user?.email || prev.email }))
+      }
+
+      if (isBusiness) {
+        setAccountLoading(true)
+        try {
+          const data = await fetchSocialAccounts()
+          if (active) setAccounts(data || [])
+        } catch { /* keep empty list */ } finally {
+          if (active) setAccountLoading(false)
+        }
+      }
+    }
+
+    load()
+    return () => { active = false }
+  }, [user?.email, isBusiness])
 
   const update = (k, v) => setForm(p => ({ ...p, [k]:v }))
 
-  const toggleConnect = id =>
-    setSocials(prev => prev.map(s => s.id === id ? { ...s, connected:!s.connected } : s))
+  const connectedByPlatform = useMemo(() => {
+    const map = {}
+    for (const account of accounts) {
+      const key = String(account.platform).toLowerCase()
+      if (!map[key]) map[key] = []
+      map[key].push(account)
+    }
+    return map
+  }, [accounts])
+
+  const handleConnect = (platformId) => {
+    if (busyId) return
+    connectSocialAccount(platformId)
+  }
+
+  const handleDisconnect = async (accountId) => {
+    if (busyId) return
+    setBusyId(accountId)
+    try {
+      await disconnectSocialAccount(accountId)
+      showToast('Account disconnected successfully.', 'success')
+      const data = await fetchSocialAccounts()
+      setAccounts(data || [])
+    } catch {
+      showToast('Failed to disconnect account.', 'error')
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   const showToast = (message, type = 'success') => {
     setToast({ type, message })
     window.setTimeout(() => setToast(null), 3200)
   }
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+  const handleSave = async () => {
+    const payload = {
+      company: isMarketing ? form.teamName : form.company,
+      website: form.website,
+      phone: form.phone,
+      bio: form.description,
+    }
+    try {
+      await updateCurrentUser(payload)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+      showToast('Profile updated successfully.', 'success')
+    } catch {
+      showToast('Failed to save profile.', 'error')
+    }
   }
 
   const handleUpload = async (preview, selectedFile) => {
@@ -127,16 +204,18 @@ export default function Profile() {
     }
   }
 
-  const avatarDisplay = useMemo(() => avatarUrl || user?.avatar || null, [avatarUrl, user?.avatar])
+  const avatarDisplay = useMemo(() => avatarUrl || getStoredProfileImage() || user?.avatar || null, [avatarUrl, user?.avatar])
 
   return (
     <div className="p-4 sm:p-6 max-w-[900px] mx-auto">
       <Toast toast={toast} onClose={() => setToast(null)} />
       <PageHeader
-        title={isMarketing ? 'Team Profile' : 'Business Profile'}
+        title={isMarketing ? 'Team Profile' : isBusiness ? 'Business Profile' : 'My Profile'}
         subtitle={isMarketing
           ? 'Manage your team information and personal settings.'
-          : 'Manage your company information and connected accounts.'}
+          : isBusiness
+            ? 'Manage your company information and connected accounts.'
+            : 'Manage your account information and preferences.'}
         actions={
           <button onClick={handleSave}
             className="flex items-center gap-2 px-4 h-9 rounded-[var(--r-md)] text-sm font-semibold text-white transition-all hover:brightness-105"
@@ -170,6 +249,7 @@ export default function Profile() {
                 </Field>
                 <Field label="Industry">
                   <select value={form.industry} onChange={e => update('industry', e.target.value)} className={inputCls} style={inputSty}>
+                    <option value="">Select industry</option>
                     {INDUSTRIES.map(i => <option key={i}>{i}</option>)}
                   </select>
                 </Field>
@@ -187,6 +267,7 @@ export default function Profile() {
                 <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color:'var(--text-subtle)' }} />
                 <select value={form.timezone} onChange={e => update('timezone', e.target.value)}
                   className={`${inputCls} pl-9`} style={inputSty}>
+                  <option value="">Select timezone</option>
                   {TIMEZONES.map(t => <option key={t}>{t}</option>)}
                 </select>
               </div>
@@ -205,7 +286,8 @@ export default function Profile() {
         <Section title="Contact Information">
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label="Email Address">
-              <input value={form.email} onChange={e => update('email', e.target.value)} type="email" className={inputCls} style={inputSty} />
+              <input value={form.email} type="email" disabled className={`${inputCls} opacity-60 cursor-not-allowed`} style={inputSty} />
+              <p className="text-[10px]" style={{ color:'var(--text-subtle)' }}>Email cannot be changed here.</p>
             </Field>
             <Field label="Phone Number">
               <input value={form.phone} onChange={e => update('phone', e.target.value)} type="tel" className={inputCls} style={inputSty} />
@@ -214,14 +296,22 @@ export default function Profile() {
         </Section>
 
         {/* Connected social accounts — Business only (Marketing uses ConnectedAccounts page) */}
-        {!isMarketing && (
+        {isBusiness && (
         <Section title="Connected Social Accounts">
           <p className="text-xs mb-4" style={{ color:'var(--text-muted)' }}>
             Connect your social accounts to enable direct publishing from OrbitSocial.
           </p>
+          {accountLoading ? (
+            <div className="flex items-center gap-2 text-sm" style={{ color:'var(--text-muted)' }}>
+              <Loader2 size={15} className="animate-spin" /> Loading connected accounts…
+            </div>
+          ) : (
           <div className="flex flex-col gap-3">
-            {socials.map(s => {
+            {SOCIAL_PLATFORMS.map(s => {
               const Icon = s.icon
+              const connected = connectedByPlatform[s.id]
+              const account = connected?.[0]
+              const busy = busyId === account?.id
               return (
                 <div key={s.id}
                   className="flex items-center justify-between p-3 rounded-[var(--r-md)]"
@@ -233,29 +323,44 @@ export default function Profile() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold" style={{ color:'var(--text)' }}>{s.label}</p>
-                      <p className="text-xs" style={{ color: s.connected ? '#22C55E' : 'var(--text-subtle)' }}>
-                        {s.connected ? '● Connected' : '○ Not connected'}
+                      <p className="text-xs" style={{ color: account ? '#22C55E' : 'var(--text-subtle)' }}>
+                        {account
+                          ? `● Connected${account.username ? ` · @${account.username.replace(/^@/, '')}` : ''}`
+                          : '○ Not connected'}
                       </p>
                     </div>
                   </div>
-                  <button onClick={() => toggleConnect(s.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all"
-                    style={{
-                      background:  s.connected ? 'rgba(220,38,38,.08)'  : 'var(--primary-light)',
-                      borderColor: s.connected ? 'rgba(220,38,38,.25)'  : 'var(--primary)',
-                      color:       s.connected ? 'var(--error)'         : 'var(--primary)',
-                    }}>
-                    {s.connected ? <><Trash2 size={11} /> Disconnect</> : <><Plus size={11} /> Connect</>}
-                  </button>
+                  {account ? (
+                    <button onClick={() => handleDisconnect(account.id)} disabled={busy}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all"
+                      style={{
+                        background: 'rgba(220,38,38,.08)',
+                        borderColor: 'rgba(220,38,38,.25)',
+                        color: 'var(--error)',
+                      }}>
+                      {busy ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />} Disconnect
+                    </button>
+                  ) : (
+                    <button onClick={() => handleConnect(s.id)} disabled={busyId != null}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all"
+                      style={{
+                        background: 'var(--primary-light)',
+                        borderColor: 'var(--primary)',
+                        color: 'var(--primary)',
+                      }}>
+                      <Plus size={11} /> Connect
+                    </button>
+                  )}
                 </div>
               )
             })}
           </div>
+          )}
         </Section>
         )}
 
         {/* Subscription — Business only */}
-        {!isMarketing && (
+        {isBusiness && (
         <Section title="Subscription">
           <div className="flex items-center justify-between p-4 rounded-[var(--r-md)]"
             style={{ background:'var(--primary-light)', border:'1px solid rgba(15,30,58,.15)' }}>
@@ -263,7 +368,7 @@ export default function Profile() {
               <CreditCard size={20} style={{ color:'var(--primary)' }} />
               <div>
                 <p className="text-sm font-bold" style={{ color:'var(--text)' }}>Business Plan</p>
-                <p className="text-xs" style={{ color:'var(--text-muted)' }}>$49/month · Renews Aug 1, 2025</p>
+                <p className="text-xs" style={{ color:'var(--text-muted)' }}>$49/month</p>
               </div>
             </div>
             <button className="px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all hover:shadow-[var(--shadow-sm)]"

@@ -1,11 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Bell, CheckCircle2, XCircle, Info, Megaphone,
-  Check, Trash2, Filter, RefreshCw,
+  Check, Trash2,
 } from 'lucide-react'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
+import {
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
+  clearAllNotifications,
+} from '../../../services/notificationService'
 
 const TYPES = {
   success: { icon: CheckCircle2, color: '#22C55E', bg: 'rgba(34,197,94,.10)'   },
@@ -14,24 +21,33 @@ const TYPES = {
   campaign:{ icon: Megaphone,     color: '#F59E0B', bg: 'rgba(245,158,11,.10)'  },
 }
 
-const INIT = [
-  { id:1,  type:'success', title:'Post Published Successfully',  message:'Summer Sale Kick-off was published to Instagram.',        time:'2 min ago',   read:false },
-  { id:2,  type:'error',   title:'Publishing Failed',            message:'Facebook Campaign Ad failed to publish. Click to retry.', time:'15 min ago',  read:false },
-  { id:3,  type:'campaign',title:'Campaign Reminder',            message:'Summer Sale 2025 campaign ends in 3 days.',               time:'1 hour ago',  read:false },
-  { id:4,  type:'success', title:'Post Published Successfully',  message:'LinkedIn Thought Post was published successfully.',        time:'2 hours ago', read:false },
-  { id:5,  type:'info',    title:'System Update',                message:'OrbitSocial was updated to v2.4.0. See what\'s new.',     time:'3 hours ago', read:true  },
-  { id:6,  type:'campaign',title:'Campaign Budget Alert',        message:'Brand Awareness campaign has used 81% of its budget.',    time:'5 hours ago', read:true  },
-  { id:7,  type:'success', title:'Post Published Successfully',  message:'X Thread Recap was published successfully.',              time:'Yesterday',   read:true  },
-  { id:8,  type:'error',   title:'Scheduling Error',             message:'Instagram Reel Upload could not be scheduled. Try again.',time:'Yesterday',   read:true  },
-  { id:9,  type:'info',    title:'New Feature Available',        message:'Bulk scheduling is now available. Try it in Create Post.', time:'2 days ago', read:true  },
-  { id:10, type:'campaign',title:'Campaign Milestone',           message:'Summer Sale campaign reached 50,000 impressions!',        time:'2 days ago',  read:true  },
-]
-
 const FILTERS = ['all','unread','success','error','campaign','info']
 
+const timeAgo = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const diff = Math.max(0, Date.now() - date.getTime())
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins} min ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`
+  return date.toLocaleDateString()
+}
+
 export default function Notifications() {
-  const [items,   setItems]   = useState(INIT)
+  const [items,   setItems]   = useState([])
   const [filter,  setFilter]  = useState('all')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getNotifications()
+      .then(setItems)
+      .catch(err => console.error('Failed to load notifications', err))
+      .finally(() => setLoading(false))
+  }, [])
 
   const unreadCount = items.filter(n => !n.read).length
 
@@ -41,10 +57,22 @@ export default function Notifications() {
     return n.type === filter
   })
 
-  const markRead   = id => setItems(prev => prev.map(n => n.id === id ? { ...n, read:true } : n))
-  const markAllRead= ()  => setItems(prev => prev.map(n => ({ ...n, read:true })))
-  const deleteItem = id  => setItems(prev => prev.filter(n => n.id !== id))
-  const clearAll   = ()  => setItems([])
+  const markRead = id => {
+    setItems(prev => prev.map(n => n.id === id ? { ...n, read:true } : n))
+    markNotificationRead(id).catch(err => console.error('Failed to mark read', err))
+  }
+  const markAllRead = () => {
+    setItems(prev => prev.map(n => ({ ...n, read:true })))
+    markAllNotificationsRead().catch(err => console.error('Failed to mark all read', err))
+  }
+  const deleteItem = id => {
+    setItems(prev => prev.filter(n => n.id !== id))
+    deleteNotification(id).catch(err => console.error('Failed to delete notification', err))
+  }
+  const clearAll = () => {
+    setItems([])
+    clearAllNotifications().catch(err => console.error('Failed to clear notifications', err))
+  }
 
   return (
     <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
@@ -97,7 +125,11 @@ export default function Notifications() {
       {/* Empty */}
       {filtered.length === 0 && (
         <div className="card">
-          <EmptyState icon={Bell} title="No notifications" message="You're all caught up. Notifications will appear here." />
+          <EmptyState
+            icon={Bell}
+            title={loading ? 'Loading notifications' : 'No notifications'}
+            message={loading ? 'Fetching the latest activity…' : "You're all caught up. Notifications will appear here."}
+          />
         </div>
       )}
 
@@ -131,7 +163,7 @@ export default function Notifications() {
                           style={{ background: meta.color }} />
                       )}
                     </p>
-                    <span className="text-[11px] flex-shrink-0" style={{ color: 'var(--text-subtle)' }}>{notif.time}</span>
+                    <span className="text-[11px] flex-shrink-0" style={{ color: 'var(--text-subtle)' }}>{timeAgo(notif.created_at)}</span>
                   </div>
                   <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{notif.message}</p>
                 </div>

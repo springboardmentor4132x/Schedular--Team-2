@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     TWITTER_CLIENT_SECRET: str = os.getenv("TWITTER_CLIENT_SECRET", "")
     TWITTER_REDIRECT_URI: str = os.getenv("TWITTER_REDIRECT_URI", "")
 
+    PINTEREST_CLIENT_ID: str = os.getenv("PINTEREST_CLIENT_ID", "")
+    PINTEREST_CLIENT_SECRET: str = os.getenv("PINTEREST_CLIENT_SECRET", "")
+    PINTEREST_REDIRECT_URI: str = os.getenv("PINTEREST_REDIRECT_URI", "")
+
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
     GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI", "")
@@ -41,7 +45,7 @@ class Settings(BaseSettings):
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"postgresql+pg8000://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
-    # MongoDB
+    # MongoDB (optional)
     MONGO_SERVER: str = os.getenv("MONGO_SERVER", "localhost")
     MONGO_PORT: str = os.getenv("MONGO_PORT", "27017")
     MONGO_USER: str = os.getenv("MONGO_USER", "admin")
@@ -53,6 +57,10 @@ class Settings(BaseSettings):
         if self.MONGO_USER and self.MONGO_PASSWORD:
             return f"mongodb://{self.MONGO_USER}:{self.MONGO_PASSWORD}@{self.MONGO_SERVER}:{self.MONGO_PORT}/?authSource=admin"
         return f"mongodb://{self.MONGO_SERVER}:{self.MONGO_PORT}/"
+
+    # Uploaded media storage
+    BACKEND_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    MEDIA_DIR: str = os.path.join(BACKEND_DIR, "uploads")
     
     model_config = SettingsConfigDict(
         env_file=".env",

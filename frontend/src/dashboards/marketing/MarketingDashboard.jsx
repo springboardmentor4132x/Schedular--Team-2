@@ -1,49 +1,21 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Megaphone, FileText, CalendarCheck, Send,
-  PenSquare, BarChart2, Bell, Link2, ScrollText,
-  CheckCircle2, Clock, AlertCircle, TrendingUp,
-  ClipboardList,
+  PenSquare, BarChart2, ScrollText,
+  CheckCircle2, Clock,
+  ClipboardList, Handshake,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useClient } from '../../context/ClientContext'
 import StatCard from '../../components/dashboard/StatCard'
 import ActivityFeed from '../../components/dashboard/ActivityFeed'
-import PageHeader from '../../components/dashboard/PageHeader'
-import {
-  MOCK_CLIENTS,
-  MOCK_CLIENT_CAMPAIGNS,
-  MOCK_CLIENT_POSTS,
-} from '../../services/mockData'
-
-function readReviewRequests() {
-  if (typeof window === 'undefined') return []
-  try {
-    return JSON.parse(localStorage.getItem('orbit-client-requests') ?? '[]')
-  } catch {
-    return []
-  }
-}
-
-function readApprovedClients() {
-  if (typeof window === 'undefined') return []
-  try {
-    return JSON.parse(localStorage.getItem('orbit-approved-clients') ?? '[]')
-  } catch {
-    return []
-  }
-}
-
-/* ── Derived KPIs from mock data ─────────────────────────────────── */
-const assignedClients  = MOCK_CLIENTS.length
-const activeCampaigns  = Object.values(MOCK_CLIENT_CAMPAIGNS).flat().filter(c => c.status === 'active').length
-const draftPosts       = Object.values(MOCK_CLIENT_POSTS).reduce((s, p) => s + p.drafts.length, 0)
-const scheduledPosts   = Object.values(MOCK_CLIENT_POSTS).reduce((s, p) => s + p.scheduled.length, 0)
-const publishedPosts   = Object.values(MOCK_CLIENT_POSTS).reduce((s, p) => s + p.published.length, 0)
+import { marketingService } from '../../services/marketingService'
 
 /* ── Quick actions ───────────────────────────────────────────────── */
 const QUICK_ACTIONS = [
+  { label: 'Connection Requests', href: '/dashboard/mkt/connections', color: '#7C3AED', bg: 'rgba(124,58,237,.10)', icon: Handshake    },
   { label: 'Client Requests',     href: '/dashboard/mkt/requests',   color: '#1E3A8A', bg: 'rgba(30,58,138,.10)',  icon: ClipboardList },
   { label: 'Clients',             href: '/dashboard/mkt/clients',    color: '#4F46E5', bg: 'rgba(79,70,229,.10)',  icon: Users        },
   { label: 'Content',             href: '/dashboard/mkt/content',    color: '#22C55E', bg: 'rgba(34,197,94,.10)',  icon: PenSquare    },
@@ -53,25 +25,16 @@ const QUICK_ACTIONS = [
 ]
 
 /* ── Recent activity ─────────────────────────────────────────────── */
-const ACTIVITY = [
-  { id:1, icon:CheckCircle2, iconColor:'#22C55E', iconBg:'rgba(34,197,94,.1)',   title:'Post published — OrbitSocial Inc.', description:'Instagram · Summer Sale Announcement',      time:'2m ago',  badge:'Published', badgeColor:'#22C55E' },
-  { id:2, icon:Clock,        iconColor:'#1E3A8A', iconBg:'rgba(30,58,138,.1)',   title:'Post scheduled — BlueWave Retail',  description:'Facebook · Summer Collection Drop',         time:'18m ago', badge:'Scheduled', badgeColor:'#1E3A8A' },
-  { id:3, icon:AlertCircle,  iconColor:'#F59E0B', iconBg:'rgba(245,158,11,.1)',  title:'Draft submitted for review',        description:'OrbitSocial · Customer Success Story',      time:'1h ago',  badge:'Review',    badgeColor:'#F59E0B' },
-  { id:4, icon:TrendingUp,   iconColor:'#4F46E5', iconBg:'rgba(79,70,229,.1)',   title:'Campaign milestone reached',        description:'Summer Sale 2025 · 68% progress',           time:'2h ago'                                          },
-  { id:5, icon:Users,        iconColor:'#E1306C', iconBg:'rgba(225,48,108,.1)',  title:'New client workspace opened',       description:'Stellar SaaS · Product Hunt Launch',        time:'3h ago'                                          },
-]
-
 export default function MarketingDashboard() {
   const { user }    = useAuth()
   const { selectClient } = useClient()
   const navigate    = useNavigate()
   const hour        = new Date().getHours()
   const greeting    = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  const reviewRequests = readReviewRequests()
-  const approvedClients = readApprovedClients()
-
-  const pendingRequests = reviewRequests.filter(item => item.status === 'pending').length
-  const rejectedRequests = reviewRequests.filter(item => item.status === 'rejected').length
+  const [data, setData] = useState({ clients: [], stats: {} })
+  useEffect(() => { marketingService.dashboard().then(setData).catch(() => setData({ clients: [], stats: {} })) }, [])
+  const stats = data.stats || {}
+  const activity = (data.activity || []).map(post => ({ id:post.id, icon:post.status === 'published' ? CheckCircle2 : Clock, iconColor:post.status === 'published' ? '#22C55E' : '#1E3A8A', iconBg:'rgba(30,58,138,.1)', title:`${post.status.replace('_', ' ')} — ${post.title}`, description:post.platform, time:post.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'Recently', badge:post.status, badgeColor:post.status === 'published' ? '#22C55E' : '#1E3A8A' }))
 
   return (
     <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
@@ -92,9 +55,9 @@ export default function MarketingDashboard() {
               {user?.name ?? 'Welcome back'} 👋
             </h2>
             <p className="text-white/70 text-sm">
-              Managing <span className="text-white font-semibold">{assignedClients} clients</span> ·{' '}
-              <span className="text-white font-semibold">{activeCampaigns} active campaigns</span> ·{' '}
-              <span className="text-white font-semibold">{scheduledPosts} posts scheduled</span>
+              Managing <span className="text-white font-semibold">{stats.assignedClients ?? 0} clients</span> ·{' '}
+              <span className="text-white font-semibold">{stats.activeCampaigns ?? 0} active campaigns</span> ·{' '}
+              <span className="text-white font-semibold">{stats.scheduledPosts ?? 0} posts scheduled</span>
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -114,11 +77,11 @@ export default function MarketingDashboard() {
 
       {/* ── KPI cards — spec-correct ── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <StatCard title="Pending Client Requests" value={pendingRequests} icon={ClipboardList} iconColor="#1E3A8A" iconBg="rgba(30,58,138,.12)" index={0} />
-        <StatCard title="Approved Clients" value={approvedClients.length} icon={Users} iconColor="#22C55E" iconBg="rgba(34,197,94,.12)" index={1} />
-        <StatCard title="Rejected Requests" value={rejectedRequests} icon={AlertCircle} iconColor="#EF4444" iconBg="rgba(239,68,68,.12)" index={2} />
-        <StatCard title="Active Campaigns" value={activeCampaigns} icon={Megaphone} iconColor="#4F46E5" iconBg="rgba(79,70,229,.10)" index={3} />
-        <StatCard title="Published Posts" value={publishedPosts} icon={Send} iconColor="#E1306C" iconBg="rgba(225,48,108,.10)" trend={8} index={4} />
+        <StatCard title="Assigned Clients" value={stats.assignedClients ?? 0} icon={Users} iconColor="#22C55E" iconBg="rgba(34,197,94,.12)" index={0} />
+        <StatCard title="Draft Posts" value={stats.draftPosts ?? 0} icon={FileText} iconColor="#F59E0B" iconBg="rgba(245,158,11,.12)" index={1} />
+        <StatCard title="Scheduled Posts" value={stats.scheduledPosts ?? 0} icon={CalendarCheck} iconColor="#1E3A8A" iconBg="rgba(30,58,138,.12)" index={2} />
+        <StatCard title="Active Campaigns" value={stats.activeCampaigns ?? 0} icon={Megaphone} iconColor="#4F46E5" iconBg="rgba(79,70,229,.10)" index={3} />
+        <StatCard title="Published Posts" value={stats.publishedPosts ?? 0} icon={Send} iconColor="#E1306C" iconBg="rgba(225,48,108,.10)" index={4} />
       </div>
 
       {/* ── Quick actions ── */}
@@ -166,7 +129,7 @@ export default function MarketingDashboard() {
             </button>
           </div>
           <div className="flex flex-col gap-2">
-            {MOCK_CLIENTS.slice(0,4).map(c => (
+            {data.clients.slice(0,4).map(c => (
               <div key={c.id}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-[var(--r-md)] hover:bg-[var(--bg-alt)] transition-colors cursor-pointer"
                 style={{ border:'1px solid var(--border)' }}
@@ -198,7 +161,7 @@ export default function MarketingDashboard() {
           initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }}
           transition={{ duration:0.3, delay:0.15 }}
         >
-          <ActivityFeed items={ACTIVITY} title="Recent Activity" />
+          <ActivityFeed items={activity} title="Recent Activity" />
         </motion.div>
       </div>
     </div>

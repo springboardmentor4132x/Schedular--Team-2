@@ -57,6 +57,18 @@ def add_workspace_member(workspace_id: int, member_in: WorkspaceMemberCreate, cu
     if not user_to_add:
         raise HTTPException(status_code=404, detail="User to add not found")
 
+    # A marketing-role user represents a marketing team. Each workspace can have
+    # at most one active marketing team so that a business user connects to a
+    # single marketing team, while a team may still manage many workspaces.
+    if user_to_add.role == "marketing":
+        existing_marketing = db.query(WorkspaceMember).join(User).filter(
+            WorkspaceMember.workspace_id == workspace_id,
+            WorkspaceMember.status == "Active",
+            User.role == "marketing",
+        ).first()
+        if existing_marketing:
+            raise HTTPException(status_code=400, detail="A marketing team is already assigned to this workspace")
+
     new_member = WorkspaceMember(workspace_id=workspace_id, user_id=member_in.user_id, role=member_in.role)
     db.add(new_member)
     db.commit()

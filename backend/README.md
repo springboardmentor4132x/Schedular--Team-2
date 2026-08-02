@@ -110,3 +110,20 @@ The RESTful APIs are modularized via FastAPI Routers.
 ### Analytics (`/api/v1/analytics`) - *To be implemented*
 *   `GET /engagement` - Get engagement metrics across platforms
 *   `GET /audience` - Get audience growth metrics
+
+# 4. Automatic Seed Data
+
+On first startup with a fresh database, `app/seed.py` inserts demo users
+(`biz1@test.com`, `mkt1@test.com`, `cre1@test.com` — password `password123`) plus a
+sample Instagram account, campaign and scheduled post so the UI has real data.
+
+- Seeding runs automatically via `main.py` and is idempotent (skips if `users` is non-empty).
+- **No admin account is seeded.** Only one admin may exist; the first user to register
+  with role `administrator` becomes the single platform admin, after which admin
+  registration is rejected by the backend (`POST /auth/register`) and hidden in the UI.
+
+Run seeding manually (optional):
+
+```bash
+python -c "import app.models; from app.database.database import Base, engine; Base.metadata.create_all(bind=engine)"
+```

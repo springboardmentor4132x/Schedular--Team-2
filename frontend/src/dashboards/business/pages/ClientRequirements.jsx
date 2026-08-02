@@ -2,17 +2,15 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
-  Save, CheckCircle2, Eye, X, Plus, Building2, Palette,
-  Users, Settings2, Megaphone, ShieldCheck, Upload, Info, RefreshCw,
+  Save, CheckCircle2, X, Plus, Building2, Palette,
+  Users, Megaphone, ShieldCheck, Upload, Info,
   ArrowLeft
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import PageHeader from '../../../components/dashboard/PageHeader'
+import { fetchWorkRequests, submitWorkRequest } from '../services/businessService'
 
-const STORAGE_KEY = 'orbit-client-requirements'
-const REQUEST_STORAGE_KEY = 'orbit-client-requests'
 const INDUSTRIES = ['Technology','E-Commerce','Retail','Healthcare','Finance','Media & Entertainment','Education','Food & Beverage','Fashion','Real Estate','Other']
-const BRAND_VOICES = ['Professional','Friendly','Luxury','Casual','Humorous','Custom']
 const LANGUAGES = ['English','Spanish','French','German','Hindi','Arabic','Portuguese','Japanese','Mandarin']
 const CONTENT_TYPES = ['Images','Videos','Reels','Stories','Carousels','Shorts']
 const POST_FREQUENCY = ['Daily','Weekly','Monthly']
@@ -211,49 +209,16 @@ export default function ClientRequirements() {
   const [requestStatus, setRequestStatus] = useState('draft')
   const [message, setMessage] = useState('')
   const [rejectionReason, setRejectionReason] = useState('Please revise your brand colors and campaign budget before we can proceed.')
-  const [loadedRequestId, setLoadedRequestId] = useState(null)
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    let parsed = null
-    if (saved) {
-      try {
-        parsed = JSON.parse(saved)
-        if (parsed?.formData) setFormData(parsed.formData)
-        if (parsed?.requestStatus) setRequestStatus(parsed.requestStatus)
-        if (parsed?.rejectionReason) setRejectionReason(parsed.rejectionReason)
-        if (parsed?.message) setMessage(parsed.message)
-      } catch {
-        // ignore malformed storage
-      }
-    }
-
-    // If there is no local draft, attempt to preload the latest rejected or pending submission
-    if (!parsed || !parsed.formData) {
-      try {
-        const existingRequests = JSON.parse(localStorage.getItem(REQUEST_STORAGE_KEY) ?? '[]')
-        if (existingRequests && existingRequests.length) {
-          // prefer rejected to show feedback; otherwise pick the most recent
-          const rejected = existingRequests.filter(r => r.status === 'rejected')
-          const pick = (rejected.length ? rejected : existingRequests).slice(-1)[0]
-          if (pick) {
-            // map stored request fields into form state shape
-            const mapped = { ...createInitialState(), ...pick }
-            setFormData(mapped)
-            setRequestStatus(pick.status || 'pending')
-            if (pick.rejectionReason) setRejectionReason(pick.rejectionReason)
-            if (pick.id) setLoadedRequestId(pick.id)
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
+    fetchWorkRequests().then(items => {
+      const pick = items[0]
+      if (!pick) return
+      setFormData({ ...createInitialState(), ...pick.details })
+      setRequestStatus(pick.status)
+      setRejectionReason(pick.decision_note || '')
+    }).catch(() => setMessage('Could not load saved work requests.'))
   }, [])
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ formData, requestStatus, rejectionReason, message }))
-  }, [formData, message, rejectionReason, requestStatus])
 
   const updateField = (field, value) => setFormData(prev => ({ ...prev, [field]: value }))
   const toggleListValue = (field, value) => setFormData(prev => ({
@@ -261,16 +226,10 @@ export default function ClientRequirements() {
     [field]: prev[field].includes(value) ? prev[field].filter(item => item !== value) : [...prev[field], value],
   }))
 
-  const handleSaveDraft = () => {
-    setRequestStatus('draft')
-    setMessage('Draft saved locally. You can continue editing and submit when ready.')
-  }
+  const handleSaveDraft = () => setMessage('Complete the form and submit it to send a database-backed request to your marketing team.')
 
-  const handleSubmit = () => {
-    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    const normalizedName = (formData.companyName || 'new-client').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-')
+  const handleSubmit = async () => {
     const submission = {
-      id: normalizedName || `request-${Date.now()}`,
       companyName: formData.companyName || 'Untitled Company',
       companyDescription: formData.companyDescription,
       industry: formData.industry,
@@ -310,19 +269,12 @@ export default function ClientRequirements() {
       approvalBeforePublishing: formData.approvalBeforePublishing,
       allowDirectPublishing: formData.allowDirectPublishing,
       notifyBeforePublishing: formData.notifyBeforePublishing,
-      submissionDate: date,
-      status: 'pending',
-      reviewedAt: null,
-      rejectionReason: '',
     }
-
-    const existing = JSON.parse(localStorage.getItem(REQUEST_STORAGE_KEY) ?? '[]')
-    const updated = existing.filter(item => item.id !== submission.id)
-    updated.push(submission)
-    localStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify(updated))
-
-    setRequestStatus('pending')
-    setMessage('Your client requirements have been submitted to the assigned Marketing Team for review.')
+    try {
+      const request = await submitWorkRequest(submission)
+      setRequestStatus(request.status)
+      setMessage('Your brand guidelines and work request were sent to the assigned marketing team for review.')
+    } catch (error) { setMessage(error.response?.data?.detail || 'Could not submit the work request.') }
   }
 
   const summary = useMemo(() => ({

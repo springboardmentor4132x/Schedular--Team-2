@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useCallback } from 'react'
-import { MOCK_CLIENTS } from '../services/mockData'
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { marketingService } from '../services/marketingService'
+import { useAuth } from './AuthContext'
 
 const ACTIVE_CLIENT_KEY = 'orbit-active-client-id'
 
@@ -15,33 +17,43 @@ const ACTIVE_CLIENT_KEY = 'orbit-active-client-id'
 
 const ClientContext = createContext(null)
 
+function readSavedClientId() {
+  if (typeof window === 'undefined') return null
+  const raw = localStorage.getItem(ACTIVE_CLIENT_KEY)
+  return raw ? Number(raw) : null
+}
+
 export function ClientProvider({ children }) {
-  function readApprovedClients() {
-    if (typeof window === 'undefined') return []
+  const { user } = useAuth()
+  const isMarketing = user?.role === 'marketing'
+  const [activeClient, setActiveClient] = useState(null)
+  const [clients, setClients] = useState([])
+  const [loadingClients, setLoadingClients] = useState(true)
+
+  const refreshClients = useCallback(async () => {
+    setLoadingClients(true)
     try {
-      return JSON.parse(localStorage.getItem('orbit-approved-clients') ?? '[]')
-    } catch {
-      return []
-    }
-  }
+      const result = await marketingService.clients()
+      setClients(result)
+      const savedId = readSavedClientId()
+      setActiveClient(current => current?.id === savedId ? current : result.find(client => client.id === savedId) ?? current)
+    } finally { setLoadingClients(false) }
+  }, [])
 
-  function readSavedClientId() {
-    if (typeof window === 'undefined') return null
-    const raw = localStorage.getItem(ACTIVE_CLIENT_KEY)
-    return raw ? Number(raw) : null
-  }
-
-  const initialClient = (() => {
-    const approved = readApprovedClients()
-    const savedId = readSavedClientId()
-    const availableClients = [...approved, ...MOCK_CLIENTS]
-    const savedClient = savedId ? availableClients.find(client => client.id === savedId) : null
-    if (savedClient) return savedClient
-    if (approved && approved.length > 0) return approved[0]
-    return MOCK_CLIENTS && MOCK_CLIENTS.length ? MOCK_CLIENTS[0] : null
-  })()
-
-  const [activeClient, setActiveClient] = useState(initialClient)
+  useEffect(() => {
+    if (!isMarketing) return
+    let cancelled = false
+    marketingService.clients()
+      .then(result => {
+        if (cancelled) return
+        setClients(result)
+        const savedId = readSavedClientId()
+        setActiveClient(current => current?.id === savedId ? current : result.find(client => client.id === savedId) ?? current)
+      })
+      .catch(() => { if (!cancelled) setLoadingClients(false) })
+      .finally(() => { if (!cancelled) setLoadingClients(false) })
+    return () => { cancelled = true }
+  }, [isMarketing])
 
   const selectClient = useCallback(client => {
     if (typeof window !== 'undefined') {
@@ -58,7 +70,7 @@ export function ClientProvider({ children }) {
   }, [])
 
   return (
-    <ClientContext.Provider value={{ activeClient, selectClient, clearClient }}>
+    <ClientContext.Provider value={{ activeClient, clients, loadingClients, refreshClients, selectClient, clearClient }}>
       {children}
     </ClientContext.Provider>
   )

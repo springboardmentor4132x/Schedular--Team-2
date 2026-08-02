@@ -1,18 +1,34 @@
 import { NavLink } from 'react-router-dom'
 import { useSidebar } from '../hooks/useSidebar'
 import { useTheme } from '../hooks/useTheme'
+import { useAuth } from '../../context/AuthContext'
 import Logo from '../../components/Logo'
 
 export default function BaseSidebar({
   navItems,
   brandBadge,
-  user = { name: 'John Doe', email: 'john@orbitsocial.com', avatar: 'JD' },
+  user: userProp,
   onLogout,
   panelTitle = 'Navigation'
 }) {
   const { isCollapsed, toggleSidebar, isMobileOpen, closeMobile } = useSidebar()
   const { theme } = useTheme()
+  const { user: authUser } = useAuth()
   const isDark = theme === 'dark'
+
+  const user = userProp ?? authUser
+  const displayName = user?.name || 'User'
+  const displayEmail = user?.email || ''
+  const avatar = user?.avatar
+  const isImageAvatar = typeof avatar === 'string' && /^(https?:|data:)/.test(avatar)
+  const initials =
+    (user?.name || '?')
+      .split(/\s+/)
+      .map((part) => part[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || 'U'
 
   return (
     <>
@@ -121,22 +137,26 @@ export default function BaseSidebar({
                 ${isDark ? '' : 'hover:bg-slate-50'}
               `}
             >
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-md flex-shrink-0">
-                {user.avatar || 'JD'}
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-md flex-shrink-0 overflow-hidden">
+                {isImageAvatar ? (
+                  <img src={avatar} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  avatar || initials
+                )}
               </div>
 
               {!isCollapsed && (
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{user.name}</p>
-                  <p className={`text-xs truncate ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{user.email}</p>
+                  <p className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{displayName}</p>
+                  <p className={`text-xs truncate ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{displayEmail}</p>
                 </div>
               )}
             </div>
 
             {isCollapsed && (
               <div className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-2 rounded-lg text-xs whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50 ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 border border-slate-200'}`}>
-                <p className="font-bold">{user.name}</p>
-                <p className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{user.email}</p>
+                <p className="font-bold">{displayName}</p>
+                <p className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{displayEmail}</p>
               </div>
             )}
           </div>

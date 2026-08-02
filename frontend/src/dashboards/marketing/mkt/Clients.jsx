@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -10,7 +10,6 @@ import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest
 import { useClient } from '../../../context/ClientContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
-import { MOCK_CLIENTS } from '../../../services/mockData'
 
 const PLATFORM_ICONS = {
   instagram: { icon: FaInstagram, color: '#E1306C' },
@@ -28,25 +27,15 @@ const STATUS_STYLES = {
 
 const INDUSTRIES = ['All', 'Technology', 'E-Commerce', 'Finance', 'Health & Wellness']
 
-function readApprovedClients() {
-  if (typeof window === 'undefined') return []
-  try {
-    return JSON.parse(localStorage.getItem('orbit-approved-clients') ?? '[]')
-  } catch {
-    return []
-  }
-}
-
 export default function Clients() {
   const navigate = useNavigate()
-  const { selectClient } = useClient()
+  const { selectClient, clients, loadingClients } = useClient()
   const [search,   setSearch]   = useState('')
   const [industry, setIndustry] = useState('All')
   const [status,   setStatus]   = useState('all')
   const [sortBy,   setSortBy]   = useState('name')
 
-  const approvedClients = useMemo(() => readApprovedClients(), [])
-  const clientSource = approvedClients.length > 0 ? approvedClients : MOCK_CLIENTS
+  const clientSource = clients
 
   const filtered = clientSource
     .filter(c => {
@@ -126,7 +115,8 @@ export default function Clients() {
         </div>
       </div>
 
-      {filtered.length === 0 && (
+      {loadingClients && <div className="card p-5 text-sm" style={{ color:'var(--text-muted)' }}>Loading assigned clients…</div>}
+      {!loadingClients && filtered.length === 0 && (
         <div className="card"><EmptyState icon={Users} title="No clients found" message="Adjust your search or filters." /></div>
       )}
 

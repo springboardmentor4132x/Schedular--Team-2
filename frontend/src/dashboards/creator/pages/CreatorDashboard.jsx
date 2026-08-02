@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../../context/AuthContext'
 import { CardSkeleton, TableSkeleton } from '../../../shared/components/ui/Skeleton'
+import { timeAgo } from '../../../shared/utils'
+import { campaignStatusColor, campaignStatusBadge } from '../constants/campaigns'
 import { 
   FileEdit, 
   Calendar, 
@@ -17,37 +20,10 @@ import {
   Layers,
   ArrowUpRight
 } from 'lucide-react'
+import { loadMappedPosts } from '../../../services/postAdapter'
+import { getCampaigns, getCampaignProgress } from '../../../services/campaignService'
 
-const Instagram = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-  </svg>
-)
-
-const Linkedin = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
-    <rect x="2" y="9" width="4" height="12"/>
-    <circle cx="4" cy="4" r="2"/>
-  </svg>
-)
-
-const Facebook = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
-  </svg>
-)
-
-const Youtube = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/>
-    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/>
-  </svg>
-)
-
-function MetricCard({ icon: Icon, count, label, trend, trendPositive, badgeColor, badgeText }) {
+function MetricCard({ icon: Icon, count, label, trend, badgeColor, badgeText }) {
   return (
     <div className="stat-card cursor-pointer transform hover:-translate-y-1 hover:border-indigo-500/50 dark:hover:border-indigo-400/40 hover:shadow-card-lg transition-all duration-300 ease-out group">
       <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 transition-transform duration-300 group-hover:scale-110">
@@ -61,9 +37,8 @@ function MetricCard({ icon: Icon, count, label, trend, trendPositive, badgeColor
           </span>
         </div>
         <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight">{count}</p>
-        <p className={`text-xs font-semibold mt-1.5 flex items-center gap-1 ${trendPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
-          <span>{trendPositive ? '▲' : '▼'} {trend}</span>
-          <span className="text-slate-400 dark:text-slate-500 font-normal">this week</span>
+        <p className="text-xs font-semibold mt-1.5 flex items-center gap-1 text-slate-400 dark:text-slate-500">
+          {trend}
         </p>
       </div>
     </div>
@@ -92,68 +67,194 @@ function QuickActionCard({ icon: Icon, label, desc, bgAccent, onClick }) {
   )
 }
 
-const creatorMetrics = [
-  { icon: FileEdit, count: '12', label: 'Draft Posts', trend: '+4%', trendPositive: true, badgeColor: 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300', badgeText: 'In Progress' },
-  { icon: Clock, count: '8', label: 'Scheduled Posts', trend: '+2%', trendPositive: true, badgeColor: 'bg-indigo-100 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300', badgeText: 'Ready' },
-  { icon: CheckCircle, count: '142', label: 'Published Posts', trend: '+15%', trendPositive: true, badgeColor: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300', badgeText: 'Live' },
-  { icon: AlertCircle, count: '3', label: 'Pending Reviews', trend: '-1%', trendPositive: false, badgeColor: 'bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300', badgeText: 'Needs Action' },
-]
-
 const quickActions = [
-  { icon: PlusCircle, label: 'Create Post', desc: 'Compose a new post update', bgAccent: 'bg-indigo-600', link: '/dashboard/creator/create-post' },
-  { icon: Upload, label: 'Upload Media', desc: 'Upload to content vault', bgAccent: 'bg-emerald-600', link: '/dashboard/creator/create-post' },
+  { icon: PlusCircle, label: 'Create Post', desc: 'Compose a new post update', bgAccent: 'bg-indigo-600', link: '/dashboard/creator/content-scheduling' },
+  { icon: Upload, label: 'Upload Media', desc: 'Upload to content vault', bgAccent: 'bg-emerald-600', link: '/dashboard/creator/content-scheduling' },
   { icon: FileEdit, label: 'Continue Draft', desc: 'Resume where you left off', bgAccent: 'bg-amber-500', link: '/dashboard/creator/my-posts?tab=drafts' },
   { icon: Calendar, label: 'Schedule Content', desc: 'Plan dates for social sharing', bgAccent: 'bg-sky-500', link: '/dashboard/creator/content-scheduling' },
   { icon: Users, label: 'Join Campaign', desc: 'Collaborate with brands', bgAccent: 'bg-purple-500', link: '/dashboard/creator/campaigns' },
   { icon: Folder, label: 'Content Library', desc: 'Manage your creative assets', bgAccent: 'bg-pink-500', link: '/dashboard/creator/my-posts' },
 ]
 
-const initialCampaigns = [
-  { name: 'Nike Summer Launch', status: 'Active', due: 'July 30, 2026', progress: 75, color: 'bg-indigo-600' },
-  { name: 'Adidas Sports Week', status: 'Reviewing', due: 'August 05, 2026', progress: 90, color: 'bg-amber-500' },
-  { name: 'Apple Event Promotion', status: 'Planning', due: 'September 10, 2026', progress: 20, color: 'bg-rose-500' },
-]
+const SCHEDULED_STATUSES = ['Scheduled', 'Queued']
+const DRAFT_STATUSES = ['Draft']
+const REVIEW_STATUSES = ['In Review', 'Pending Review']
 
-const initialDrafts = [
-  { title: 'Top 5 Tech Productivity Hacks', platform: 'LinkedIn', campaign: 'None', status: 'Draft', edited: '2 hours ago', icon: Linkedin },
-  { title: 'Nike Run Club Review Video', platform: 'Instagram', campaign: 'Nike Summer Launch', status: 'In Review', edited: '5 hours ago', icon: Instagram },
-  { title: 'We built a SaaS in 24 hours!', platform: 'YouTube', campaign: 'None', status: 'Draft', edited: '1 day ago', icon: Youtube },
-]
+function formatScheduleLabel(iso) {
+  if (!iso) return 'Unscheduled'
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return 'Unscheduled'
+  const today = new Date()
+  const tomorrow = new Date()
+  tomorrow.setDate(today.getDate() + 1)
+  const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  if (sameDay(date, today)) return `Today, ${time}`
+  if (sameDay(date, tomorrow)) return `Tomorrow, ${time}`
+  return `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${time}`
+}
 
-const upcomingPosts = [
-  { title: 'Morning Workout Routine', platform: 'Instagram Reel', time: 'Today, 4:30 PM', campaign: 'Nike Summer Launch', icon: Instagram },
-  { title: 'The Future of AI Coding', platform: 'LinkedIn Article', time: 'Tomorrow, 10:00 AM', campaign: 'None', icon: Linkedin },
-  { title: 'OrbitSocial Features Thread', platform: 'Facebook Carousel', time: 'July 23, 2:00 PM', campaign: 'None', icon: Facebook },
-  { title: 'How to edit like a pro', platform: 'YouTube Short', time: 'July 25, 9:00 AM', campaign: 'None', icon: Youtube },
-]
-
-const initialFeedback = [
-  { id: 1, type: 'warning', title: 'Feedback on Nike Reel', time: '10 min ago', text: '"Please shorten the intro by 2 seconds and verify alignment of brand logo." - Sarah (Brand Manager)' },
-  { id: 2, type: 'success', title: 'Campaign Approved', time: '2 hours ago', text: 'Adidas Sports Week campaign draft approved. Post is set to auto-publish on August 05.' }
-]
-
-const calendarHighlightedDays = [1, 5, 8, 14, 15, 20, 21, 23, 25]
+const PLATFORM_BAR_COLORS = {
+  Instagram: 'bg-pink-500',
+  'X / Twitter': 'bg-slate-500',
+  Twitter: 'bg-slate-500',
+  LinkedIn: 'bg-blue-600',
+  Facebook: 'bg-indigo-500',
+  YouTube: 'bg-red-500',
+  Pinterest: 'bg-rose-500',
+}
 
 export default function CreatorDashboard() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const [today] = useState(() => new Date())
   const [isLoading, setIsLoading] = useState(true)
-  const [drafts, setDrafts] = useState(initialDrafts)
-  const [feedbackList, setFeedbackList] = useState(initialFeedback)
-  const [campaigns, setCampaigns] = useState(initialCampaigns)
-
-  const today = new Date()
+  const [posts, setPosts] = useState([])
+  const [campaigns, setCampaigns] = useState([])
+  const [campaignProgress, setCampaignProgress] = useState({})
+  const [trendCounts, setTrendCounts] = useState({ drafts: 0, scheduled: 0, published: 0, reviews: 0 })
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 600)
-    return () => clearTimeout(timer)
+    let mounted = true
+    const load = async () => {
+      try {
+        const [mapped, camps] = await Promise.all([
+          loadMappedPosts(),
+          getCampaigns().catch(() => []),
+        ])
+        const progressMap = {}
+        await Promise.all(camps.map(async (c) => {
+          try {
+            const res = await getCampaignProgress(c.id)
+            if (res?.progress) progressMap[c.id] = res.progress.completion_percentage
+          } catch {
+            /* progress is optional */
+          }
+        }))
+        if (mounted) {
+          const now = Date.now()
+          const weekAgo = now - 7 * 24 * 60 * 60 * 1000
+          const createdThisWeek = (list) => list.filter((p) => p.raw.created_at && new Date(p.raw.created_at).getTime() >= weekAgo).length
+          setTrendCounts({
+            drafts: createdThisWeek(mapped.filter((p) => DRAFT_STATUSES.includes(p.status))),
+            scheduled: createdThisWeek(mapped.filter((p) => SCHEDULED_STATUSES.includes(p.status) && p.raw.scheduled_for)),
+            published: createdThisWeek(mapped.filter((p) => p.status === 'Published')),
+            reviews: createdThisWeek(mapped.filter((p) => REVIEW_STATUSES.includes(p.status))),
+          })
+          setPosts(mapped)
+          setCampaigns(camps)
+          setCampaignProgress(progressMap)
+        }
+      } catch {
+        /* leave defaults */
+      } finally {
+        if (mounted) setIsLoading(false)
+      }
+    }
+    load()
+    return () => { mounted = false }
   }, [])
 
-  const handleClearDrafts = () => setDrafts([])
-  const handleRestoreDrafts = () => setDrafts(initialDrafts)
-  const handleClearFeedback = () => setFeedbackList([])
-  const handleRestoreFeedback = () => setFeedbackList(initialFeedback)
-  const handleClearCampaigns = () => setCampaigns([])
-  const handleRestoreCampaigns = () => setCampaigns(initialCampaigns)
+  const {
+    drafts,
+    reviewPosts,
+    scheduledPosts,
+    published,
+    nextPost,
+    metrics,
+    recentPosts,
+  } = useMemo(() => {
+    const draftsList = posts.filter((p) => DRAFT_STATUSES.includes(p.status))
+    const reviewList = posts.filter((p) => REVIEW_STATUSES.includes(p.status))
+    const scheduledList = posts
+      .filter((p) => SCHEDULED_STATUSES.includes(p.status) && p.raw.scheduled_for)
+      .sort((a, b) => new Date(a.raw.scheduled_for) - new Date(b.raw.scheduled_for))
+    const publishedList = posts.filter((p) => p.status === 'Published')
+
+    return {
+      drafts: draftsList,
+      reviewPosts: reviewList,
+      scheduledPosts: scheduledList,
+      published: publishedList,
+      nextPost: scheduledList[0] || null,
+      metrics: [
+        { icon: FileEdit, count: draftsList.length, label: 'Draft Posts', trend: `${trendCounts.drafts} created this week`, badgeColor: 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300', badgeText: 'In Progress' },
+        { icon: Clock, count: scheduledList.length, label: 'Scheduled Posts', trend: `${trendCounts.scheduled} created this week`, badgeColor: 'bg-indigo-100 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300', badgeText: 'Ready' },
+        { icon: CheckCircle, count: publishedList.length, label: 'Published Posts', trend: `${trendCounts.published} created this week`, badgeColor: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300', badgeText: 'Live' },
+        { icon: AlertCircle, count: reviewList.length, label: 'Pending Reviews', trend: `${trendCounts.reviews} created this week`, badgeColor: 'bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300', badgeText: 'Needs Action' },
+      ],
+      recentPosts: [...posts].sort((a, b) => new Date(b.raw.created_at || 0) - new Date(a.raw.created_at || 0)).slice(0, 4),
+    }
+  }, [posts, trendCounts])
+
+  const {
+    weekDays,
+    weekCounts,
+    weekTotal,
+    maxDay,
+    maxStatus,
+    statusBars,
+    platformBars,
+    calendarHighlights,
+  } = useMemo(() => {
+    const days = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      days.push(d)
+    }
+    const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+    const counts = days.map((d) => posts.filter((p) => p.raw.created_at && sameDay(new Date(p.raw.created_at), d)).length)
+    const total = counts.reduce((a, b) => a + b, 0)
+    const max = Math.max(...counts, 1)
+
+    const maxStatus = Math.max(drafts.length, scheduledPosts.length, published.length, reviewPosts.length, 1)
+    const bars = [
+      { label: 'Draft', count: drafts.length, color: 'bg-slate-400' },
+      { label: 'Scheduled', count: scheduledPosts.length, color: 'bg-indigo-500' },
+      { label: 'Published', count: published.length, color: 'bg-emerald-500' },
+      { label: 'Pending Review', count: reviewPosts.length, color: 'bg-amber-500' },
+    ]
+
+    const platformCount = {}
+    posts.forEach((p) => {
+      const key = p.platform || 'Unassigned'
+      platformCount[key] = (platformCount[key] || 0) + 1
+    })
+    const platformTotal = Math.max(Object.values(platformCount).reduce((a, b) => a + b, 0), 1)
+    const platformBarsList = Object.entries(platformCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([platform, count]) => ({
+        platform,
+        count,
+        percent: Math.round((count / platformTotal) * 100),
+        color: PLATFORM_BAR_COLORS[platform] || 'bg-slate-400',
+      }))
+
+    const highlights = new Set()
+    scheduledPosts.forEach((p) => {
+      const d = new Date(p.raw.scheduled_for)
+      if (d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth()) {
+        highlights.add(d.getDate())
+      }
+    })
+
+    return {
+      weekDays: days,
+      weekCounts: counts,
+      weekTotal: total,
+      maxDay: max,
+      maxStatus,
+      statusBars: bars,
+      platformBars: platformBarsList,
+      calendarHighlights: highlights,
+    }
+  }, [posts, drafts, scheduledPosts, published, reviewPosts, today])
+
+  const firstName = (user?.name || '').split(' ')[0] || 'Creator'
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+  const firstWeekday = new Date(today.getFullYear(), today.getMonth(), 1).getDay()
 
   if (isLoading) {
     return (
@@ -183,7 +284,7 @@ export default function CreatorDashboard() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 z-10 relative">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              Welcome back, Creator 👋
+              Welcome back, {firstName} 👋
             </h1>
             <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm font-medium">
               Create, schedule and manage your content efficiently.
@@ -196,20 +297,22 @@ export default function CreatorDashboard() {
             </div>
             <div className="bg-white dark:bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-100 dark:border-slate-700/60 shadow-sm">
               <span className="text-slate-400 mr-1.5 font-normal">Next Post:</span>
-              <span className="text-indigo-600 dark:text-indigo-400">4:30 PM (Instagram)</span>
+              {nextPost ? (
+                <span className="text-indigo-600 dark:text-indigo-400">{formatScheduleLabel(nextPost.raw.scheduled_for)} ({nextPost.platform})</span>
+              ) : (
+                <span className="text-slate-500">No upcoming posts</span>
+              )}
             </div>
-            <div className="bg-white dark:bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-100 dark:border-slate-700/60 shadow-sm flex items-center gap-1.5">
-              <span className="text-slate-400 font-normal">Productivity Score:</span>
-              <span className="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded text-[10px] font-bold">
-                94% Very Good
-              </span>
+            <div className="bg-white dark:bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-100 dark:border-slate-700/60 shadow-sm">
+              <span className="text-slate-400 mr-1.5 font-normal">Content:</span>
+              <span className="text-indigo-600 dark:text-indigo-400">{posts.length} total posts</span>
             </div>
           </div>
         </div>
       </section>
 
       <section aria-label="Creator metric cards" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {creatorMetrics.map((metric, i) => (
+        {metrics.map((metric, i) => (
           <MetricCard key={i} {...metric} />
         ))}
       </section>
@@ -226,87 +329,58 @@ export default function CreatorDashboard() {
         </div>
       </section>
 
-      <section aria-label="Today's Workspace" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section aria-label="Recent posts and notifications" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-5 space-y-4 shadow-card">
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center gap-2">
-            <CheckCircle className="text-indigo-500" size={18} />
-            Today's Workspace Tasks
+            <FileEdit className="text-indigo-500" size={18} />
+            Recent Posts
           </h2>
-          
-          <div className="space-y-3">
-            <div className="p-3.5 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl flex items-start gap-3 border border-slate-100 dark:border-slate-700/60 hover:border-indigo-100 dark:hover:border-indigo-950/80 transition-all duration-300">
-              <input type="checkbox" className="mt-1.5 text-indigo-600 rounded focus:ring-indigo-400 w-4 h-4 cursor-pointer" defaultChecked={false} />
-              <div className="flex-1">
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Record B-Roll for Nike Campaign</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Deadline: Today at 5:00 PM · Priority: High</p>
-              </div>
-            </div>
-            
-            <div className="p-3.5 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl flex items-start gap-3 border border-slate-100 dark:border-slate-700/60 opacity-80 hover:opacity-100 transition-all duration-300">
-              <input type="checkbox" className="mt-1.5 text-indigo-600 rounded focus:ring-indigo-400 w-4 h-4 cursor-pointer" defaultChecked={true} />
-              <div className="flex-1">
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200 line-through opacity-60">Review Adidas Sports Week brief</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-through opacity-65">Completed 1 hour ago</p>
-              </div>
-            </div>
 
-            <div className="p-3.5 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl flex items-start gap-3 border border-slate-100 dark:border-slate-700/60 hover:border-indigo-100 dark:hover:border-indigo-950/80 transition-all duration-300">
-              <input type="checkbox" className="mt-1.5 text-indigo-600 rounded focus:ring-indigo-400 w-4 h-4 cursor-pointer" defaultChecked={false} />
-              <div className="flex-1">
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Draft outline for YouTube short</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Deadline: Tomorrow · Priority: Medium</p>
-              </div>
+          {recentPosts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 h-48 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
+              <span className="text-2xl mb-1.5">📝</span>
+              <p className="font-bold text-sm">No posts yet</p>
+              <p className="text-xs mt-1">Create your first post to see it here.</p>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-3">
+              {recentPosts.map((post) => {
+                const PlatformIcon = post.platformIcon
+                return (
+                  <button
+                    key={post.id}
+                    type="button"
+                    onClick={() => navigate('/dashboard/creator/my-posts')}
+                    className="w-full p-3.5 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl flex items-start gap-3 border border-slate-100 dark:border-slate-700/60 hover:border-indigo-100 dark:hover:border-indigo-950/80 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300 text-left group cursor-pointer"
+                  >
+                    <div className="p-2 bg-indigo-50 dark:bg-indigo-950/60 rounded text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0">
+                      <PlatformIcon size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{post.title}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                        {post.platform} · <span className="text-indigo-600 dark:text-indigo-400">{post.status}</span>
+                      </p>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-semibold flex-shrink-0">{timeAgo(post.raw.created_at)}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         <div className="card p-5 space-y-4 shadow-card">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <MessageSquare className="text-indigo-500" size={18} />
-              Reviewer Feedback & Activity
-            </h2>
-            {feedbackList.length > 0 ? (
-              <button onClick={handleClearFeedback} className="text-xs text-rose-600 dark:text-rose-400 font-semibold hover:underline">
-                Clear Feedback
-              </button>
-            ) : (
-              <button onClick={handleRestoreFeedback} className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
-                Restore
-              </button>
-            )}
+          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center gap-2">
+            <MessageSquare className="text-indigo-500" size={18} />
+            Reviewer Feedback & Activity
+          </h2>
+
+          <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 h-48 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
+            <span className="text-2xl mb-1.5">💬</span>
+            <p className="font-bold text-sm">No notifications or feedback</p>
+            <p className="text-xs mt-1">Reviewers have not posted new comments on your drafts.</p>
           </div>
-          
-          {feedbackList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 h-48 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
-              <span className="text-2xl mb-1.5">💬</span>
-              <p className="font-bold text-sm">No notifications or feedback</p>
-              <p className="text-xs mt-1">Reviewers have not posted new comments on your drafts.</p>
-            </div>
-          ) : (
-            <div className="space-y-3.5">
-              {feedbackList.map((item) => (
-                <div 
-                  key={item.id}
-                  className={`p-3.5 rounded-xl border transition-all duration-300 ${
-                    item.type === 'warning' 
-                      ? 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/20 hover:border-amber-500/40' 
-                      : 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40'
-                  }`}
-                >
-                  <div className="flex justify-between items-center mb-1">
-                    <span className={`text-xs font-bold ${item.type === 'warning' ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
-                      {item.title}
-                    </span>
-                    <span className="text-[10px] text-slate-400">{item.time}</span>
-                  </div>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                    {item.text}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </section>
 
@@ -316,17 +390,8 @@ export default function CreatorDashboard() {
             <Layers className="text-indigo-500" size={18} />
             Brand Campaigns
           </h2>
-          {campaigns.length > 0 ? (
-            <button onClick={handleClearCampaigns} className="text-xs text-rose-600 dark:text-rose-400 font-semibold hover:underline">
-              Clear Campaigns
-            </button>
-          ) : (
-            <button onClick={handleRestoreCampaigns} className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
-              Restore
-            </button>
-          )}
         </div>
-        
+
         {campaigns.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 h-44 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
             <span className="text-2xl mb-1.5">🚀</span>
@@ -335,50 +400,41 @@ export default function CreatorDashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {campaigns.map((camp, i) => (
-              <div key={i} className="p-5 rounded-xl border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/20 hover:border-indigo-300 dark:hover:border-indigo-900 transition-all duration-300 space-y-3.5 shadow-sm">
-                <div className="flex justify-between items-start gap-2">
-                  <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-1">{camp.name}</h3>
-                  <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap ${
-                    camp.status === 'Active' ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300' :
-                    camp.status === 'Reviewing' ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300' :
-                    'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                  }`}>{camp.status}</span>
-                </div>
-                <p className="text-xs text-slate-400 font-medium">Due Date: {camp.due}</p>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                    <span>Progress</span>
-                    <span>{camp.progress}%</span>
+            {campaigns.map((camp) => {
+              const progress = campaignProgress[camp.id] ?? 0
+              const due = camp.end_date
+                ? new Date(camp.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                : '—'
+              return (
+                <div key={camp.id} className="p-5 rounded-xl border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/20 hover:border-indigo-300 dark:hover:border-indigo-900 transition-all duration-300 space-y-3.5 shadow-sm">
+                  <div className="flex justify-between items-start gap-2">
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-1">{camp.name}</h3>
+                    <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap ${campaignStatusBadge(camp.status)}`}>{camp.status}</span>
                   </div>
-                  <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all duration-500 ${camp.color}`} style={{ width: `${camp.progress}%` }}></div>
+                  <p className="text-xs text-slate-400 font-medium">Due Date: {due}</p>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                      <span>Progress</span>
+                      <span>{progress}%</span>
+                    </div>
+                    <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-500 ${campaignStatusColor(camp.status)}`} style={{ width: `${progress}%` }}></div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6" aria-label="Drafts and scheduling">
         <div className="card p-5 lg:col-span-2 space-y-4 shadow-card">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <FileEdit className="text-indigo-500" size={18} />
-              Recent Creative Drafts
-            </h2>
-            {drafts.length > 0 ? (
-              <button onClick={handleClearDrafts} className="text-xs text-rose-600 dark:text-rose-400 font-semibold hover:underline">
-                Clear Drafts
-              </button>
-            ) : (
-              <button onClick={handleRestoreDrafts} className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
-                Restore
-              </button>
-            )}
-          </div>
-          
+          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center gap-2">
+            <FileEdit className="text-indigo-500" size={18} />
+            Recent Creative Drafts
+          </h2>
+
           {drafts.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 h-48 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
               <span className="text-2xl mb-1.5">📝</span>
@@ -398,10 +454,10 @@ export default function CreatorDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-700/60">
-                  {drafts.map((d, i) => {
-                    const PlatformIcon = d.icon
+                  {drafts.map((d) => {
+                    const PlatformIcon = d.platformIcon
                     return (
-                      <tr key={i} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                      <tr key={d.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">{d.title}</td>
                         <td className="py-3 px-4">
                           <span className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-semibold">
@@ -418,7 +474,7 @@ export default function CreatorDashboard() {
                             {d.status}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-xs text-slate-400 font-medium text-right">{d.edited}</td>
+                        <td className="py-3 px-4 text-xs text-slate-400 font-medium text-right">{timeAgo(d.raw.updated_at || d.raw.created_at)}</td>
                       </tr>
                     )
                   })}
@@ -433,28 +489,36 @@ export default function CreatorDashboard() {
             <Clock className="text-indigo-500" size={18} />
             Upcoming Publishing Schedule
           </h2>
-          
-          <div className="space-y-4">
-            {upcomingPosts.map((up, i) => {
-              const PlatformIcon = up.icon
-              return (
-                <div key={i} className="flex gap-3 items-start border-l-2 border-indigo-500 pl-3">
-                  <div className="p-1 bg-indigo-50 dark:bg-indigo-950/60 rounded text-indigo-600 dark:text-indigo-400 mt-0.5">
-                    <PlatformIcon size={14} />
+
+          {scheduledPosts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 h-48 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
+              <span className="text-2xl mb-1.5">🗓️</span>
+              <p className="font-bold text-sm">Nothing scheduled</p>
+              <p className="text-xs mt-1">Schedule content to see it here.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {scheduledPosts.slice(0, 4).map((up) => {
+                const PlatformIcon = up.platformIcon
+                return (
+                  <div key={up.id} className="flex gap-3 items-start border-l-2 border-indigo-500 pl-3">
+                    <div className="p-1 bg-indigo-50 dark:bg-indigo-950/60 rounded text-indigo-600 dark:text-indigo-400 mt-0.5">
+                      <PlatformIcon size={14} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{up.title}</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">{formatScheduleLabel(up.raw.scheduled_for)} · {up.platform}</p>
+                      {up.campaign !== 'None' && (
+                        <span className="inline-block mt-1.5 text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded">
+                          {up.campaign}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{up.title}</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">{up.time} · {up.platform}</p>
-                    {up.campaign !== 'None' && (
-                      <span className="inline-block mt-1.5 text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded">
-                        {up.campaign}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -466,7 +530,7 @@ export default function CreatorDashboard() {
               Publishing Calendar
             </h2>
             <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
-              July 2026
+              {today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </span>
           </div>
 
@@ -474,16 +538,20 @@ export default function CreatorDashboard() {
             {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, i) => (
               <div key={i} className="text-slate-400 font-bold py-1 uppercase text-[10px]">{day}</div>
             ))}
-            
-            {Array.from({ length: 31 }, (_, i) => {
+
+            {Array.from({ length: firstWeekday }, (_, i) => (
+              <div key={`blank-${i}`}></div>
+            ))}
+
+            {Array.from({ length: daysInMonth }, (_, i) => {
               const dayNum = i + 1
-              const isToday = dayNum === 20
-              const hasPost = calendarHighlightedDays.includes(dayNum)
+              const isToday = dayNum === today.getDate()
+              const hasPost = calendarHighlights.has(dayNum)
               return (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className={`py-1.5 rounded-lg flex flex-col items-center justify-center relative cursor-pointer font-semibold ${
-                    isToday ? 'bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-500/30' : 
+                    isToday ? 'bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-500/30' :
                     hasPost ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400' :
                     'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
                   }`}
@@ -506,30 +574,39 @@ export default function CreatorDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-800/40 space-y-2">
-              <p className="text-xs text-slate-400 font-medium">Weekly Content Created</p>
+              <p className="text-xs text-slate-400 font-medium">Content Created (Last 7 Days)</p>
               <div className="flex justify-between items-end">
-                <span className="text-xl font-extrabold text-slate-800 dark:text-slate-200">14 Posts</span>
-                <span className="text-xs text-emerald-500 font-bold">▲ +12%</span>
+                <span className="text-xl font-extrabold text-slate-800 dark:text-slate-200">{weekTotal} Posts</span>
               </div>
               <div className="flex gap-1 h-8 items-end pt-2">
-                {[4, 6, 8, 5, 9, 7, 10].map((val, i) => (
-                  <div key={i} className="flex-1 bg-indigo-500/20 dark:bg-indigo-500/10 rounded-t overflow-hidden">
-                    <div className="bg-indigo-600 w-full rounded-t" style={{ height: `${val * 10}%` }}></div>
+                {weekCounts.map((val, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full bg-indigo-500/20 dark:bg-indigo-500/10 rounded-t overflow-hidden">
+                      <div className="bg-indigo-600 w-full rounded-t" style={{ height: `${(val / maxDay) * 100}%` }}></div>
+                    </div>
+                    <span className="text-[8px] text-slate-400 font-semibold">
+                      {weekDays[i].toLocaleDateString('en-US', { weekday: 'narrow' })}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-800/40 space-y-2">
-              <p className="text-xs text-slate-400 font-medium">Engagement Rate</p>
+              <p className="text-xs text-slate-400 font-medium">Posts by Status</p>
               <div className="flex justify-between items-end">
-                <span className="text-xl font-extrabold text-slate-800 dark:text-slate-200">6.8% Average</span>
-                <span className="text-xs text-emerald-500 font-bold">▲ +0.5%</span>
+                <span className="text-xl font-extrabold text-slate-800 dark:text-slate-200">{posts.length} Total</span>
               </div>
-              <div className="flex gap-1 h-8 items-end pt-2">
-                {[6.2, 6.4, 6.3, 6.7, 6.5, 6.8, 6.9].map((val, i) => (
-                  <div key={i} className="flex-1 bg-purple-500/20 dark:bg-purple-500/10 rounded-t overflow-hidden">
-                    <div className="bg-purple-600 w-full rounded-t" style={{ height: `${(val - 5) * 45}%` }}></div>
+              <div className="space-y-1.5 pt-1">
+                {statusBars.map((bar) => (
+                  <div key={bar.label}>
+                    <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
+                      <span>{bar.label}</span>
+                      <span>{bar.count}</span>
+                    </div>
+                    <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full">
+                      <div className={`${bar.color} h-full rounded-full`} style={{ width: `${(bar.count / maxStatus) * 100}%` }}></div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -537,26 +614,23 @@ export default function CreatorDashboard() {
 
             <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-800/40 space-y-3">
               <p className="text-xs text-slate-400 font-medium">Platform Distribution</p>
-              <div className="space-y-1.5 pt-1">
-                <div>
-                  <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
-                    <span>Instagram</span>
-                    <span>45%</span>
-                  </div>
-                  <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full">
-                    <div className="bg-pink-500 h-full rounded-full" style={{ width: '45%' }}></div>
-                  </div>
+              {platformBars.length === 0 ? (
+                <p className="text-xs text-slate-400 pt-2">No platform data yet.</p>
+              ) : (
+                <div className="space-y-1.5 pt-1">
+                  {platformBars.map((bar) => (
+                    <div key={bar.platform}>
+                      <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
+                        <span>{bar.platform}</span>
+                        <span>{bar.percent}%</span>
+                      </div>
+                      <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full">
+                        <div className={`${bar.color} h-full rounded-full`} style={{ width: `${bar.percent}%` }}></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
-                    <span>LinkedIn</span>
-                    <span>35%</span>
-                  </div>
-                  <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full">
-                    <div className="bg-blue-600 h-full rounded-full" style={{ width: '35%' }}></div>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

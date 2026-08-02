@@ -12,7 +12,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import Toast from '../components/Toast'
-import { registerUser } from "../services/registerService";
+import { registerUser, adminExists } from "../services/registerService";
 
 /* ─────────────────────────────────────────────────────────────────
    sessionStorage persistence
@@ -38,19 +38,6 @@ function loadDraft() {
 function saveDraft(data) {
   try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(data)) }
   catch { /* ignore */ }
-}
-function saveRegisteredUser(form, roleId) {
-  try {
-    const raw = localStorage.getItem('orbit-registered-users')
-    const users = raw ? JSON.parse(raw) : {}
-    users[form.email.toLowerCase()] = {
-      name:     form.fullName,
-      username: form.username,
-      role:     roleId || 'business',
-      password: form.password,   // stored locally for demo - replace with hashed API call
-    }
-    localStorage.setItem('orbit-registered-users', JSON.stringify(users))
-  } catch { /* ignore */ }
 }
 
 function clearDraft() {
@@ -155,7 +142,8 @@ export default function Register({ isDark, onToggleTheme }) {
   /* Form state — rehydrate from sessionStorage on mount */
   const [form, setForm] = useState(() => {
     if (draft) {
-      const { roleId: _r, ...fields } = draft
+      const fields = { ...draft }
+      delete fields.roleId
       return { ...EMPTY_FORM, ...fields }
     }
     return { ...EMPTY_FORM }
@@ -165,8 +153,6 @@ export default function Register({ isDark, onToggleTheme }) {
   const [touched,     setTouched]     = useState({})
   /* Errors object — keyed by field name */
   const [errors,      setErrors]      = useState({})
-  /* Whether we've attempted a submit (shows all errors at once) */
-  const [submitted,   setSubmitted]   = useState(false)
   /* UI state */
   const [showPass,    setShowPass]    = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -183,6 +169,28 @@ export default function Register({ isDark, onToggleTheme }) {
   useEffect(() => {
     saveDraft({ ...form, roleId })
   }, [form, roleId])
+
+  /* If an admin already exists, block the administrator registration path */
+  useEffect(() => {
+    let mounted = true
+    const guard = async () => {
+      if (roleId !== 'administrator') return
+      try {
+        const exists = await adminExists()
+        if (mounted && exists) {
+          clearDraft()
+          setToast({ type: 'error', message: 'An administrator already exists. Only one admin account can be created.' })
+          setTimeout(() => navigate('/role-selection'), 1500)
+        }
+      } catch {
+        /* If the check fails, let the backend decide on submit */
+      }
+    }
+    guard()
+    return () => {
+      mounted = false
+    }
+  }, [roleId, navigate])
 
   /* ── Field change — clear error immediately while typing ── */
   const setField = useCallback((key) => (e) => {
@@ -237,8 +245,9 @@ export default function Register({ isDark, onToggleTheme }) {
   }, [form])
 
   const handleGoogleLogin = () => {
+    const redirectUri = encodeURIComponent(`${window.location.origin}/oauth/callback`);
     window.location.href =
-        `http://127.0.0.1:8000/api/v1/auth/google/login?role=${urlRole}`;
+        `${import.meta.env.VITE_API_BASE_URL}/auth/google/login?role=${urlRole}&redirect_uri=${redirectUri}`;
 };
 
   /* ── Derive valid state: touched, no error, and field has a value ── */
@@ -259,7 +268,6 @@ export default function Register({ isDark, onToggleTheme }) {
   /* ── Submit ── */
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setSubmitted(true)
 
     const errs = validateAll(form)
     setErrors(errs)

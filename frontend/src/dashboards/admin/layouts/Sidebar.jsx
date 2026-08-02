@@ -1,4 +1,6 @@
 import BaseSidebar from '../../../shared/layouts/BaseSidebar'
+import { useAuth } from '../../../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
 const GridIcon = ({ size = 20, className = 'w-5 h-5' }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -54,22 +56,24 @@ const navItems = [
   { label: 'Business Accounts', to: '/business-accounts',  Icon: BarChartIcon },
   { label: 'Marketing Teams',   to: '/marketing-teams',    Icon: CalendarIcon },
   { label: 'Content Creators',  to: '/content-creators',   Icon: UsersIcon },
-  { label: 'Social Accounts',   to: '/social-accounts',    Icon: GridIcon },
   { label: 'Analytics',         to: '/analytics',          Icon: BarChartIcon },
   { label: 'Reports',           to: '/reports',            Icon: SettingsIcon },
   { label: 'Settings',          to: '/settings',           Icon: SettingsIcon },
 ]
 
 export default function Sidebar() {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+
   const handleLogout = () => {
-    window.location.href = '/login'
+    logout()
+    navigate('/login')
   }
 
   return (
     <BaseSidebar
       navItems={navItems}
       panelTitle="Admin Panel"
-      user={{ name: 'Admin User', email: 'admin@orbitsocial.com', avatar: 'AU' }}
       onLogout={handleLogout}
     />
   )

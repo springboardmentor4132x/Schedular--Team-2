@@ -2,12 +2,13 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, CalendarDays, FileText,
-  List, ScrollText, BarChart2, Bell,
+  ScrollText, BarChart2, Bell,
   User, Settings, LogOut, ChevronLeft, ChevronRight,
   Link2, Megaphone, ClipboardList, Users, Send, PenSquare,
-  BookOpen, Activity,
+  BookOpen, Activity, Handshake,
 } from 'lucide-react'
-import { useAuth, ROLE_LABELS } from '../../context/AuthContext'
+import { useAuth } from '../../context/AuthContext'
+import { ROLE_LABELS } from '../../context/authRoles'
 import Logo from '../Logo'
 
 
@@ -30,8 +31,8 @@ import Logo from '../Logo'
 const BUSINESS_NAV = [
   { label: 'Dashboard',           icon: LayoutDashboard, href: null },
   { label: 'Marketing Teams',     icon: Users,           href: '/dashboard/marketing-teams' },
-  { label: 'Brand Guidelines',    icon: BookOpen,        href: '/dashboard/brand-guidelines' },
   { label: 'Marketing Activity',  icon: Activity,        href: '/dashboard/marketing-activity' },
+  { label: 'Business Guidelines', icon: BookOpen,        href: '/dashboard/brand-guidelines' },
   { label: 'Connected Accounts',  icon: Link2,           href: '/dashboard/connected-accounts' },
   { label: 'Campaigns',           icon: Megaphone,       href: '/dashboard/campaigns' },
   { label: 'Scheduled Posts',     icon: CalendarDays,    href: '/dashboard/scheduled-posts' },
@@ -44,6 +45,7 @@ const BUSINESS_NAV = [
 const MARKETING_NAV = [
   { label: 'Dashboard',           icon: LayoutDashboard, href: null },
   { label: 'Client Requests',     icon: ClipboardList,   href: '/dashboard/mkt/requests' },
+  { label: 'Connection Requests', icon: Handshake,       href: '/dashboard/mkt/connections' },
   { label: 'Clients',             icon: Users,           href: '/dashboard/mkt/clients' },
   { label: 'Brand Guidelines',    icon: BookOpen,        href: '/dashboard/mkt/brand-guidelines' },
   { label: 'Connected Apps',      icon: Link2,           href: '/dashboard/mkt/connected-apps' },
@@ -77,7 +79,7 @@ function buildNav(role, dashboardRoute) {
   )
 }
 
-export default function Sidebar({ isDark, collapsed, onCollapse }) {
+export default function Sidebar({ collapsed, onCollapse }) {
   const { user, logout, dashboardRoute, role } = useAuth()
   const navigate = useNavigate()
 
@@ -111,12 +113,16 @@ export default function Sidebar({ isDark, collapsed, onCollapse }) {
       animate={{ width: collapsed ? 64 : 240 }}
       transition={{ duration: 0.22, ease: 'easeInOut' }}
       className="relative flex flex-col h-full overflow-hidden flex-shrink-0"
-      style={{ background: '#0F172A', borderRight: '1px solid rgba(255,255,255,0.06)' }}
+      style={{
+        background: 'var(--sidebar-bg)',
+        borderRight: '1px solid var(--sidebar-border)',
+        boxShadow: '6px 0 28px rgba(0,0,0,.22)',
+      }}
     >
       {/* ── Logo / collapse ── */}
       <div
         className="flex items-center justify-between px-4 py-4 min-h-[64px]"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderBottom: '1px solid var(--sidebar-border)' }}
       >
         <AnimatePresence initial={false}>
           {!collapsed && (

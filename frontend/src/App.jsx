@@ -7,6 +7,8 @@ import RoleSelection from './pages/RoleSelection'
 import Register      from './pages/Register'
 import Login         from './pages/Login'
 import Terms         from './pages/Terms'
+import OAuthCallback from './pages/OAuthCallback'
+import SocialAccountsRedirect from './pages/SocialAccountsRedirect'
 
 // Dashboard areas grouped by responsibility
 import {
@@ -25,14 +27,15 @@ import {
   ScheduledPosts,
   PublishedPosts,
   Reports,
-  BrandGuidelines,
   ClientRequirements,
   MarketingActivity,
+  BrandGuidelines,
 } from './dashboards/business'
 import {
   MarketingDashboard,
   MktClients,
   MktClientRequests,
+  MktConnectionRequests,
   MktClientWorkspace,
   MktConnectedApps,
   MktContentManagement,
@@ -74,6 +77,8 @@ export default function App() {
         <Route path="/register"       element={<Register      {...themeProps} />} />
         <Route path="/login"          element={<Login         {...themeProps} />} />
         <Route path="/terms"          element={<Terms         {...themeProps} />} />
+        <Route path="/oauth/callback" element={<OAuthCallback {...themeProps} />} />
+        <Route path="/social-accounts" element={<SocialAccountsRedirect />} />
 
         {adminRoutes}
         {creatorRoutes}
@@ -92,8 +97,9 @@ export default function App() {
         <Route path="campaigns"           element={<RoleGuard allowed={['business']}><Campaigns         /></RoleGuard>} />
         <Route path="connected-accounts"  element={<RoleGuard allowed={['business']}><ConnectedAccounts /></RoleGuard>} />
         <Route path="marketing-teams"     element={<RoleGuard allowed={['business']}><MarketingTeams    /></RoleGuard>} />
-        <Route path="brand-guidelines"    element={<RoleGuard allowed={['business']}><BrandGuidelines   /></RoleGuard>} />
+        {/* Brand Guidelines page moved to marketing area only (not in imp.txt for Business) */}
         <Route path="client-requirements" element={<RoleGuard allowed={['business']}><ClientRequirements /></RoleGuard>} />
+        <Route path="brand-guidelines"     element={<RoleGuard allowed={['business']}><BrandGuidelines    /></RoleGuard>} />
         <Route path="marketing-activity"  element={<RoleGuard allowed={['business']}><MarketingActivity /></RoleGuard>} />
         <Route path="scheduled-posts"     element={<RoleGuard allowed={['business']}><ScheduledPosts    /></RoleGuard>} />
         <Route path="published-posts"     element={<RoleGuard allowed={['business']}><PublishedPosts    /></RoleGuard>} />
@@ -102,6 +108,7 @@ export default function App() {
         {/* ── Marketing Team routes (all under /dashboard/mkt/*) ── */}
         <Route path="mkt/clients"    element={<RoleGuard allowed={['marketing']}><MktClients           /></RoleGuard>} />
         <Route path="mkt/requests"   element={<RoleGuard allowed={['marketing']}><MktClientRequests    /></RoleGuard>} />
+        <Route path="mkt/connections" element={<RoleGuard allowed={['marketing']}><MktConnectionRequests /></RoleGuard>} />
         <Route path="mkt/workspace"  element={<RoleGuard allowed={['marketing']}><MktClientWorkspace   /></RoleGuard>} />
         <Route path="mkt/connected-apps" element={<RoleGuard allowed={['marketing']}><MktConnectedApps /></RoleGuard>} />
         <Route path="mkt/content"    element={<RoleGuard allowed={['marketing']}><MktContentManagement /></RoleGuard>} />

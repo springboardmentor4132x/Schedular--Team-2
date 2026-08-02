@@ -1,16 +1,14 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Megaphone, Plus, Search, Edit3, Trash2, Eye,
-  X, CheckCircle2, Clock, AlertTriangle, TrendingUp,
-  Calendar, DollarSign, ArrowLeft, Users, ChevronDown,
-  Film, Image, MessageCircle, Sparkles, Share2,
+  Plus, Search, Edit3, Trash2, Eye,
+  X, TrendingUp, ArrowLeft, Users, Share2,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useClient } from '../../../context/ClientContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
-import { api, MOCK_CLIENT_CAMPAIGNS, MOCK_CLIENT_POSTS, MOCK_MARKETING_TEAMS } from '../../../services/mockData'
+import { marketingService } from '../../../services/marketingService'
 
 const PLATFORM_META = [
   { id:'instagram', label:'Instagram', color:'#E1306C' },
@@ -31,7 +29,6 @@ const CAMPAIGN_STATUSES = {
 const PRIORITY_OPTIONS = ['High', 'Medium', 'Low']
 const OBJECTIVES = ['Brand Awareness', 'Lead Generation', 'Sales', 'Engagement', 'Reach', 'Traffic']
 const VIEW_MODES = ['table', 'cards']
-const CONTENT_STATES = ['draft', 'scheduled', 'published', 'rejected']
 const SHARED_INPUT_STYLE = { background:'var(--bg-alt)', borderColor:'var(--border)', color:'var(--text)' }
 
 function ConfirmModal({ title, message, onConfirm, onCancel }) {
@@ -346,7 +343,7 @@ function createInitialContentItems(clientPosts) {
 export default function CampaignManagement() {
   const navigate = useNavigate()
   const { activeClient } = useClient()
-  const assignedTeam = MOCK_MARKETING_TEAMS.find(team => team.isAssigned) ?? MOCK_MARKETING_TEAMS[0]
+  const assignedTeam = { name: 'Marketing Team' }
 
   const [campaigns, setCampaigns] = useState([])
   const [search, setSearch] = useState('')
@@ -365,28 +362,21 @@ export default function CampaignManagement() {
   const [scheduleTarget, setScheduleTarget] = useState(null)
   const [contentViewMode, setContentViewMode] = useState('table')
 
-  if (!activeClient) {
-    return (
-      <div className="p-6"><div className="card">
-        <EmptyState icon={Users} title="No client selected" message="Select a client first."
-          action={{ label:'View Clients', onClick:() => navigate('/dashboard/mkt/clients') }} />
-      </div></div>
-    )
-  }
-
   const showToastMsg = (message, type = 'success') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3000)
   }
 
   useEffect(() => {
-    if (!activeClient) {
-      setCampaigns([])
-      setContentItems([])
-      return
-    }
-    setCampaigns(MOCK_CLIENT_CAMPAIGNS[activeClient.id] ?? [])
-    setContentItems(createInitialContentItems(MOCK_CLIENT_POSTS[activeClient.id] ?? { drafts:[], scheduled:[], published:[] }))
+    if (!activeClient) return
+    let cancelled = false
+    marketingService.workspace(activeClient.id).then(data => {
+      if (cancelled) return
+      setCampaigns((data.campaigns || []).map(c => ({ ...c, status:c.status?.toLowerCase(), start:c.start_date, end:c.end_date, progress:0, posts:0, spent:0, reach:0 })))
+      const grouped = { drafts:(data.posts || []).filter(p=>p.status==='draft'), scheduled:(data.posts || []).filter(p=>p.status==='scheduled'), published:(data.posts || []).filter(p=>p.status==='published') }
+      setContentItems(createInitialContentItems(grouped))
+    }).catch(() => { if (!cancelled) { setCampaigns([]); setContentItems([]) } })
+    return () => { cancelled = true }
   }, [activeClient])
 
   const openCampaignDetails = campaign => {
@@ -423,15 +413,15 @@ export default function CampaignManagement() {
       createdAt: updated.createdAt || updated.start,
       updatedAt: updated.updatedAt || updated.end,
     }
-    // future integration: await api.post('/campaigns', campaignData)
-
     if (editCampaign) {
       setCampaigns(prev => prev.map(c => c.id === editCampaign.id ? { ...c, ...campaignData, id: editCampaign.id } : c))
       showToastMsg('Campaign updated!')
     } else {
-      const newCampaign = { ...campaignData, id: Date.now() }
-      setCampaigns(prev => [newCampaign, ...prev])
-      showToastMsg('Campaign created!')
+      try {
+        const created = await marketingService.createCampaign(activeClient.id, { name:campaignData.name, description:campaignData.description, objective:campaignData.objective, budget:campaignData.budget, priority:campaignData.priority, category:campaignData.category, status:campaignData.status === 'active' ? 'Active' : 'Planned', target_platforms:campaignData.platforms || [], start_date:campaignData.start, end_date:campaignData.end })
+        setCampaigns(prev => [{ ...created, status:created.status.toLowerCase(), start:created.start_date, end:created.end_date, progress:0, posts:0, spent:0, reach:0 }, ...prev])
+        showToastMsg('Campaign created!')
+      } catch (error) { showToastMsg(error.response?.data?.detail || 'Could not create campaign.', 'error'); return }
     }
     setShowCampaignForm(false)
   }
@@ -454,39 +444,7 @@ export default function CampaignManagement() {
     return contentItems.filter(item => item.campaign === selectedCampaign.name)
   }, [contentItems, selectedCampaign])
 
-  const contentSummary = useMemo(() => {
-    const total = campaignContent.length
-    const counts = {
-      draft: campaignContent.filter(item => item.status === 'draft').length,
-      scheduled: campaignContent.filter(item => item.status === 'scheduled').length,
-      published: campaignContent.filter(item => item.status === 'published').length,
-      rejected: campaignContent.filter(item => item.status === 'rejected').length,
-    }
-    return { total, ...counts }
-  }, [campaignContent])
-
-  const timelineEntries = useMemo(() => {
-    return [...campaignContent]
-      .sort((a, b) => new Date(a.scheduledAt || a.createdAt) - new Date(b.scheduledAt || b.createdAt))
-      .map(item => ({
-        date: item.scheduledAt ? item.scheduledAt.split('T')[0] : item.createdAt,
-        title: item.title,
-        status: item.status,
-        platform: item.platform,
-      }))
-  }, [campaignContent])
-
-  const analyticsSummary = useMemo(() => ({
-    total: contentSummary.total,
-    published: contentSummary.published,
-    scheduled: contentSummary.scheduled,
-    draft: contentSummary.draft,
-    reach: selectedCampaign?.reach ?? 0,
-    engagement: Math.round((selectedCampaign?.reach ?? 0) * 0.15),
-    progress: selectedCampaign?.progress ?? 0,
-  }), [contentSummary, selectedCampaign])
-
-  const connectedPlatforms = PLATFORM_META.filter(platform => activeClient.connectedPlatforms.includes(platform.id))
+  const connectedPlatforms = PLATFORM_META.filter(platform => (activeClient?.connectedPlatforms || []).includes(platform.id))
 
   const openAddContent = () => {
     setContentEditorItem(null)
@@ -590,7 +548,14 @@ export default function CampaignManagement() {
     return { ...selectedCampaign, progress }
   }, [campaignContent, selectedCampaign])
 
-  
+  if (!activeClient) {
+    return (
+      <div className="p-6"><div className="card">
+        <EmptyState icon={Users} title="No client selected" message="Select a client first."
+          action={{ label:'View Clients', onClick:() => navigate('/dashboard/mkt/clients') }} />
+      </div></div>
+    )
+  }
 
   return (
     <div className="p-4 sm:p-6 max-w-[1100px] mx-auto">
@@ -795,6 +760,29 @@ export default function CampaignManagement() {
 }
 
 function CampaignDrawer({ campaign, items, businessUser, assignedTeam, platforms, viewMode, onChangeViewMode, onAddContent, onViewContent, onEditContent, onDeleteContent, onDuplicateContent, onScheduleContent, onOpenAnalytics, onGenerateReport, onClose }) {
+  const timeline = [...items]
+    .sort((a, b) => new Date(a.scheduledAt || a.createdAt) - new Date(b.scheduledAt || b.createdAt))
+    .map(item => ({
+      date: item.scheduledAt ? item.scheduledAt.split('T')[0] : item.createdAt,
+      title: item.title,
+      status: item.status,
+      platform: item.platform,
+    }))
+
+  const contentSummary = {
+    total: items.length,
+    draft: items.filter(i => i.status === 'draft').length,
+    scheduled: items.filter(i => i.status === 'scheduled').length,
+    published: items.filter(i => i.status === 'published').length,
+    rejected: items.filter(i => i.status === 'rejected').length,
+  }
+  const analytics = {
+    ...contentSummary,
+    reach: campaign.reach ?? 0,
+    engagement: Math.round((campaign.reach ?? 0) * 0.15),
+    progress: campaign.progress ?? 0,
+  }
+
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
@@ -853,11 +841,11 @@ function CampaignDrawer({ campaign, items, businessUser, assignedTeam, platforms
               <h3 className="text-sm font-bold" style={{ color:'var(--text)' }}>Content summary</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label:'Total content', value: campaignContent.length },
-                  { label:'Draft', value: campaignContent.filter(i => i.status === 'draft').length },
-                  { label:'Scheduled', value: campaignContent.filter(i => i.status === 'scheduled').length },
-                  { label:'Published', value: campaignContent.filter(i => i.status === 'published').length },
-                  { label:'Rejected', value: campaignContent.filter(i => i.status === 'rejected').length },
+                  { label:'Total content', value: contentSummary.total },
+                  { label:'Draft', value: contentSummary.draft },
+                  { label:'Scheduled', value: contentSummary.scheduled },
+                  { label:'Published', value: contentSummary.published },
+                  { label:'Rejected', value: contentSummary.rejected },
                 ].map(card => (
                   <div key={card.label} className="rounded-[var(--r-md)] p-4" style={{ background:'var(--bg-alt)' }}>
                     <p className="text-xs text-[var(--text-muted)]">{card.label}</p>
@@ -910,7 +898,7 @@ function CampaignDrawer({ campaign, items, businessUser, assignedTeam, platforms
                         <td className="px-4 py-3 flex flex-wrap gap-2">
                           <button onClick={() => onViewContent(item)} className="px-2 py-1 rounded-[var(--r-md)] border text-xs" style={{ borderColor:'var(--border)', color:'var(--text)' }}>View</button>
                           <button onClick={() => onEditContent(item)} className="px-2 py-1 rounded-[var(--r-md)] border text-xs" style={{ borderColor:'var(--border)', color:'var(--text)' }}>Edit</button>
-                          <button onClick={() => handleDuplicateContent(item)} className="px-2 py-1 rounded-[var(--r-md)] border text-xs" style={{ borderColor:'var(--border)', color:'var(--text)' }}>Duplicate</button>
+                          <button onClick={() => onDuplicateContent(item)} className="px-2 py-1 rounded-[var(--r-md)] border text-xs" style={{ borderColor:'var(--border)', color:'var(--text)' }}>Duplicate</button>
                           <button onClick={() => onDeleteContent(item)} className="px-2 py-1 rounded-[var(--r-md)] border text-xs" style={{ borderColor:'#EF4444', color:'#EF4444' }}>Delete</button>
                           <button onClick={() => onScheduleContent(item)} className="px-2 py-1 rounded-[var(--r-md)] border text-xs" style={{ borderColor:'var(--primary)', color:'var(--primary)' }}>Schedule</button>
                         </td>
@@ -939,7 +927,7 @@ function CampaignDrawer({ campaign, items, businessUser, assignedTeam, platforms
                       <div className="flex flex-wrap gap-2 pt-3">
                         <button onClick={() => onViewContent(item)} className="px-2 py-1 rounded-[var(--r-md)] border text-xs" style={{ borderColor:'var(--border)', color:'var(--text)' }}>View</button>
                         <button onClick={() => onEditContent(item)} className="px-2 py-1 rounded-[var(--r-md)] border text-xs" style={{ borderColor:'var(--border)', color:'var(--text)' }}>Edit</button>
-                        <button onClick={() => handleDuplicateContent(item)} className="px-2 py-1 rounded-[var(--r-md)] border text-xs" style={{ borderColor:'var(--border)', color:'var(--text)' }}>Duplicate</button>
+                        <button onClick={() => onDuplicateContent(item)} className="px-2 py-1 rounded-[var(--r-md)] border text-xs" style={{ borderColor:'var(--border)', color:'var(--text)' }}>Duplicate</button>
                       </div>
                     </div>
                   </div>
@@ -952,7 +940,7 @@ function CampaignDrawer({ campaign, items, businessUser, assignedTeam, platforms
             <div className="card p-5">
               <h3 className="text-sm font-bold mb-4" style={{ color:'var(--text)' }}>Campaign timeline</h3>
               <div className="space-y-3">
-                {timelineEntries.map((event, index) => (
+                {timeline.map((event, index) => (
                   <div key={`${event.title}-${index}`} className="flex items-start gap-3">
                     <div className="w-2.5 h-2.5 rounded-full mt-2" style={{ background: event.status === 'published' ? '#22C55E' : event.status === 'scheduled' ? '#1E3A8A' : '#64748B' }} />
                     <div className="flex-1 text-xs" style={{ color:'var(--text-muted)' }}>
@@ -967,10 +955,10 @@ function CampaignDrawer({ campaign, items, businessUser, assignedTeam, platforms
               <h3 className="text-sm font-bold" style={{ color:'var(--text)' }}>Campaign analytics</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label:'Total content', value: analyticsSummary.total },
-                  { label:'Published', value: analyticsSummary.published },
-                  { label:'Scheduled', value: analyticsSummary.scheduled },
-                  { label:'Draft', value: analyticsSummary.draft },
+                  { label:'Total content', value: analytics.total },
+                  { label:'Published', value: analytics.published },
+                  { label:'Scheduled', value: analytics.scheduled },
+                  { label:'Draft', value: analytics.draft },
                 ].map(metric => (
                   <div key={metric.label} className="rounded-[var(--r-md)] p-4" style={{ background:'var(--bg-alt)' }}>
                     <p className="text-[11px] text-[var(--text-muted)]">{metric.label}</p>
@@ -981,19 +969,19 @@ function CampaignDrawer({ campaign, items, businessUser, assignedTeam, platforms
               <div className="grid grid-cols-2 gap-3 text-sm" style={{ color:'var(--text-muted)' }}>
                 <div className="rounded-[var(--r-md)] p-4" style={{ background:'var(--bg-alt)' }}>
                   <p className="text-[11px]">Reach</p>
-                  <p className="font-semibold" style={{ color:'var(--text)' }}>{analyticsSummary.reach.toLocaleString()}</p>
+                  <p className="font-semibold" style={{ color:'var(--text)' }}>{analytics.reach.toLocaleString()}</p>
                 </div>
                 <div className="rounded-[var(--r-md)] p-4" style={{ background:'var(--bg-alt)' }}>
                   <p className="text-[11px]">Engagement</p>
-                  <p className="font-semibold" style={{ color:'var(--text)' }}>{analyticsSummary.engagement.toLocaleString()}</p>
+                  <p className="font-semibold" style={{ color:'var(--text)' }}>{analytics.engagement.toLocaleString()}</p>
                 </div>
               </div>
               <div>
                 <p className="text-xs font-semibold mb-2" style={{ color:'var(--text)' }}>Campaign progress</p>
                 <div className="w-full h-3 rounded-full" style={{ background:'var(--bg-alt)' }}>
-                  <div className="h-3 rounded-full" style={{ width:`${analyticsSummary.progress}%`, background:'linear-gradient(90deg,#1E3A8A,#4F46E5)' }} />
+                  <div className="h-3 rounded-full" style={{ width:`${analytics.progress}%`, background:'linear-gradient(90deg,#1E3A8A,#4F46E5)' }} />
                 </div>
-                <p className="text-[11px] mt-2" style={{ color:'var(--text-muted)' }}>{analyticsSummary.progress}% complete</p>
+                <p className="text-[11px] mt-2" style={{ color:'var(--text-muted)' }}>{analytics.progress}% complete</p>
               </div>
             </div>
           </div>

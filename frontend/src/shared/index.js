@@ -34,9 +34,7 @@ export * from './hooks/useTheme'
 
 // Pages
 export { default as Inbox } from './pages/Inbox'
-export { default as Profile } from './pages/Profile'
 export { default as Settings } from './pages/Settings'
 
-// Services & Mock
-export * from './services/profileService'
+// Services
 export * from './services/settingsService'

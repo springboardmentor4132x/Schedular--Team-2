@@ -1,16 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Building2, CheckCircle2, Palette, Sparkles, Target, Users, X, CheckSquare } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useClient } from '../../../context/ClientContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
-
-const FIELD_STYLE = {
-  background: 'var(--bg-alt)',
-  borderColor: 'var(--border)',
-  color: 'var(--text)',
-}
+import { marketingService } from '../../../services/marketingService'
 
 function Section({ title, children, icon: Icon }) {
   return (
@@ -39,39 +34,21 @@ export default function MarketingBrandGuidelinesPage() {
   const navigate = useNavigate()
   const { activeClient } = useClient()
   const [decision, setDecision] = useState('approved')
+  const [request, setRequest] = useState(null)
 
-  const request = useMemo(() => {
-    if (!activeClient) return null
-    const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('orbit-client-requests') ?? '[]') : []
-    return stored.find(item => item.companyName?.toLowerCase() === activeClient.name?.toLowerCase()) ?? {
-      companyName: activeClient.name,
-      companyDescription: `${activeClient.name} is a growing business that relies on thoughtful social storytelling and consistent publishing.`,
-      industry: activeClient.industry,
-      brandVoice: 'Professional, inspiring, and conversational',
-      targetAudience: 'B2B decision-makers and digital-savvy consumers',
-      preferredLanguage: 'English',
-      preferredPlatforms: activeClient.connectedPlatforms || ['instagram', 'facebook'],
-      postingFrequency: '3–4x per week',
-      preferredPostingTime: 'Morning (6–9 AM)',
-      preferredContentTypes: ['Reels', 'Carousels', 'Stories'],
-      brandColors: ['#1E3A8A', '#4F46E5'],
-      captionStyle: 'Short and punchy',
-      hashtagStyle: 'Mix of niche and branded hashtags',
-      dos: ['Keep the tone consistent', 'Highlight customer outcomes'],
-      donts: ['Avoid over-selling', 'Do not use outdated brand references'],
-      additionalInstructions: 'Maintain a helpful and polished tone for all campaigns.',
-      campaignRequired: true,
-      campaignName: 'Growth Sprint',
-      campaignObjective: 'Lead generation and engagement',
-      campaignBudget: '$3,500',
-      campaignDuration: '45 days',
-      expectedNumberOfPosts: '12',
-      campaignPlatforms: activeClient.connectedPlatforms || ['instagram', 'facebook'],
-      marketingNotes: 'Prefer platform-native creative with strong first-frame hooks.',
-      priority: 'High',
-      submittedAt: 'Recently submitted',
-    }
+  useEffect(() => {
+    if (!activeClient) return
+    marketingService.workRequests().then(items => {
+      const item = items.find(entry => entry.clientId === activeClient.id)
+      setRequest(item ? { ...item.details, id:item.id, status:item.status, decisionNote:item.decisionNote } : null)
+    }).catch(() => setRequest(null))
   }, [activeClient])
+
+  const decide = async option => {
+    setDecision(option)
+    if (!request?.id || option === 'request-changes') return
+    try { await marketingService.decideWorkRequest(request.id, option); setRequest(current => ({ ...current, status:option })) } catch { /* Client Requests retains the full review flow. */ }
+  }
 
   if (!activeClient) {
     return (
@@ -94,7 +71,7 @@ export default function MarketingBrandGuidelinesPage() {
         {['approved', 'rejected', 'request-changes'].map(option => {
           const label = option === 'request-changes' ? 'Request Changes' : option.charAt(0).toUpperCase() + option.slice(1)
           return (
-            <button key={option} onClick={() => setDecision(option)} className="px-3 py-2 rounded-[var(--r-md)] border text-sm font-semibold" style={{ background: decision === option ? 'var(--primary)' : 'var(--card)', borderColor: decision === option ? 'var(--primary)' : 'var(--border)', color: decision === option ? '#fff' : 'var(--text-muted)' }}>
+            <button key={option} onClick={() => decide(option)} className="px-3 py-2 rounded-[var(--r-md)] border text-sm font-semibold" style={{ background: decision === option ? 'var(--primary)' : 'var(--card)', borderColor: decision === option ? 'var(--primary)' : 'var(--border)', color: decision === option ? '#fff' : 'var(--text-muted)' }}>
               {label}
             </button>
           )
@@ -104,7 +81,7 @@ export default function MarketingBrandGuidelinesPage() {
       <Section title="Company Overview" icon={Building2}>
         <Detail label="Company Description" value={request?.companyDescription} />
         <Detail label="Industry" value={request?.industry} />
-        <Detail label="Preferred Language" value={request?.preferredLanguage} />
+        <Detail label="Preferred Language" value={(request?.languages || []).join(', ')} />
         <Detail label="Preferred Posting Time" value={request?.preferredPostingTime} />
         <Detail label="Submission Date" value={request?.submittedAt} />
       </Section>
@@ -112,27 +89,27 @@ export default function MarketingBrandGuidelinesPage() {
       <Section title="Brand Identity" icon={Palette}>
         <Detail label="Brand Voice" value={request?.brandVoice} />
         <Detail label="Caption Style" value={request?.captionStyle} />
-        <Detail label="Hashtag Style" value={request?.hashtagStyle} />
+        <Detail label="Hashtag Style" value={request?.hashtagPreferences} />
         <Detail label="Brand Colors" value={(request?.brandColors || []).join(', ')} />
       </Section>
 
       <Section title="Audience & Content" icon={Users}>
-        <Detail label="Target Audience" value={request?.targetAudience} />
+        <Detail label="Target Audience" value={[request?.ageGroup, request?.location, request?.interests].filter(Boolean).join(' · ')} />
         <Detail label="Preferred Platforms" value={(request?.preferredPlatforms || []).join(', ')} />
         <Detail label="Posting Frequency" value={request?.postingFrequency} />
         <Detail label="Preferred Content Types" value={(request?.preferredContentTypes || []).join(', ')} />
       </Section>
 
       <Section title="Campaign Request" icon={Sparkles}>
-        <Detail label="Campaign Required" value={request?.campaignRequired ? 'Yes' : 'No'} />
+        <Detail label="Campaign Required" value={request?.requiresCampaign ? 'Yes' : 'No'} />
         <Detail label="Campaign Name" value={request?.campaignName} />
         <Detail label="Campaign Objective" value={request?.campaignObjective} />
         <Detail label="Campaign Budget" value={request?.campaignBudget} />
         <Detail label="Campaign Duration" value={request?.campaignDuration} />
-        <Detail label="Expected Number of Posts" value={request?.expectedNumberOfPosts} />
-        <Detail label="Campaign Platforms" value={(request?.campaignPlatforms || []).join(', ')} />
-        <Detail label="Priority" value={request?.priority} />
-        <Detail label="Marketing Notes" value={request?.marketingNotes} />
+        <Detail label="Expected Number of Posts" value={request?.expectedCampaignPosts} />
+        <Detail label="Campaign Platforms" value={(request?.preferredCampaignPlatforms || []).join(', ')} />
+        <Detail label="Priority" value={request?.campaignPriority} />
+        <Detail label="Marketing Notes" value={request?.campaignNotes} />
       </Section>
 
       <Section title="Content Guidance" icon={Target}>

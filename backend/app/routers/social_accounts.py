@@ -12,31 +12,43 @@ from app.auth.dependencies import get_current_user
 from typing import List
 from datetime import datetime, timezone
 import uuid
-import random
 
 from app.services.facebook_service import (
     get_facebook_login_url,
     exchange_code_for_access_token,
+    get_facebook_user_info,
+    get_long_lived_access_token as get_fb_long_lived_token,
 )
 
 from app.services.linkedin_service import (
     get_linkedin_login_url,
     exchange_code_for_access_token as exchange_linkedin_token,
+    get_linkedin_user_info,
 )
 
 from app.services.youtube_service import (
     get_youtube_login_url,
     exchange_code_for_access_token as exchange_youtube_token,
+    get_youtube_user_info,
 )
 
 from app.services.instagram_service import (
     get_instagram_login_url,
     exchange_code_for_access_token as exchange_instagram_token,
+    get_instagram_user_info,
+    get_long_lived_access_token as get_ig_long_lived_token,
 )
 
 from app.services.twitter_service import (
     get_twitter_login_url,
     exchange_code_for_access_token as exchange_twitter_token,
+    get_twitter_user_info,
+)
+
+from app.services.pinterest_service import (
+    get_pinterest_login_url,
+    exchange_code_for_access_token as exchange_pinterest_token,
+    get_pinterest_user_info,
 )
 
 router = APIRouter(
@@ -51,106 +63,6 @@ def get_social_accounts(current_user: User = Depends(get_current_user), db: Sess
     return accounts
 
 
-@router.post("/connect", response_model=SocialAccountResponse)
-def mock_connect_social_account(payload: SocialAccountConnect, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """
-    Mock endpoint to simulate a connection without requiring actual OAuth callback.
-    """
-    platform = payload.platform.lower()
-    
-    existing = db.query(SocialAccount).filter(
-        SocialAccount.user_id == current_user.id,
-        SocialAccount.platform == platform
-    ).first()
-    
-    if existing:
-        raise HTTPException(status_code=400, detail="Account already connected")
-        
-    followers_count = f"{random.randint(1, 100)}.{random.randint(1, 9)}K"
-    if platform == "instagram":
-        followers_count = f"{random.randint(10, 500)}K"
-    elif platform == "youtube":
-        followers_count = f"{random.randint(100, 999)}K subscribers"
-        
-    now = datetime.now(timezone.utc)
-    
-    new_account = SocialAccount(
-        user_id=current_user.id,
-        platform=platform,
-        username=f"@{current_user.username}_{platform}",
-        followers_count=followers_count,
-        access_token=f"mock_access_{uuid.uuid4()}",
-        refresh_token=f"mock_refresh_{uuid.uuid4()}",
-        status="Connected",
-        health="Healthy",
-        connected_since=now,
-        last_sync=now
-    )
-    
-    db.add(new_account)
-    db.commit()
-    db.refresh(new_account)
-    return new_account
-
-
-@router.get("/callback/{platform}")
-def oauth_callback(platform: str, request: Request, db: Session = Depends(get_db)):
-    """
-    Step 2: Platform redirects back to backend with 'code'. 
-    Backend exchanges code for token, stores in DB, and redirects to React.
-    """
-    code = request.query_params.get("code")
-    error = request.query_params.get("error")
-    
-    # In a real scenario, if the user cancels, we redirect with error
-    if error:
-        return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={error}")
-
-    # MOCK: Because we don't know the specific user in a pure GET callback without a session/JWT cookie,
-        # and because this is a mock implementation, we will assign this connection to the first user in the DB.
-        # In production, the JWT token would be passed via an HttpOnly cookie or the state parameter.
-    user = db.query(User).first()
-    if not user:
-        return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserFound")
-    
-    # Check if already connected
-    existing = db.query(SocialAccount).filter(
-        SocialAccount.user_id == user.id,
-        SocialAccount.platform == platform
-    ).first()
-        
-    if existing:
-        return RedirectResponse(url="http://localhost:5173/social-accounts?error=AlreadyConnected")
-    
-    # Simulate OAuth API Token Exchange and Account Fetching
-    followers_count = f"{random.randint(1, 100)}.{random.randint(1, 9)}K"
-    if platform == "instagram":
-        followers_count = f"{random.randint(10, 500)}K"
-    elif platform == "youtube":
-        followers_count = f"{random.randint(100, 999)}K subscribers"
-            
-    now = datetime.now(timezone.utc)
-        
-    new_account = SocialAccount(
-        user_id=user.id,
-        platform=platform,
-        username=f"@{user.username}_{platform}",
-        followers_count=followers_count,
-        access_token=f"real_access_{uuid.uuid4()}", # Mocked 'real' token
-        refresh_token=f"real_refresh_{uuid.uuid4()}",
-        status="Connected",
-        health="Healthy",
-        connected_since=now,
-        last_sync=now
-        )
-        
-    db.add(new_account)
-    db.commit()
-
-    # Step 3: Redirect back to React frontend
-    return RedirectResponse(
-        url="http://localhost:5173/social-accounts?success=true"
-)
 # ===========================
 # Facebook OAuth
 # ===========================
@@ -165,49 +77,167 @@ def connect_facebook():
 
 
 @router.get("/facebook/callback")
-def facebook_callback(code: str):
+def facebook_callback(request: Request, code: str, db: Session = Depends(get_db)):
     """
     Facebook redirects here after login.
-    Exchange authorization code for access token.
+    Exchange authorization code for access token, get user info, store in DB.
     """
     try:
-        token_data = exchange_code_for_access_token(code)
+        # Get the user from session (OAuth state)
+        # In production, use proper state parameter to identify user
+        user_id = request.session.get("user_id")
+        if not user_id:
+            # Try to get from query param or cookie
+            user_id = request.query_params.get("user_id")
+        
+        if not user_id:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")
+        
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if not user:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=UserNotFound")
 
-        return {
-            "message": "Facebook connected successfully",
-            "access_token": token_data["access_token"],
-            "token_type": token_data["token_type"],
-            "expires_in": token_data["expires_in"]
-        }
+        # Exchange code for short-lived token
+        token_data = exchange_code_for_access_token(code)
+        short_lived_token = token_data["access_token"]
+
+        # Exchange for long-lived token (60 days)
+        long_lived_data = get_fb_long_lived_token(short_lived_token)
+        access_token = long_lived_data["access_token"]
+        
+        # Calculate expiry
+        expires_in = long_lived_data.get("expires_in", 5184000)  # 60 days default
+        token_expires_at = datetime.now(timezone.utc) + timezone.utc.utcoffset(datetime.now()) if expires_in else None
+        if expires_in:
+            token_expires_at = datetime.now(timezone.utc) + __import__('datetime').timedelta(seconds=expires_in)
+
+        # Get user info (Facebook Page)
+        user_info = get_facebook_user_info(access_token)
+
+        # Check if already connected
+        existing = db.query(SocialAccount).filter(
+            SocialAccount.user_id == user.id,
+            SocialAccount.platform == "facebook",
+            SocialAccount.platform_user_id == user_info["platform_user_id"]
+        ).first()
+        
+        if existing:
+            # Update existing
+            existing.access_token = access_token
+            existing.token_expires_at = token_expires_at
+            existing.username = user_info["username"]
+            existing.followers_count = user_info["followers_count"]
+            existing.profile_image = user_info["profile_image"]
+            existing.last_sync = datetime.now(timezone.utc)
+            existing.status = "Connected"
+            existing.health = "Healthy"
+            db.commit()
+            db.refresh(existing)
+        else:
+            # Create new
+            new_account = SocialAccount(
+                user_id=user.id,
+                platform="facebook",
+                platform_user_id=user_info["platform_user_id"],
+                username=user_info["username"],
+                profile_image=user_info["profile_image"],
+                followers_count=user_info["followers_count"],
+                access_token=access_token,
+                token_expires_at=token_expires_at,
+                status="Connected",
+                health="Healthy",
+                connected_since=datetime.now(timezone.utc),
+                last_sync=datetime.now(timezone.utc)
+            )
+            db.add(new_account)
+            db.commit()
+            db.refresh(new_account)
+
+        return RedirectResponse(
+            url="http://localhost:5173/social-accounts?success=true&platform=facebook"
+        )
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
 
 
 # ===========================
-# Linkedin OAuth
+# LinkedIn OAuth
 # ===========================    
 
 @router.get("/linkedin/connect")
-def connect_linkedin():
+def connect_linkedin(request: Request):
+    # Store user_id in session for callback
+    user_id = request.query_params.get("user_id")
+    if user_id:
+        request.session["user_id"] = user_id
     url = get_linkedin_login_url()
     return RedirectResponse(url=url)
 
 
 @router.get("/linkedin/callback")
-def linkedin_callback(code: str):
+def linkedin_callback(request: Request, code: str, db: Session = Depends(get_db)):
     try:
-        token_data = exchange_linkedin_token(code)
+        user_id = request.session.get("user_id") or request.query_params.get("user_id")
+        if not user_id:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")
+        
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if not user:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=UserNotFound")
 
-        return {
-            "message": "LinkedIn connected successfully",
-            "access_token": token_data["access_token"],
-            "expires_in": token_data.get("expires_in"),
-        }
+        token_data = exchange_linkedin_token(code)
+        access_token = token_data["access_token"]
+        expires_in = token_data.get("expires_in")
+        
+        token_expires_at = None
+        if expires_in:
+            token_expires_at = datetime.now(timezone.utc) + __import__('datetime').timedelta(seconds=expires_in)
+
+        user_info = get_linkedin_user_info(access_token)
+
+        existing = db.query(SocialAccount).filter(
+            SocialAccount.user_id == user.id,
+            SocialAccount.platform == "linkedin",
+            SocialAccount.platform_user_id == user_info["platform_user_id"]
+        ).first()
+        
+        if existing:
+            existing.access_token = access_token
+            existing.token_expires_at = token_expires_at
+            existing.username = user_info["username"]
+            existing.followers_count = user_info["followers_count"]
+            existing.profile_image = user_info["profile_image"]
+            existing.last_sync = datetime.now(timezone.utc)
+            existing.status = "Connected"
+            existing.health = "Healthy"
+            db.commit()
+            db.refresh(existing)
+        else:
+            new_account = SocialAccount(
+                user_id=user.id,
+                platform="linkedin",
+                platform_user_id=user_info["platform_user_id"],
+                username=user_info["username"],
+                profile_image=user_info["profile_image"],
+                followers_count=user_info["followers_count"],
+                access_token=access_token,
+                token_expires_at=token_expires_at,
+                status="Connected",
+                health="Healthy",
+                connected_since=datetime.now(timezone.utc),
+                last_sync=datetime.now(timezone.utc)
+            )
+            db.add(new_account)
+            db.commit()
+            db.refresh(new_account)
+
+        return RedirectResponse(
+            url="http://localhost:5173/social-accounts?success=true&platform=linkedin"
+        )
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
+        return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
 
 
 # ===========================
@@ -215,34 +245,80 @@ def linkedin_callback(code: str):
 # ===========================
 
 @router.get("/youtube/connect")
-def connect_youtube():
-    """
-    Redirect user to Google OAuth Login.
-    """
+def connect_youtube(request: Request):
+    user_id = request.query_params.get("user_id")
+    if user_id:
+        request.session["user_id"] = user_id
     url = get_youtube_login_url()
     return RedirectResponse(url=url)
 
 
 @router.get("/youtube/callback")
-def youtube_callback(code: str):
-    """
-    Google redirects here after login.
-    Exchange authorization code for access token.
-    """
+def youtube_callback(request: Request, code: str, db: Session = Depends(get_db)):
     try:
-        token_data = exchange_youtube_token(code)
+        user_id = request.session.get("user_id") or request.query_params.get("user_id")
+        if not user_id:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")
+        
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if not user:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=UserNotFound")
 
-        return {
-            "message": "YouTube connected successfully",
-            "access_token": token_data["access_token"],
-            "token_type": token_data["token_type"],
-            "expires_in": token_data.get("expires_in"),
-            "refresh_token": token_data.get("refresh_token"),
-            "scope": token_data.get("scope"),
-        }
+        token_data = exchange_youtube_token(code)
+        access_token = token_data["access_token"]
+        refresh_token = token_data.get("refresh_token")
+        expires_in = token_data.get("expires_in")
+        
+        token_expires_at = None
+        if expires_in:
+            token_expires_at = datetime.now(timezone.utc) + __import__('datetime').timedelta(seconds=expires_in)
+
+        user_info = get_youtube_user_info(access_token)
+
+        existing = db.query(SocialAccount).filter(
+            SocialAccount.user_id == user.id,
+            SocialAccount.platform == "youtube",
+            SocialAccount.platform_user_id == user_info["platform_user_id"]
+        ).first()
+        
+        if existing:
+            existing.access_token = access_token
+            existing.refresh_token = refresh_token
+            existing.token_expires_at = token_expires_at
+            existing.username = user_info["username"]
+            existing.followers_count = user_info["followers_count"]
+            existing.profile_image = user_info["profile_image"]
+            existing.last_sync = datetime.now(timezone.utc)
+            existing.status = "Connected"
+            existing.health = "Healthy"
+            db.commit()
+            db.refresh(existing)
+        else:
+            new_account = SocialAccount(
+                user_id=user.id,
+                platform="youtube",
+                platform_user_id=user_info["platform_user_id"],
+                username=user_info["username"],
+                profile_image=user_info["profile_image"],
+                followers_count=user_info["followers_count"],
+                access_token=access_token,
+                refresh_token=refresh_token,
+                token_expires_at=token_expires_at,
+                status="Connected",
+                health="Healthy",
+                connected_since=datetime.now(timezone.utc),
+                last_sync=datetime.now(timezone.utc)
+            )
+            db.add(new_account)
+            db.commit()
+            db.refresh(new_account)
+
+        return RedirectResponse(
+            url="http://localhost:5173/social-accounts?success=true&platform=youtube"
+        )
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
 
 
 # ===========================
@@ -250,32 +326,80 @@ def youtube_callback(code: str):
 # ===========================
 
 @router.get("/instagram/connect")
-def connect_instagram():
-    """
-    Redirect user to Instagram Business Login.
-    """
+def connect_instagram(request: Request):
+    user_id = request.query_params.get("user_id")
+    if user_id:
+        request.session["user_id"] = user_id
     url = get_instagram_login_url()
     return RedirectResponse(url=url)
 
 
 @router.get("/instagram/callback")
-def instagram_callback(code: str):
-    """
-    Instagram redirects here after login.
-    Exchange authorization code for access token.
-    """
+def instagram_callback(request: Request, code: str, db: Session = Depends(get_db)):
     try:
-        token_data = exchange_instagram_token(code)
+        user_id = request.session.get("user_id") or request.query_params.get("user_id")
+        if not user_id:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")
+        
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if not user:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=UserNotFound")
 
-        return {
-            "message": "Instagram connected successfully",
-            "access_token": token_data.get("access_token"),
-            "user_id": token_data.get("user_id"),
-        }
+        # Exchange code for short-lived token
+        token_data = exchange_instagram_token(code)
+        short_lived_token = token_data.get("access_token")
+        
+        # Exchange for long-lived token (60 days)
+        long_lived_data = get_ig_long_lived_token(short_lived_token)
+        access_token = long_lived_data["access_token"]
+        expires_in = long_lived_data.get("expires_in", 5184000)
+        
+        token_expires_at = datetime.now(timezone.utc) + __import__('datetime').timedelta(seconds=expires_in)
+
+        user_info = get_instagram_user_info(access_token)
+
+        existing = db.query(SocialAccount).filter(
+            SocialAccount.user_id == user.id,
+            SocialAccount.platform == "instagram",
+            SocialAccount.platform_user_id == user_info["platform_user_id"]
+        ).first()
+        
+        if existing:
+            existing.access_token = access_token
+            existing.token_expires_at = token_expires_at
+            existing.username = user_info["username"]
+            existing.followers_count = user_info["followers_count"]
+            existing.profile_image = user_info["profile_image"]
+            existing.last_sync = datetime.now(timezone.utc)
+            existing.status = "Connected"
+            existing.health = "Healthy"
+            db.commit()
+            db.refresh(existing)
+        else:
+            new_account = SocialAccount(
+                user_id=user.id,
+                platform="instagram",
+                platform_user_id=user_info["platform_user_id"],
+                username=user_info["username"],
+                profile_image=user_info["profile_image"],
+                followers_count=user_info["followers_count"],
+                access_token=access_token,
+                token_expires_at=token_expires_at,
+                status="Connected",
+                health="Healthy",
+                connected_since=datetime.now(timezone.utc),
+                last_sync=datetime.now(timezone.utc)
+            )
+            db.add(new_account)
+            db.commit()
+            db.refresh(new_account)
+
+        return RedirectResponse(
+            url="http://localhost:5173/social-accounts?success=true&platform=instagram"
+        )
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
+        return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
 
 
 # ===========================
@@ -283,22 +407,155 @@ def instagram_callback(code: str):
 # ===========================
 
 @router.get("/twitter/connect")
-def connect_twitter():
+def connect_twitter(request: Request):
+    user_id = request.query_params.get("user_id")
+    if user_id:
+        request.session["user_id"] = user_id
     url = get_twitter_login_url()
     return RedirectResponse(url=url)
 
 
 @router.get("/twitter/callback")
-def twitter_callback(code: str):
-    token_data = exchange_twitter_token(code)
+def twitter_callback(request: Request, code: str, db: Session = Depends(get_db)):
+    try:
+        user_id = request.session.get("user_id") or request.query_params.get("user_id")
+        if not user_id:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")
+        
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if not user:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=UserNotFound")
 
-    return {
-        "message": "X account connected successfully",
-        "access_token": token_data.get("access_token"),
-        "refresh_token": token_data.get("refresh_token"),
-    }
+        token_data = exchange_twitter_token(code)
+        access_token = token_data.get("access_token")
+        refresh_token = token_data.get("refresh_token")
+        # Twitter tokens don't expire with offline.access scope
+        
+        user_info = get_twitter_user_info(access_token)
+
+        existing = db.query(SocialAccount).filter(
+            SocialAccount.user_id == user.id,
+            SocialAccount.platform == "twitter",
+            SocialAccount.platform_user_id == user_info["platform_user_id"]
+        ).first()
+        
+        if existing:
+            existing.access_token = access_token
+            existing.refresh_token = refresh_token
+            existing.username = user_info["username"]
+            existing.followers_count = user_info["followers_count"]
+            existing.profile_image = user_info["profile_image"]
+            existing.last_sync = datetime.now(timezone.utc)
+            existing.status = "Connected"
+            existing.health = "Healthy"
+            db.commit()
+            db.refresh(existing)
+        else:
+            new_account = SocialAccount(
+                user_id=user.id,
+                platform="twitter",
+                platform_user_id=user_info["platform_user_id"],
+                username=user_info["username"],
+                profile_image=user_info["profile_image"],
+                followers_count=user_info["followers_count"],
+                access_token=access_token,
+                refresh_token=refresh_token,
+                status="Connected",
+                health="Healthy",
+                connected_since=datetime.now(timezone.utc),
+                last_sync=datetime.now(timezone.utc)
+            )
+            db.add(new_account)
+            db.commit()
+            db.refresh(new_account)
+
+        return RedirectResponse(
+            url="http://localhost:5173/social-accounts?success=true&platform=twitter"
+        )
+
+    except Exception as e:
+        return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
 
 
+# ===========================
+# Pinterest OAuth
+# ===========================
+
+@router.get("/pinterest/connect")
+def connect_pinterest(request: Request):
+    user_id = request.query_params.get("user_id")
+    if user_id:
+        request.session["user_id"] = user_id
+    url = get_pinterest_login_url()
+    return RedirectResponse(url=url)
+
+
+@router.get("/pinterest/callback")
+def pinterest_callback(request: Request, code: str, db: Session = Depends(get_db)):
+    try:
+        user_id = request.session.get("user_id") or request.query_params.get("user_id")
+        if not user_id:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")
+
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if not user:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=UserNotFound")
+
+        token_data = exchange_pinterest_token(code)
+        access_token = token_data["access_token"]
+        refresh_token = token_data.get("refresh_token")
+        expires_in = token_data.get("expires_in")
+
+        token_expires_at = None
+        if expires_in:
+            token_expires_at = datetime.now(timezone.utc) + __import__('datetime').timedelta(seconds=expires_in)
+
+        user_info = get_pinterest_user_info(access_token)
+
+        existing = db.query(SocialAccount).filter(
+            SocialAccount.user_id == user.id,
+            SocialAccount.platform == "pinterest",
+            SocialAccount.platform_user_id == user_info["platform_user_id"]
+        ).first()
+
+        if existing:
+            existing.access_token = access_token
+            existing.refresh_token = refresh_token
+            existing.token_expires_at = token_expires_at
+            existing.username = user_info["username"]
+            existing.followers_count = user_info["followers_count"]
+            existing.profile_image = user_info["profile_image"]
+            existing.last_sync = datetime.now(timezone.utc)
+            existing.status = "Connected"
+            existing.health = "Healthy"
+            db.commit()
+            db.refresh(existing)
+        else:
+            new_account = SocialAccount(
+                user_id=user.id,
+                platform="pinterest",
+                platform_user_id=user_info["platform_user_id"],
+                username=user_info["username"],
+                profile_image=user_info["profile_image"],
+                followers_count=user_info["followers_count"],
+                access_token=access_token,
+                refresh_token=refresh_token,
+                token_expires_at=token_expires_at,
+                status="Connected",
+                health="Healthy",
+                connected_since=datetime.now(timezone.utc),
+                last_sync=datetime.now(timezone.utc)
+            )
+            db.add(new_account)
+            db.commit()
+            db.refresh(new_account)
+
+        return RedirectResponse(
+            url="http://localhost:5173/social-accounts?success=true&platform=pinterest"
+        )
+
+    except Exception as e:
+        return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
 
 
 @router.delete("/{account_id}")
@@ -315,6 +572,7 @@ def disconnect_social_account(account_id: int, current_user: User = Depends(get_
     
     return {"message": "Account disconnected successfully"}
 
+
 @router.post("/{account_id}/sync", response_model=SocialAccountResponse)
 def sync_social_account(account_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     account = db.query(SocialAccount).filter(SocialAccount.id == account_id).first()
@@ -323,11 +581,35 @@ def sync_social_account(account_id: int, current_user: User = Depends(get_curren
         
     if account.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to sync this account")
+    
+    # Fetch fresh data from platform API
+    try:
+        if account.platform == "facebook":
+            user_info = get_facebook_user_info(account.access_token)
+        elif account.platform == "instagram":
+            user_info = get_instagram_user_info(account.access_token)
+        elif account.platform == "youtube":
+            user_info = get_youtube_user_info(account.access_token)
+        elif account.platform == "linkedin":
+            user_info = get_linkedin_user_info(account.access_token)
+        elif account.platform == "twitter":
+            user_info = get_twitter_user_info(account.access_token)
+        elif account.platform == "pinterest":
+            user_info = get_pinterest_user_info(account.access_token)
+        else:
+            raise Exception(f"Unknown platform: {account.platform}")
         
-    # Simulate syncing logic
-    account.last_sync = datetime.now(timezone.utc)
-    account.status = "Connected"
-    account.health = "Healthy"
+        account.followers_count = user_info.get("followers_count", account.followers_count)
+        account.username = user_info.get("username", account.username)
+        account.profile_image = user_info.get("profile_image", account.profile_image)
+        account.last_sync = datetime.now(timezone.utc)
+        account.status = "Connected"
+        account.health = "Healthy"
+        
+    except Exception as e:
+        account.health = "Error"
+        account.status = "Error"
+        # Don't raise, just log and return current data
     
     db.commit()
     db.refresh(account)

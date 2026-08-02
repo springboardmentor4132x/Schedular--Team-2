@@ -1,13 +1,18 @@
-﻿import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   Save, CheckCircle2, Upload, Plus, X,
   Building2, Palette, Users, Settings2,
   Target, PenSquare, ThumbsUp, ThumbsDown, Link,
-  BookOpen, Info,
+  BookOpen,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import PageHeader from '../../../components/dashboard/PageHeader'
+import {
+  fetchBrandGuidelines,
+  saveBrandGuidelines,
+  submitWorkRequest,
+} from '../services/businessService'
 
 const inputCls = 'w-full px-4 py-2.5 text-sm rounded-[var(--r-md)] border outline-none transition-all focus:border-[var(--primary)]'
 const inputSty = { background: 'var(--bg-alt)', borderColor: 'var(--border)', color: 'var(--text)' }
@@ -31,9 +36,6 @@ const VOICE_OPTIONS = ['Professional', 'Friendly', 'Witty', 'Inspirational', 'Ed
 const CAPTION_STYLES = ['Short & punchy', 'Long-form storytelling', 'Question-based', 'Quote-led', 'Data-driven', 'Conversational']
 const HASHTAG_PREFS  = ['Niche hashtags', 'Trending hashtags', 'Brand hashtag only', 'Mix of sizes', 'No hashtags']
 const CTA_STYLES     = ['Link in bio', 'DM us', 'Comment below', 'Swipe up', 'Shop now', 'Learn more', 'Sign up']
-const GUIDELINES_STORAGE_KEY = 'orbit-brand-guidelines'
-const REQUEST_STORAGE_KEY = 'orbit-client-requests'
-const MARKETING_TEAM_STORAGE_KEY = 'orbit-assigned-marketing-team'
 
 function Section({ icon: Icon, title, color = '#1E3A8A', bg = 'rgba(30,58,138,.10)', children }) {
   return (
@@ -212,166 +214,137 @@ export default function BrandGuidelines() {
   const addToList    = (setArr, val) => setArr(prev => [...prev, val])
   const removeFromList = (setArr, i) => setArr(prev => prev.filter((_, idx) => idx !== i))
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    try {
-      const raw = localStorage.getItem(GUIDELINES_STORAGE_KEY)
-      if (!raw) return
-      const draft = JSON.parse(raw)
-      if (!draft) return
-      if (draft.companyName !== undefined) setCompanyName(draft.companyName)
-      if (draft.description !== undefined) setDescription(draft.description)
-      if (draft.industry !== undefined) setIndustry(draft.industry)
-      if (draft.brandVoice !== undefined) setBrandVoice(draft.brandVoice)
-      if (draft.brandColors !== undefined) setBrandColors(draft.brandColors)
-      if (draft.logoFile !== undefined) setLogoFile(draft.logoFile)
-      if (draft.brandKit !== undefined) setBrandKit(draft.brandKit)
-      if (draft.ageGroups !== undefined) setAgeGroups(draft.ageGroups)
-      if (draft.locations !== undefined) setLocations(draft.locations)
-      if (draft.interests !== undefined) setInterests(draft.interests)
-      if (draft.platforms !== undefined) setPlatforms(draft.platforms)
-      if (draft.contentTypes !== undefined) setContentTypes(draft.contentTypes)
-      if (draft.languages !== undefined) setLanguages(draft.languages)
-      if (draft.frequency !== undefined) setFrequency(draft.frequency)
-      if (draft.postingTime !== undefined) setPostingTime(draft.postingTime)
-      if (draft.goals !== undefined) setGoals(draft.goals)
-      if (draft.captionStyle !== undefined) setCaptionStyle(draft.captionStyle)
-      if (draft.hashtagPref !== undefined) setHashtagPref(draft.hashtagPref)
-      if (draft.ctaStyle !== undefined) setCtaStyle(draft.ctaStyle)
-      if (draft.dos !== undefined) setDos(draft.dos)
-      if (draft.donts !== undefined) setDonts(draft.donts)
-      if (draft.competitors !== undefined) setCompetitors(draft.competitors)
-      if (draft.inspirations !== undefined) setInspirations(draft.inspirations)
-      if (draft.additional !== undefined) setAdditional(draft.additional)
-      if (draft.campaignName !== undefined) setCampaignName(draft.campaignName)
-      if (draft.campaignObjective !== undefined) setCampaignObjective(draft.campaignObjective)
-      if (draft.campaignBudget !== undefined) setCampaignBudget(draft.campaignBudget)
-      if (draft.campaignDuration !== undefined) setCampaignDuration(draft.campaignDuration)
-      if (draft.expectedPosts !== undefined) setExpectedPosts(draft.expectedPosts)
-      if (draft.campaignPlatforms !== undefined) setCampaignPlatforms(draft.campaignPlatforms)
-      if (draft.priority !== undefined) setPriority(draft.priority)
-      if (draft.marketingNotes !== undefined) setMarketingNotes(draft.marketingNotes)
-      if (draft.requestMessage !== undefined) setRequestMessage(draft.requestMessage)
-      if (draft.requestSubmitted !== undefined) setRequestSubmitted(draft.requestSubmitted)
-    } catch {
-      // ignore malformed drafts
+  const splitList = v => Array.isArray(v) ? v : (typeof v === 'string' && v.trim() ? v.split(/,\s*/) : [])
+
+  const fileMeta = file =>
+    file && typeof file === 'object' && file.name
+      ? { name: file.name, size: file.size ?? null, type: file.type ?? null }
+      : null
+
+  const buildDetails = () => ({
+    source: 'brand-guidelines',
+    companyName: companyName || 'Untitled Company',
+    companyDescription: description,
+    industry,
+    companyWebsite: '',
+    brandVoice: brandVoice.join(', '),
+    brandPersonality: brandVoice.join(', '),
+    brandColors,
+    preferredFonts: 'Inter / Sans-serif',
+    ageGroup: ageGroups.join(', '),
+    location: locations.join(', '),
+    interests: interests.join(', '),
+    languages,
+    preferredPlatforms: platforms,
+    preferredContentTypes: contentTypes,
+    postingFrequency: frequency,
+    expectedPostsPerWeek: expectedPosts,
+    expectedPostsPerMonth: '',
+    preferredPostingDays: [],
+    preferredPostingTime: postingTime,
+    contentGoals: Object.entries(goals).filter(([, checked]) => checked).map(([key]) => key),
+    captionStyle,
+    hashtagPreferences: hashtagPref,
+    ctaStyle,
+    referencePages: competitors,
+    competitorLinks: inspirations,
+    additionalInstructions: additional,
+    dos,
+    donts,
+    requiresCampaign: Boolean(campaignName || campaignObjective || campaignBudget || campaignDuration || expectedPosts || campaignPlatforms.length || marketingNotes),
+    campaignName,
+    campaignObjective,
+    campaignBudget,
+    campaignDuration,
+    preferredStartDate: '',
+    preferredEndDate: '',
+    expectedCampaignPosts: expectedPosts,
+    preferredCampaignPlatforms: campaignPlatforms,
+    campaignPriority: priority,
+    campaignNotes: marketingNotes,
+    approvalBeforePublishing: true,
+    allowDirectPublishing: false,
+    notifyBeforePublishing: true,
+    logoFile: fileMeta(logoFile),
+    brandKit: fileMeta(brandKit),
+    submittedAt: new Date().toISOString(),
+  })
+
+  const applyDetails = useCallback((d = {}) => {
+    if (d.companyName !== undefined) setCompanyName(d.companyName)
+    if (d.companyDescription !== undefined) setDescription(d.companyDescription)
+    if (d.industry !== undefined) setIndustry(d.industry)
+    if (d.brandVoice !== undefined) setBrandVoice(splitList(d.brandVoice))
+    if (d.brandColors !== undefined) setBrandColors(d.brandColors)
+    if (d.ageGroup !== undefined) setAgeGroups(splitList(d.ageGroup))
+    if (d.location !== undefined) setLocations(splitList(d.location))
+    if (d.interests !== undefined) setInterests(splitList(d.interests))
+    if (d.languages !== undefined) setLanguages(Array.isArray(d.languages) && d.languages.length ? d.languages : ['English'])
+    if (d.preferredPlatforms !== undefined) setPlatforms(d.preferredPlatforms)
+    if (d.preferredContentTypes !== undefined) setContentTypes(d.preferredContentTypes)
+    if (d.postingFrequency !== undefined) setFrequency(d.postingFrequency)
+    if (d.preferredPostingTime !== undefined) setPostingTime(d.preferredPostingTime)
+    if (d.contentGoals !== undefined) {
+      setGoals(prev => {
+        const next = { ...prev }
+        d.contentGoals.forEach(key => { next[key] = true })
+        return next
+      })
     }
+    if (d.captionStyle !== undefined) setCaptionStyle(d.captionStyle)
+    if (d.hashtagPreferences !== undefined) setHashtagPref(d.hashtagPreferences)
+    if (d.ctaStyle !== undefined) setCtaStyle(d.ctaStyle)
+    if (d.dos !== undefined) setDos(d.dos)
+    if (d.donts !== undefined) setDonts(d.donts)
+    if (d.referencePages !== undefined) setCompetitors(d.referencePages)
+    if (d.competitorLinks !== undefined) setInspirations(d.competitorLinks)
+    if (d.additionalInstructions !== undefined) setAdditional(d.additionalInstructions)
+    if (d.campaignName !== undefined) setCampaignName(d.campaignName)
+    if (d.campaignObjective !== undefined) setCampaignObjective(d.campaignObjective)
+    if (d.campaignBudget !== undefined) setCampaignBudget(d.campaignBudget)
+    if (d.campaignDuration !== undefined) setCampaignDuration(d.campaignDuration)
+    if (d.expectedCampaignPosts !== undefined) setExpectedPosts(d.expectedCampaignPosts)
+    if (d.preferredCampaignPlatforms !== undefined) setCampaignPlatforms(d.preferredCampaignPlatforms)
+    if (d.campaignPriority !== undefined) setPriority(d.campaignPriority)
+    if (d.campaignNotes !== undefined) setMarketingNotes(d.campaignNotes)
+    if (d.logoFile?.name) setLogoFile(d.logoFile)
+    if (d.brandKit?.name) setBrandKit(d.brandKit)
   }, [])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    const draft = {
-      companyName,
-      description,
-      industry,
-      brandVoice,
-      brandColors,
-      logoFile,
-      brandKit,
-      ageGroups,
-      locations,
-      interests,
-      platforms,
-      contentTypes,
-      languages,
-      frequency,
-      postingTime,
-      goals,
-      captionStyle,
-      hashtagPref,
-      ctaStyle,
-      dos,
-      donts,
-      competitors,
-      inspirations,
-      additional,
-      campaignName,
-      campaignObjective,
-      campaignBudget,
-      campaignDuration,
-      expectedPosts,
-      campaignPlatforms,
-      priority,
-      marketingNotes,
-      requestMessage,
-      requestSubmitted,
-    }
-    localStorage.setItem(GUIDELINES_STORAGE_KEY, JSON.stringify(draft))
-  }, [additional, ageGroups, brandColors, brandKit, brandVoice, campaignBudget, campaignDuration, campaignName, campaignObjective, campaignPlatforms, captionStyle, companyName, competitors, contentTypes, ctaStyle, description, dos, donts, expectedPosts, frequency, goals, industry, inspirations, languages, logoFile, marketingNotes, platforms, postingTime, priority, requestMessage, requestSubmitted, locations, interests])
+    let active = true
+    fetchBrandGuidelines()
+      .then(data => { if (active && data?.details) applyDetails(data.details) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [applyDetails])
 
-  const handleSave = () => {
-    setSaved(true)
-    setRequestMessage('Brand guidelines saved locally and are ready to share with your marketing team.')
+  const handleSave = async () => {
     setRequestSubmitted(false)
+    try {
+      await saveBrandGuidelines(buildDetails())
+      setRequestMessage('Brand guidelines saved to the database and are ready to share with your marketing team.')
+    } catch (error) {
+      setRequestMessage(error.response?.data?.detail || 'Could not save brand guidelines.')
+    }
+    setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }
 
-  const handleSubmitRequest = () => {
-    if (typeof window === 'undefined') return
-    const requestedTeam = localStorage.getItem(MARKETING_TEAM_STORAGE_KEY) || 'Digital Spark Agency'
-    const normalizedName = (companyName || 'new-client').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') || `request-${Date.now()}`
-    const submission = {
-      id: normalizedName,
-      companyName: companyName || 'Untitled Company',
-      companyDescription: description,
-      industry,
-      companyWebsite: '',
-      brandVoice: brandVoice.join(', '),
-      brandPersonality: brandVoice.join(', '),
-      brandColors,
-      preferredFonts: 'Inter / Sans-serif',
-      ageGroup: ageGroups.join(', '),
-      location: locations.join(', '),
-      interests: interests.join(', '),
-      languages,
-      preferredPlatforms: platforms,
-      preferredContentTypes: contentTypes,
-      postingFrequency: frequency,
-      expectedPostsPerWeek: expectedPosts || 'Not specified',
-      expectedPostsPerMonth: '',
-      preferredPostingDays: '',
-      preferredPostingTime: postingTime,
-      contentGoals: Object.entries(goals).filter(([, checked]) => checked).map(([key]) => key),
-      captionStyle,
-      hashtagPreferences: hashtagPref,
-      ctaStyle,
-      referencePages: competitors,
-      competitorLinks: inspirations,
-      additionalInstructions: additional,
-      requiresCampaign: Boolean(campaignName || campaignObjective || campaignBudget || campaignDuration || expectedPosts || campaignPlatforms.length || marketingNotes),
-      campaignName,
-      campaignObjective,
-      campaignBudget,
-      preferredStartDate: '',
-      preferredEndDate: '',
-      expectedCampaignPosts: expectedPosts,
-      preferredCampaignPlatforms: campaignPlatforms,
-      campaignPriority: priority,
-      campaignNotes: marketingNotes,
-      approvalBeforePublishing: true,
-      allowDirectPublishing: false,
-      notifyBeforePublishing: true,
-      submissionDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      assignedMarketingTeam: requestedTeam,
-      status: 'pending',
-      reviewedAt: null,
-      rejectionReason: '',
-      submittedAt: new Date().toISOString(),
+  const handleSubmitRequest = async () => {
+    try {
+      await submitWorkRequest(buildDetails())
+      setRequestSubmitted(true)
+      setSaved(true)
+      setRequestMessage('Brand guidelines submitted to your assigned marketing team. They can review it from their Brand Guidelines workspace.')
+      setTimeout(() => setSaved(false), 3000)
+    } catch (error) {
+      setRequestSubmitted(false)
+      setRequestMessage(error.response?.data?.detail || 'Could not submit the brand guidelines. Assign a marketing team first.')
     }
-
-    const existing = JSON.parse(localStorage.getItem(REQUEST_STORAGE_KEY) ?? '[]')
-    const updated = existing.filter(item => item.companyName?.toLowerCase() !== submission.companyName.toLowerCase())
-    updated.push(submission)
-    localStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify(updated))
-
-    setRequestSubmitted(true)
-    setSaved(true)
-    setRequestMessage(`Campaign request submitted to ${requestedTeam}. The marketing team can review it from their Client Requests workspace.`)
-    setTimeout(() => setSaved(false), 3000)
   }
 
   const INDUSTRIES = ['Technology', 'E-Commerce', 'Retail', 'Healthcare', 'Finance', 'Media & Entertainment', 'Education', 'Food & Beverage', 'Fashion', 'Other']
-  const platformColorMap = Object.fromEntries(PLATFORMS.map(p => [p.id, p.color]))
 
   return (
     <div className="p-4 sm:p-6 max-w-[900px] mx-auto">

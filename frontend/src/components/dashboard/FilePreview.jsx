@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { FileText, Image, Video, Music, FileText as FileDoc } from 'lucide-react'
 import { getFileCategory } from '../../services/contentApi'
 

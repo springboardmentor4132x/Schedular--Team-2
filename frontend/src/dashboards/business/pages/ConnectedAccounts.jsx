@@ -1,15 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Link2, Plus, Trash2, RefreshCw, CheckCircle2,
+  Plus, Trash2, RefreshCw, CheckCircle2,
   AlertTriangle, Clock, Shield, Zap,
 } from 'lucide-react'
 import {
   FaInstagram, FaFacebook, FaLinkedin,
   FaXTwitter, FaYoutube, FaPinterest,
 } from 'react-icons/fa6'
-import { useAuth } from '../../../context/AuthContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
+import {
+  fetchSocialAccounts,
+  connectSocialAccount,
+  disconnectSocialAccount,
+  syncSocialAccount,
+} from '../../../services/socialAccountsService'
 
 /**
  * ConnectedAccounts — Business User Module 2
@@ -20,92 +26,56 @@ import PageHeader from '../../../components/dashboard/PageHeader'
  *   - Account authorization
  */
 
-const PLATFORMS = [
-  {
-    id: 'instagram',
+const PLATFORM_CONFIG = {
+  instagram: {
     label: 'Instagram',
     icon: FaInstagram,
     color: '#E1306C',
     bg: 'rgba(225,48,108,.10)',
     features: ['Post photos', 'Post reels', 'Stories', 'Carousels'],
-    connected: true,
-    username: '@orbitsocial',
-    syncStatus: 'synced',
-    lastSync: '2 min ago',
-    followers: '12.4K',
     permissions: ['Read profile', 'Publish posts', 'View insights'],
   },
-  {
-    id: 'facebook',
+  facebook: {
     label: 'Facebook',
     icon: FaFacebook,
     color: '#1877F2',
     bg: 'rgba(24,119,242,.10)',
     features: ['Post updates', 'Share links', 'Schedule posts'],
-    connected: true,
-    username: 'OrbitSocial Page',
-    syncStatus: 'synced',
-    lastSync: '5 min ago',
-    followers: '8.2K',
     permissions: ['Manage Page', 'Publish content', 'View analytics'],
   },
-  {
-    id: 'linkedin',
+  linkedin: {
     label: 'LinkedIn',
     icon: FaLinkedin,
     color: '#0A66C2',
     bg: 'rgba(10,102,194,.10)',
     features: ['Post articles', 'Company updates', 'Thought leadership'],
-    connected: true,
-    username: 'OrbitSocial Inc.',
-    syncStatus: 'warning',
-    lastSync: '3 hours ago',
-    followers: '4.1K',
     permissions: ['Share content', 'Manage company page'],
   },
-  {
-    id: 'x',
+  twitter: {
     label: 'X (Twitter)',
     icon: FaXTwitter,
     color: '#000000',
     bg: 'rgba(0,0,0,.07)',
     features: ['Post tweets', 'Thread posts', 'Schedule'],
-    connected: false,
-    username: null,
-    syncStatus: null,
-    lastSync: null,
-    followers: null,
     permissions: ['Read timeline', 'Post tweets', 'View analytics'],
   },
-  {
-    id: 'youtube',
+  youtube: {
     label: 'YouTube',
     icon: FaYoutube,
     color: '#FF0000',
     bg: 'rgba(255,0,0,.10)',
     features: ['Upload videos', 'Shorts', 'Community posts'],
-    connected: false,
-    username: null,
-    syncStatus: null,
-    lastSync: null,
-    followers: null,
     permissions: ['Upload videos', 'Manage channel', 'View analytics'],
   },
-  {
-    id: 'pinterest',
+  pinterest: {
     label: 'Pinterest',
     icon: FaPinterest,
     color: '#E60023',
     bg: 'rgba(230,0,35,.10)',
     features: ['Create pins', 'Board management', 'Rich pins'],
-    connected: false,
-    username: null,
-    syncStatus: null,
-    lastSync: null,
-    followers: null,
-    permissions: ['Create pins', 'Manage boards'],
+    permissions: ['Create pins', 'Manage boards', 'View insights'],
   },
-]
+}
 
 const SYNC_STATUS = {
   synced:  { icon: CheckCircle2,  color: '#22C55E', label: 'Synced'  },
@@ -114,51 +84,114 @@ const SYNC_STATUS = {
   syncing: { icon: RefreshCw,     color: '#1E3A8A', label: 'Syncing' },
 }
 
+function formatFollowers(n) {
+  if (n == null) return '—'
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1).replace(/\.0$/, '')}M`
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`
+  return String(n)
+}
+
+function formatLastSync(iso) {
+  if (!iso) return 'Never'
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return 'Never'
+  const now = new Date()
+  const diffMs = now - date
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins} min ago`
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+  return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+}
+
 export default function ConnectedAccounts() {
-  const { user } = useAuth()
-  const [platforms, setPlatforms] = useState(PLATFORMS)
-  const [syncing,   setSyncing]   = useState(null)
-  const [expanded,  setExpanded]  = useState(null)
+  const location = useLocation()
+  const [accounts, setAccounts] = useState([])
+  const [syncing, setSyncing] = useState(null)
+  const [expanded, setExpanded] = useState(null)
+  const [toast, setToast] = useState('')
 
-  const connected    = platforms.filter(p => p.connected)
-  const disconnected = platforms.filter(p => !p.connected)
+  useEffect(() => {
+    let active = true
+    const load = async () => {
+      try {
+        const data = await fetchSocialAccounts()
+        if (active) setAccounts(data || [])
+      } catch (error) {
+        console.error('Failed to fetch social accounts:', error)
+        if (active) setAccounts([])
+      }
+    }
+    load()
+    return () => { active = false }
+  }, [])
 
-  const handleConnect = id => {
-    setPlatforms(prev => prev.map(p =>
-      p.id === id ? {
-        ...p,
-        connected: true,
-        username: `@${id}_account`,
-        syncStatus: 'synced',
-        lastSync: 'Just now',
-        followers: '0',
-      } : p
-    ))
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(''), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [toast])
+
+  useEffect(() => {
+    const result = location.state?.socialConnect
+    if (!result) return
+    const label = (result.platform && PLATFORM_CONFIG[result.platform]?.label) || 'Social account'
+    window.history.replaceState({}, document.title)
+    const timer = setTimeout(() =>
+      setToast(result.success ? `${label} connected successfully` : 'Failed to connect account'), 0)
+    return () => clearTimeout(timer)
+  }, [location.state])
+
+  const refreshAccounts = async () => {
+    try {
+      const data = await fetchSocialAccounts()
+      setAccounts(data || [])
+    } catch (error) {
+      console.error('Failed to fetch social accounts:', error)
+      setAccounts([])
+    }
   }
 
-  const handleDisconnect = id => {
-    setPlatforms(prev => prev.map(p =>
-      p.id === id ? {
-        ...p,
-        connected: false,
-        username: null,
-        syncStatus: null,
-        lastSync: null,
-        followers: null,
-      } : p
-    ))
-    if (expanded === id) setExpanded(null)
+  const showToast = (message) => setToast(message)
+
+  const getPlatformData = (platformId) => PLATFORM_CONFIG[platformId] || {}
+
+  const handleConnect = (platformId) => {
+    connectSocialAccount(platformId)
   }
 
-  const handleSync = id => {
-    setSyncing(id)
-    setTimeout(() => {
-      setPlatforms(prev => prev.map(p =>
-        p.id === id ? { ...p, syncStatus: 'synced', lastSync: 'Just now' } : p
-      ))
+  const handleDisconnect = async (accountId) => {
+    if (syncing) return
+    try {
+      await disconnectSocialAccount(accountId)
+      showToast('Account disconnected successfully')
+      refreshAccounts()
+    } catch (err) {
+      showToast(err?.response?.data?.detail || 'Failed to disconnect account')
+    }
+  }
+
+  const handleSync = async (account) => {
+    if (syncing) return
+    setSyncing(account.id)
+    try {
+      await syncSocialAccount(account.id)
+      showToast(`${getPlatformData(account.platform).label} synced successfully`)
+      refreshAccounts()
+    } catch {
+      showToast('Failed to sync account')
+    } finally {
       setSyncing(null)
-    }, 1800)
+    }
   }
+
+  const connectedPlatforms = accounts.map(a => a.platform?.toLowerCase())
+  const allPlatformIds = Object.keys(PLATFORM_CONFIG)
+  const availablePlatforms = allPlatformIds.filter(id => !connectedPlatforms.includes(id))
 
   return (
     <div className="p-4 sm:p-6 max-w-[1000px] mx-auto">
@@ -167,12 +200,18 @@ export default function ConnectedAccounts() {
         subtitle="Manage your social media accounts and platform permissions."
       />
 
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 text-sm font-bold animate-slide-up mb-6">
+          <span>{toast}</span>
+        </div>
+      )}
+
       {/* ── Summary row ── */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: 'Connected',    value: connected.length,    color: '#22C55E' },
-          { label: 'Disconnected', value: disconnected.length, color: 'var(--text-muted)' },
-          { label: 'Needs Attention', value: platforms.filter(p => p.syncStatus === 'warning' || p.syncStatus === 'error').length, color: '#F59E0B' },
+          { label: 'Connected', value: accounts.length, color: '#22C55E' },
+          { label: 'Available', value: availablePlatforms.length, color: 'var(--text-muted)' },
+          { label: 'Needs Attention', value: accounts.filter(a => a.health === 'Error' || a.health === 'Warning').length, color: '#F59E0B' },
         ].map(s => (
           <div key={s.label} className="card p-4 text-center">
             <p className="text-2xl font-extrabold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: s.color }}>
@@ -184,40 +223,41 @@ export default function ConnectedAccounts() {
       </div>
 
       {/* ── Connected platforms ── */}
-      {connected.length > 0 && (
+      {accounts.length > 0 && (
         <div className="mb-6">
           <h2 className="text-sm font-bold mb-3" style={{ color: 'var(--text)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Connected Platforms
           </h2>
           <div className="flex flex-col gap-3">
-            {connected.map(p => {
-              const Icon = p.icon
-              const sync = SYNC_STATUS[p.syncStatus]
+            {accounts.map((account) => {
+              const config = getPlatformData(account.platform)
+              const Icon = config.icon || FaInstagram
+              const sync = SYNC_STATUS[account.health === 'Healthy' ? 'synced' : account.health] || SYNC_STATUS.synced
               const SyncIcon = sync?.icon
-              const isExpanded = expanded === p.id
-              const isSyncing  = syncing === p.id
+              const isExpanded = expanded === account.id
+              const isSyncing = syncing === account.id
 
               return (
                 <motion.div
-                  key={p.id}
+                  key={account.id}
                   layout
                   className="card overflow-hidden"
-                  style={{ borderLeft: `3px solid ${p.color}` }}
+                  style={{ borderLeft: `3px solid ${config.color}` }}
                 >
                   {/* Main row */}
                   <div className="flex items-center gap-4 p-4">
                     {/* Platform icon */}
                     <div
                       className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: p.bg }}
+                      style={{ background: config.bg }}
                     >
-                      <Icon size={22} style={{ color: p.color }} />
+                      <Icon size={22} style={{ color: config.color }} />
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <p className="text-sm font-bold" style={{ color: 'var(--text)' }}>{p.label}</p>
+                        <p className="text-sm font-bold" style={{ color: 'var(--text)' }}>{config.label}</p>
                         {sync && (
                           <span
                             className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
@@ -232,16 +272,16 @@ export default function ConnectedAccounts() {
                       </div>
                       <div className="flex items-center gap-3 flex-wrap">
                         <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-                          {p.username}
+                          {account.username ? `@${account.username.replace(/^@/, '')}` : '—'}
                         </span>
-                        {p.followers && (
+                        {account.followers_count != null && (
                           <span className="text-xs" style={{ color: 'var(--text-subtle)' }}>
-                            {p.followers} followers
+                            {formatFollowers(account.followers_count)} followers
                           </span>
                         )}
-                        {p.lastSync && (
+                        {account.last_sync && (
                           <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-subtle)' }}>
-                            <Clock size={10} /> Synced {p.lastSync}
+                            <Clock size={10} /> Synced {formatLastSync(account.last_sync)}
                           </span>
                         )}
                       </div>
@@ -250,7 +290,7 @@ export default function ConnectedAccounts() {
                     {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
-                        onClick={() => handleSync(p.id)}
+                        onClick={() => handleSync(account)}
                         disabled={isSyncing}
                         className="p-1.5 rounded-lg hover:bg-[var(--bg-alt)] transition-colors"
                         title="Sync now"
@@ -259,14 +299,14 @@ export default function ConnectedAccounts() {
                         <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
                       </button>
                       <button
-                        onClick={() => setExpanded(isExpanded ? null : p.id)}
+                        onClick={() => setExpanded(isExpanded ? null : account.id)}
                         className="px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all"
                         style={{ background: 'var(--bg-alt)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
                       >
                         {isExpanded ? 'Hide' : 'Details'}
                       </button>
                       <button
-                        onClick={() => handleDisconnect(p.id)}
+                        onClick={() => handleDisconnect(account.id)}
                         className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all"
                         style={{ background: 'rgba(239,68,68,.06)', borderColor: 'rgba(239,68,68,.20)', color: '#EF4444' }}
                       >
@@ -291,7 +331,7 @@ export default function ConnectedAccounts() {
                               <Shield size={12} /> Permissions
                             </p>
                             <ul className="flex flex-col gap-1.5">
-                              {p.permissions.map(perm => (
+                              {config.permissions.map(perm => (
                                 <li key={perm} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
                                   <CheckCircle2 size={11} style={{ color: '#22C55E', flexShrink: 0 }} />
                                   {perm}
@@ -304,9 +344,9 @@ export default function ConnectedAccounts() {
                               <Zap size={12} /> Features Available
                             </p>
                             <ul className="flex flex-col gap-1.5">
-                              {p.features.map(feat => (
+                              {config.features.map(feat => (
                                 <li key={feat} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-                                  <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: p.color }} />
+                                  <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: config.color }} />
                                   {feat}
                                 </li>
                               ))}
@@ -324,17 +364,18 @@ export default function ConnectedAccounts() {
       )}
 
       {/* ── Available to connect ── */}
-      {disconnected.length > 0 && (
+      {availablePlatforms.length > 0 && (
         <div>
           <h2 className="text-sm font-bold mb-3" style={{ color: 'var(--text)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Available Platforms
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {disconnected.map(p => {
-              const Icon = p.icon
+            {availablePlatforms.map((platformId) => {
+              const config = getPlatformData(platformId)
+              const Icon = config.icon
               return (
                 <motion.div
-                  key={p.id}
+                  key={platformId}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="card p-4 flex items-center gap-4"
@@ -342,16 +383,16 @@ export default function ConnectedAccounts() {
                 >
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: p.bg }}
+                    style={{ background: config.bg }}
                   >
-                    <Icon size={22} style={{ color: p.color }} />
+                    <Icon size={22} style={{ color: config.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold" style={{ color: 'var(--text)' }}>{p.label}</p>
+                    <p className="text-sm font-bold" style={{ color: 'var(--text)' }}>{config.label}</p>
                     <p className="text-xs" style={{ color: 'var(--text-subtle)' }}>Not connected</p>
                   </div>
                   <button
-                    onClick={() => handleConnect(p.id)}
+                    onClick={() => handleConnect(platformId)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:brightness-105 text-white flex-shrink-0"
                     style={{ background: 'linear-gradient(135deg, var(--primary), var(--secondary))' }}
                   >

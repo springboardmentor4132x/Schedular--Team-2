@@ -1,1 +1,1 @@
-export default {}
+export { timeAgo } from './format'

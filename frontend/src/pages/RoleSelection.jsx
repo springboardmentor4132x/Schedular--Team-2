@@ -1,21 +1,26 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { HiUser, HiBuildingOffice2, HiShieldCheck, HiMegaphone, HiArrowRight } from 'react-icons/hi2'
 import Logo from '../components/Logo'
 import ThemeToggle from '../components/ThemeToggle'
 import Button from '../components/Button'
+import { adminExists } from '../services/registerService'
 
 /**
  * RoleSelection Page
  * 4 role cards — user picks one, continues to Register
  * Roles: business | marketing | creator | administrator
+ * The Administrator card is hidden once an admin already exists in the
+ * database, so only three role options remain (business/marketing/creator).
  * Props: isDark, onToggleTheme
  */
 export default function RoleSelection({ isDark, onToggleTheme }) {
   const [selected, setSelected] = useState(null)
+  const [adminExistsFlag, setAdminExistsFlag] = useState(false)
+  const [checking, setChecking] = useState(true)
   const navigate = useNavigate()
 
-  const roles = [
+  const allRoles = [
     {
       id: 'creator',
       icon: HiUser,
@@ -46,6 +51,33 @@ export default function RoleSelection({ isDark, onToggleTheme }) {
     },
   ]
 
+  useEffect(() => {
+    let mounted = true
+    const check = async () => {
+      try {
+        const exists = await adminExists()
+        if (mounted) {
+          setAdminExistsFlag(Boolean(exists))
+          if (exists) setSelected((prev) => (prev === 'administrator' ? null : prev))
+        }
+      } catch {
+        /* If the check fails, fall back to showing all roles */
+      } finally {
+        if (mounted) setChecking(false)
+      }
+    }
+    check()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const roles = adminExistsFlag
+    ? allRoles.filter((r) => r.id !== 'administrator')
+    : allRoles
+
+  const gridCols = roles.length === 3 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2'
+
   const handleContinue = () => {
     if (selected) navigate(`/register?role=${selected}`)
   }
@@ -74,10 +106,19 @@ export default function RoleSelection({ isDark, onToggleTheme }) {
             <p className="text-base" style={{ color: 'var(--text-muted)' }}>
               Choose your role to personalize your experience.
             </p>
+            {adminExistsFlag && !checking && (
+              <p
+                className="inline-flex items-center gap-2 text-xs font-semibold mt-4 px-4 py-2 rounded-full"
+                style={{ background: 'var(--accent-light)', color: 'var(--secondary)', border: '1px solid rgba(79,70,229,.25)' }}
+              >
+                <HiShieldCheck size={14} aria-hidden="true" />
+                Administrator accounts are no longer available.
+              </p>
+            )}
           </div>
 
           {/* Role cards grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <div className={`grid grid-cols-1 ${gridCols} gap-4 mb-8`}>
             {roles.map((role, i) => {
               const Icon = role.icon
               const isSelected = selected === role.id

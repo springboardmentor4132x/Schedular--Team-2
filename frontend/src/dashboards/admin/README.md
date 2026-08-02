@@ -6,7 +6,7 @@ This module encapsulates all code related to the Admin Dashboard domain.
 
 - `components/` — Domain-specific UI components for the Admin Dashboard.
 - `layouts/` — Layout shells (`DashboardLayout`, `Sidebar`).
-- `pages/` — Admin page components (`Dashboard`, `Calendar`, `Analytics`, `Team`, `SocialAccounts`, `AdminPlaceholder`).
+- `pages/` — Admin page components (`Dashboard`, `Calendar`, `Analytics`, `Team`, `AdminPlaceholder`).
 - `hooks/` — Custom React hooks for admin features.
 - `context/` — Context providers specific to the admin module.
 - `services/` — API service functions for admin endpoints.

@@ -5,6 +5,7 @@ from app.core.config import settings
 
 AUTH_URL = "https://twitter.com/i/oauth2/authorize"
 TOKEN_URL = "https://api.x.com/2/oauth2/token"
+API_URL = "https://api.x.com/2"
 
 SCOPES = [
     "tweet.read",
@@ -46,6 +47,30 @@ def exchange_code_for_access_token(code: str):
 
     response.raise_for_status()
     return response.json()
+
+
+def get_twitter_user_info(access_token: str):
+    """Get user's Twitter/X profile info"""
+    url = f"{API_URL}/users/me"
+    params = {
+        "user.fields": "username,name,public_metrics,profile_image_url",
+    }
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+    response = requests.get(url, params=params, headers=headers, timeout=30)
+    if response.status_code != 200:
+        raise Exception(response.json())
+    
+    data = response.json().get("data", {})
+    metrics = data.get("public_metrics", {})
+    
+    return {
+        "platform_user_id": data.get("id"),
+        "username": data.get("username", ""),
+        "followers_count": metrics.get("followers_count", 0),
+        "profile_image": data.get("profile_image_url"),
+    }
 
 
 

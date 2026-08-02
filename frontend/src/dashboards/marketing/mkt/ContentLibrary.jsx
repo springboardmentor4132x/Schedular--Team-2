@@ -28,12 +28,11 @@ export function LibraryPanel() {
   const [typeFilter, setTypeFilter] = useState('All Content')
   const [libraryItems, setLibraryItems] = useState([])
   const [selected, setSelected] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!activeClient) return
     let mounted = true
-    setLoading(true)
     contentApi.getLibraryByClient(activeClient.id)
       .then(items => { if (mounted) setLibraryItems(items) })
       .finally(() => { if (mounted) setLoading(false) })

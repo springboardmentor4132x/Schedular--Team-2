@@ -7,7 +7,8 @@ import ThemeToggle from '../components/ThemeToggle'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import Toast from '../components/Toast'
-import { useAuth, ROLE_ROUTES } from '../context/AuthContext'
+import { useAuth } from '../context/AuthContext'
+import { ROLE_ROUTES } from '../context/authRoles'
 import { loginUser, getCurrentUser } from "../services/authService";
 
 /* ── Validation ─────────────────────────────────────────────────── */
@@ -22,19 +23,6 @@ function validate(email, password) {
   else if (password.length < 8)
     errors.password = 'Password must be at least 8 characters.'
   return errors
-}
-
-/* ── Demo accounts (silent — no UI hint shown) ──────────────────── */
-const DEMO_USERS = {
-  'business@demo.com':  { role: 'business',  name: 'Alex Johnson' },
-  'marketing@demo.com': { role: 'marketing', name: 'Sam Rivera'   },
-}
-
-function loadRegisteredUsers() {
-  try {
-    const raw = localStorage.getItem('orbit-registered-users')
-    return raw ? JSON.parse(raw) : {}
-  } catch { return {} }
 }
 
 /* ── Component ──────────────────────────────────────────────────── */
@@ -58,8 +46,9 @@ export default function Login({ isDark, onToggleTheme }) {
     setTouched(prev => ({ ...prev, [field]: true }))
 
   const handleGoogleLogin = () => {
+    const redirectUri = encodeURIComponent(`${window.location.origin}/oauth/callback`);
     window.location.href =
-      "http://127.0.0.1:8000/api/v1/auth/google/login";
+      `${import.meta.env.VITE_API_BASE_URL}/auth/google/login?redirect_uri=${redirectUri}`;
   };
   const handleSubmit = async e => {
     e.preventDefault()
@@ -107,36 +96,6 @@ export default function Login({ isDark, onToggleTheme }) {
     } finally {
         setLoading(false);
     }
-
-    // Check registered users
-    if (!userInfo) {
-      const registered = loadRegisteredUsers()
-      const regUser = registered[emailKey]
-      if (regUser) {
-        if (password !== regUser.password) {
-          setLoading(false)
-          setErrors({ password: 'The password you entered is incorrect.' })
-          setToast({ type: 'error', message: 'Incorrect password.' })
-          return
-        }
-        userInfo = { role: regUser.role, name: regUser.name }
-      }
-    }
-
-    // Fallback — default to business role
-    if (!userInfo) {
-      const name = emailKey.split('@')[0]
-        .replace(/[._-]/g, ' ')
-        .replace(/\b\w/g, c => c.toUpperCase())
-      // If email contains "market" treat as marketing, else business
-      const role = emailKey.includes('market') ? 'marketing' : 'business'
-      userInfo = { role, name }
-    }
-
-    login({ email: emailKey, name: userInfo.name, role: userInfo.role })
-    setLoading(false)
-    setToast({ type: 'success', message: `Welcome back, ${userInfo.name}!` })
-    setTimeout(() => navigate(ROLE_ROUTES[userInfo.role] ?? '/dashboard'), 700)
   }
 
   return (
@@ -240,7 +199,6 @@ export default function Login({ isDark, onToggleTheme }) {
                       Password{' '}
                       <span style={{ color: '#EF4444' }} aria-hidden="true">*</span>
                     </label>
-                    import { Link } from "react-router-dom";
                     <Link
                     to="/forgot-password"
                     className="text-xs font-semibold transition-colors hover:underline"

@@ -1,6 +1,6 @@
-import { api } from './mockData'
+import { marketingService } from './marketingService'
+import { uploadMedia } from './postService'
 
-const STORAGE_KEY = 'orbit-content-library'
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024
 
 const SUPPORTED_MIME_TYPES = {
@@ -37,41 +37,10 @@ const FILE_TYPE_MAP = Object.entries(SUPPORTED_MIME_TYPES).reduce((acc, [key, li
   return acc
 }, {})
 
-const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms))
-
-function getLibraryStore() {
-  if (typeof window === 'undefined') return {}
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
-  } catch (error) {
-    return {}
-  }
-}
-
-function saveLibraryStore(store) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store))
-}
-
 function getFileCategory(file) {
   if (!file) return 'document'
   const type = file.type.toLowerCase()
   return FILE_TYPE_MAP[type] || (type.startsWith('image/') ? 'image' : type.startsWith('video/') ? 'video' : type.startsWith('audio/') ? 'audio' : 'document')
-}
-
-function buildFileMetadata(file, uploadedBy = 'Current user') {
-  const category = getFileCategory(file)
-  const fileUrl = URL.createObjectURL(file)
-
-  return {
-    fileName: file.name,
-    fileType: category,
-    mimeType: file.type,
-    fileSize: file.size,
-    uploadDate: new Date().toISOString(),
-    uploadedBy,
-    fileUrl,
-  }
 }
 
 function isSupportedFile(file) {
@@ -93,99 +62,55 @@ function formatBytes(bytes) {
   return `${value.toFixed(1)} ${units[index]}`
 }
 
-async function simulateUploadProgress(onUploadProgress) {
-  if (!onUploadProgress) return
-  let progress = 0
-  while (progress < 100) {
-    await delay(120)
-    progress = Math.min(100, progress + Math.floor(Math.random() * 18) + 8)
-    onUploadProgress(progress)
-  }
+export const normalizeContentStatus = (status) => {
+  const s = String(status ?? '').toLowerCase().replace(/\s+/g, '_')
+  if (s === 'pending_review' || s === 'in_review') return 'review'
+  if (s === 'queued') return 'scheduled'
+  return s
 }
 
 export const contentApi = {
   getLibraryByClient: async (clientId) => {
-    await delay(250)
-    const store = getLibraryStore()
-    const items = store[clientId] ?? []
-    return [...items].sort((a, b) => new Date(b.uploadedAt || b.file.uploadDate) - new Date(a.uploadedAt || a.file.uploadDate))
+    const data = await marketingService.workspace(clientId)
+    return data.posts.map(post => ({
+      ...post,
+      status: normalizeContentStatus(post.status),
+      file: { fileName: post.title, fileType: post.contentType, fileUrl: post.mediaUrl, uploadDate: post.createdAt },
+      uploadedAt: post.createdAt,
+    }))
   },
 
   uploadContent: async (clientId, payload, file, onUploadProgress) => {
-    await delay(150)
     if (!file) throw new Error('Please choose a supported file to upload.')
     if (!isSupportedFile(file)) throw new Error('This file type is not supported.')
     if (file.size > MAX_FILE_SIZE_BYTES) throw new Error('The file size exceeds 100 MB.')
 
-    const fileMetadata = buildFileMetadata(file, payload.uploadedBy)
-    const item = {
-      id: `content-${Date.now()}`,
-      title: payload.title || file.name,
-      caption: payload.caption || '',
-      platform: payload.platform || 'instagram',
-      campaign: payload.campaign || null,
-      status: payload.status || 'draft',
-      tags: payload.tags || [],
-      scheduledAt: payload.scheduledAt || null,
-      file: fileMetadata,
-      uploadedAt: new Date().toISOString(),
-      uploadedBy: payload.uploadedBy || 'Current user',
-    }
-
-    if (onUploadProgress) {
-      await simulateUploadProgress(onUploadProgress)
-    }
-
-    const store = getLibraryStore()
-    store[clientId] = [item, ...(store[clientId] || [])]
-    saveLibraryStore(store)
-    return item
+    const upload = await uploadMedia(file, onUploadProgress)
+    const post = await marketingService.createPost(clientId, {
+      title: payload.title || file.name, caption: payload.caption || '', content_type: getFileCategory(file),
+      media_url: upload.media_url, status: ({ draft:'Draft', review:'Pending Review', scheduled:'Scheduled' })[payload.status] || 'Draft',
+      scheduled_for: payload.scheduledAt || null, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      platform: payload.platform,
+    })
+    return { id:post.id, title:post.title, caption:post.caption, platform:payload.platform || 'instagram', status:normalizeContentStatus(post.status), scheduledAt:post.scheduled_for, uploadedAt:post.created_at, file:{ fileName:file.name, fileType:getFileCategory(file), fileUrl:post.media_file_path } }
   },
 
   updateContent: async (clientId, id, updates) => {
-    await delay(200)
-    const store = getLibraryStore()
-    const items = store[clientId] ?? []
-    store[clientId] = items.map(item => item.id === id ? { ...item, ...updates } : item)
-    saveLibraryStore(store)
-    return store[clientId].find(item => item.id === id)
+    const payload = { title:updates.title, caption:updates.caption, status:updates.status && ({ draft:'Draft', review:'Pending Review', scheduled:'Scheduled', published:'Published' })[updates.status], scheduled_for:updates.scheduledAt }
+    return marketingService.updatePost(clientId, id, payload)
   },
 
   replaceContentFile: async (clientId, id, file, onUploadProgress) => {
-    await delay(150)
     if (!file) throw new Error('Please choose a supported replacement file.')
     if (!isSupportedFile(file)) throw new Error('This file type is not supported.')
     if (file.size > MAX_FILE_SIZE_BYTES) throw new Error('The file size exceeds 100 MB.')
 
-    if (onUploadProgress) {
-      await simulateUploadProgress(onUploadProgress)
-    }
-
-    const store = getLibraryStore()
-    const items = store[clientId] ?? []
-    let updated = null
-    store[clientId] = items.map(item => {
-      if (item.id === id) {
-        updated = {
-          ...item,
-          file: buildFileMetadata(file, item.uploadedBy),
-          title: item.title || file.name,
-          uploadedAt: new Date().toISOString(),
-        }
-        return updated
-      }
-      return item
-    })
-    saveLibraryStore(store)
-    return updated
+    const upload = await uploadMedia(file, onUploadProgress)
+    return marketingService.updatePost(clientId, id, { media_url: upload.media_url, content_type:getFileCategory(file) })
   },
 
   deleteContent: async (clientId, id) => {
-    await delay(150)
-    const store = getLibraryStore()
-    store[clientId] = (store[clientId] || []).filter(item => item.id !== id)
-    saveLibraryStore(store)
-    return { id }
+    return marketingService.updatePost(clientId, id, { status:'Cancelled' })
   },
 
   downloadContent: async (item) => {

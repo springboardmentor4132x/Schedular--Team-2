@@ -4,9 +4,10 @@ import Dashboard from '../pages/Dashboard'
 import Calendar from '../pages/Calendar'
 import Analytics from '../pages/Analytics'
 import Team from '../pages/Team'
-import SocialAccounts from '../pages/SocialAccounts'
+import UserTablePage from '../pages/UserTablePage'
 import AdminPlaceholder from '../pages/AdminPlaceholder'
-import { Inbox, Profile, Settings } from '../../shared'
+import { Inbox, Settings } from '../../shared'
+import Profile from '../../shared/pages/Profile'
 
 export const adminRoutes = (
   <Route element={<DashboardLayout />}>
@@ -18,11 +19,10 @@ export const adminRoutes = (
     <Route path="/inbox"              element={<Inbox />} />
     <Route path="/profile"            element={<Profile />} />
     <Route path="/settings"           element={<Settings />} />
-    <Route path="/social-accounts"    element={<SocialAccounts />} />
-    <Route path="/users"              element={<AdminPlaceholder title="Users"            description="Manage platform users here." />} />
-    <Route path="/business-accounts"  element={<AdminPlaceholder title="Business Accounts" description="Manage business accounts here." />} />
-    <Route path="/marketing-teams"    element={<AdminPlaceholder title="Marketing Teams"  description="Manage marketing teams here." />} />
-    <Route path="/content-creators"   element={<AdminPlaceholder title="Content Creators" description="Manage content creators here." />} />
+    <Route path="/users"              element={<UserTablePage title="Users" description="Manage all platform users, roles and access." showAddUser />} />
+    <Route path="/business-accounts"  element={<UserTablePage title="Business Accounts" description="Manage registered business accounts." roleFilter="business" />} />
+    <Route path="/marketing-teams"    element={<UserTablePage title="Marketing Teams" description="Manage marketing teams and their members." roleFilter="marketing" />} />
+    <Route path="/content-creators"   element={<UserTablePage title="Content Creators" description="Manage content creators on the platform." roleFilter="creator" />} />
     <Route path="/reports"            element={<AdminPlaceholder title="Reports"          description="View reports here." />} />
   </Route>
 )

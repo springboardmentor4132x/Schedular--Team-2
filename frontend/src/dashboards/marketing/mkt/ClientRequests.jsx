@@ -1,15 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
 import {
-  Building2, CalendarRange, CheckCircle2, Clock3, Eye, FileText, Megaphone,
-  X, Users, Sparkles, RefreshCw, AlertCircle,
+  CheckCircle2, Clock3, Eye, X, Users, RefreshCw, AlertCircle,
 } from 'lucide-react'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
+import { marketingService } from '../../../services/marketingService'
 
-const REQUEST_STORAGE_KEY = 'orbit-client-requests'
-const APPROVED_CLIENTS_STORAGE_KEY = 'orbit-approved-clients'
 const REJECTION_REASONS = [
   'Incomplete requirements',
   'Budget not sufficient',
@@ -17,57 +14,6 @@ const REJECTION_REASONS = [
   'Platforms not supported',
   'Other',
 ]
-
-function readRequests() {
-  if (typeof window === 'undefined') return []
-  try {
-    return JSON.parse(localStorage.getItem(REQUEST_STORAGE_KEY) ?? '[]')
-  } catch {
-    return []
-  }
-}
-
-function saveRequests(requests) {
-  localStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify(requests))
-}
-
-function readApprovedClients() {
-  if (typeof window === 'undefined') return []
-  try {
-    return JSON.parse(localStorage.getItem(APPROVED_CLIENTS_STORAGE_KEY) ?? '[]')
-  } catch {
-    return []
-  }
-}
-
-function saveApprovedClients(clients) {
-  localStorage.setItem(APPROVED_CLIENTS_STORAGE_KEY, JSON.stringify(clients))
-}
-
-function buildApprovedClient(request) {
-  const name = request.companyName || 'New Client'
-  const initials = name.split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase() || 'CL'
-  const palette = ['#1E3A8A', '#4F46E5', '#E1306C', '#0A66C2', '#7C3AED']
-  const color = palette[(name.length + (request.industry?.length ?? 0)) % palette.length]
-
-  return {
-    id: `approved-${request.id}`,
-    name,
-    industry: request.industry || 'Unspecified',
-    location: request.location || 'Remote',
-    website: request.companyWebsite || 'pending',
-    email: 'contact@pending.com',
-    connectedPlatforms: request.preferredPlatforms || [],
-    status: 'active',
-    logo: initials,
-    logoColor: color,
-    activeCampaigns: request.requiresCampaign ? 1 : 0,
-    scheduledPosts: Number(request.expectedPostsPerWeek || 0),
-    draftPosts: 0,
-    publishedPosts: 0,
-    lastActivity: 'Approved recently',
-  }
-}
 
 function StatusBadge({ status }) {
   const styles = {
@@ -99,12 +45,14 @@ function DetailRow({ label, value }) {
 }
 
 export default function ClientRequests() {
-  const navigate = useNavigate()
-  const [requests, setRequests] = useState(readRequests)
+  const [requests, setRequests] = useState([])
   const [selectedRequest, setSelectedRequest] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
   const [rejectPreset, setRejectPreset] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+
+  const loadRequests = () => marketingService.workRequests().then(items => setRequests(items.map(item => ({ ...item.details, id:item.id, clientId:item.clientId, status:item.status, rejectionReason:item.decisionNote, reviewedAt:item.updatedAt, submissionDate:item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recently submitted' })))).catch(() => setRequests([]))
+  useEffect(() => { loadRequests() }, [])
 
   const pendingRequests = useMemo(() => requests.filter(item => item.status === 'pending'), [requests])
 
@@ -115,31 +63,24 @@ export default function ClientRequests() {
     setSuccessMessage('')
   }
 
-  const handleAccept = request => {
-    const updated = requests.map(item => item.id === request.id ? { ...item, status: 'approved', reviewedAt: new Date().toISOString() } : item)
-    setRequests(updated)
-    saveRequests(updated)
-    const approvedClients = readApprovedClients()
-    const exists = approvedClients.some(client => client.name.toLowerCase() === (request.companyName || 'new client').toLowerCase())
-    if (!exists) {
-      saveApprovedClients([...approvedClients, buildApprovedClient(request)])
-    }
-    setSelectedRequest({ ...request, status: 'approved', reviewedAt: new Date().toISOString() })
-    setSuccessMessage('Client request accepted successfully.')
+  const handleAccept = async request => {
+    try {
+      await marketingService.decideWorkRequest(request.id, 'approved')
+      setSelectedRequest({ ...request, status: 'approved' }); setSuccessMessage('Work request approved and the business user has been notified.'); loadRequests()
+    } catch (error) { setSuccessMessage(error.response?.data?.detail || 'Could not approve the request.') }
   }
 
-  const handleReject = request => {
+  const handleReject = async request => {
     const finalReason = rejectPreset || rejectReason || 'Other'
     if (!finalReason.trim()) {
       setSuccessMessage('Please provide a rejection reason before continuing.')
       return
     }
 
-    const updated = requests.map(item => item.id === request.id ? { ...item, status: 'rejected', rejectionReason: finalReason, reviewedAt: new Date().toISOString() } : item)
-    setRequests(updated)
-    saveRequests(updated)
-    setSelectedRequest({ ...request, status: 'rejected', rejectionReason: finalReason, reviewedAt: new Date().toISOString() })
-    setSuccessMessage('Client request rejected successfully.')
+    try {
+      await marketingService.decideWorkRequest(request.id, 'rejected', finalReason)
+      setSelectedRequest({ ...request, status: 'rejected', rejectionReason: finalReason }); setSuccessMessage('Work request rejected and the business user has been notified.'); loadRequests()
+    } catch (error) { setSuccessMessage(error.response?.data?.detail || 'Could not reject the request.') }
   }
 
   return (
@@ -156,7 +97,7 @@ export default function ClientRequests() {
         </div>
         <div className="card p-4">
           <p className="text-[10px] uppercase font-semibold" style={{ color: 'var(--text-muted)' }}>Approved Clients</p>
-          <p className="text-2xl font-bold mt-1" style={{ color: 'var(--text)' }}>{readApprovedClients().length}</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: 'var(--text)' }}>{requests.filter(item => item.status === 'approved').length}</p>
         </div>
         <div className="card p-4">
           <p className="text-[10px] uppercase font-semibold" style={{ color: 'var(--text-muted)' }}>Rejected Requests</p>

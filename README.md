@@ -117,6 +117,10 @@ SocialPilot/
 
 #Installation
 
+> **Tip:** For a complete, step-by-step "how to run" guide (PostgreSQL setup,
+> `.env` files, demo accounts, ports and troubleshooting), see
+> **[HOW_TO_RUN.md](./HOW_TO_RUN.md)**.
+
 ##Clone Repository
 
 git clone https://github.com/<your-username>/Schedular--Team-2.git
@@ -165,7 +169,7 @@ alembic upgrade head
 Create a new migration after model changes.
 alembic revision --autogenerate -m "Migration Name"
 #Running the Backend
-uvicorn app.main:app --reload
+uvicorn main:app --reload
 
 Backend URL
 
@@ -175,6 +179,36 @@ Swagger UI
 #http://127.0.0.1:8000/docs
 ReDoc
 http://127.0.0.1:8000/redoc
+
+#Demo / Seed Data
+
+Mock/demo data is **not** inserted automatically. To load demo users and content,
+run the seed script once from inside `backend/` (with the virtual environment
+active):
+
+```bash
+python seed_mock_data.py
+```
+
+It is safe to run repeatedly — seeding only happens when the `users` table is
+empty.
+
+Demo accounts (password for all: `password123`):
+
+| Email | Username | Role |
+|---|---|---|
+| `biz1@test.com` | biz1 | Business User |
+| `mkt1@test.com` | mkt1 | Marketing Team |
+| `cre1@test.com` | cre1 | Content Creator |
+
+The seed data includes workspaces, test campaigns and a few posts per campaign.
+No social media accounts are connected initially (the "Connected Accounts" page
+starts empty until you connect them).
+
+> **Important:** No Administrator is seeded. Only **one** admin can ever exist on the
+> platform — the first user to register with the **Administrator** role becomes it.
+> Once an admin exists, the Administrator option is hidden from the role-selection
+> page and the backend rejects further admin registrations.
 
 
 #Frontend Setup

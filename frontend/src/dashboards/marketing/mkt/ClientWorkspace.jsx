@@ -1,8 +1,9 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Megaphone, CalendarCheck, Send, FileText,
-  BarChart2, PenSquare, Link2, ScrollText, ArrowLeft,
+  BarChart2, PenSquare, ArrowLeft,
   MapPin, Globe, TrendingUp, Eye, Heart,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
@@ -10,11 +11,7 @@ import { useClient } from '../../../context/ClientContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import StatCard from '../../../components/dashboard/StatCard'
 import EmptyState from '../../../components/dashboard/EmptyState'
-import {
-  MOCK_CLIENT_CAMPAIGNS,
-  MOCK_CLIENT_POSTS,
-  MOCK_CLIENT_ANALYTICS,
-} from '../../../services/mockData'
+import { marketingService } from '../../../services/marketingService'
 
 const PLATFORM_META = {
   instagram: { icon: FaInstagram, color: '#E1306C', label: 'Instagram' },
@@ -43,6 +40,8 @@ const QUICK_NAV = [
 export default function ClientWorkspace() {
   const navigate = useNavigate()
   const { activeClient } = useClient()
+  const [workspaceData, setWorkspaceData] = useState({ campaigns: [], posts: [] })
+  useEffect(() => { if (activeClient) marketingService.workspace(activeClient.id).then(setWorkspaceData).catch(() => setWorkspaceData({ campaigns: [], posts: [] })) }, [activeClient])
 
   if (!activeClient) {
     return (
@@ -60,13 +59,13 @@ export default function ClientWorkspace() {
   }
 
   const c        = activeClient
-  const campaigns = MOCK_CLIENT_CAMPAIGNS[c.id] ?? []
-  const posts     = MOCK_CLIENT_POSTS[c.id]     ?? { drafts:[], scheduled:[], published:[] }
-  const analytics = MOCK_CLIENT_ANALYTICS[c.id] ?? {}
+  const campaigns = workspaceData.campaigns ?? []
+  const allPosts = workspaceData.posts ?? []
+  const posts = { drafts: allPosts.filter(p => p.status === 'draft'), scheduled: allPosts.filter(p => p.status === 'scheduled'), published: allPosts.filter(p => p.status === 'published') }
+  const analytics = {}
 
-  const activeCampaigns = campaigns.filter(x => x.status === 'active')
+  const activeCampaigns = campaigns.filter(x => x.status?.toLowerCase() === 'active')
   const recentScheduled = posts.scheduled.slice(0, 3)
-  const recentPublished = posts.published.slice(0, 3)
 
   return (
     <div className="p-4 sm:p-6 max-w-[1100px] mx-auto">

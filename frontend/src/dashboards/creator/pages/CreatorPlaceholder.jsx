@@ -15,7 +15,7 @@ export default function CreatorPlaceholder({ title, description }) {
           <div className="pt-4 border-t border-slate-100 dark:border-slate-700/60 flex flex-wrap gap-3 items-center text-xs text-slate-500">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
-              Integration Ready (Module 3 & Module 4)
+              OrbitSocial · Connected
             </span>
           </div>
         </div>

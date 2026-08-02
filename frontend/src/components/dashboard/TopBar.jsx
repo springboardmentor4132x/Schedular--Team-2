@@ -1,10 +1,11 @@
 import { useLocation } from 'react-router-dom'
 import { Bell, Menu, Search } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ThemeToggle from '../ThemeToggle'
 import { useAuth } from '../../context/AuthContext'
 import { useClient } from '../../context/ClientContext'
 import { useNavigate } from "react-router-dom";
+import { getNotifications } from '../../services/notificationService'
 
 /**
  * TopBar — sticky top navigation inside the dashboard layout.
@@ -46,10 +47,19 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
   const { activeClient } = useClient()
   const { pathname } = useLocation()
   const [searchOpen, setSearchOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const navigate = useNavigate()
 
   const pageTitle = ROUTE_LABELS[pathname] ?? 'Dashboard'
+
+  useEffect(() => {
+    let mounted = true
+    getNotifications()
+      .then(items => { if (mounted) setUnreadCount(items.filter(n => !n.read).length) })
+      .catch(() => { if (mounted) setUnreadCount(0) })
+    return () => { mounted = false }
+  }, [])
 
   return (
     <header
@@ -58,6 +68,7 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
         background: 'var(--card)',
         borderBottom: '1px solid var(--border)',
         backdropFilter: 'blur(12px)',
+        ...(isDark ? { boxShadow: '0 10px 30px rgba(0,0,0,.28)' } : {}),
       }}
     >
       {/* Left: mobile menu + breadcrumb */}
@@ -101,17 +112,21 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
         {/* Notifications */}
         <div className="relative">
           <button
+            onClick={() => navigate("/dashboard/notifications")}
             className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-alt)] relative"
             style={{ color: 'var(--text-muted)' }}
             aria-label="Notifications"
           >
             <Bell size={18} />
-            {/* Unread badge */}
-            <span
-              className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-              style={{ background: 'var(--error)' }}
-              aria-hidden="true"
-            />
+            {/* Unread badge — only when there are unread notifications */}
+            {unreadCount > 0 && (
+              <span
+                className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold text-white"
+                style={{ background: 'var(--error)' }}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </button>
         </div>
 
