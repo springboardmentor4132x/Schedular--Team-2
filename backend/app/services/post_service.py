@@ -55,6 +55,20 @@ def save_draft(post):
     }
 
 
+def generate_preview(post):
+    """Generate a preview of the post before publishing."""
+    return {
+        "message": "Preview generated successfully",
+        "preview": {
+            "title": post.title,
+            "caption": post.caption,
+            "media_url": post.media_url,
+            "scheduled_time": post.scheduled_time,
+            "social_accounts": post.social_accounts
+        }
+    }
+
+
 def get_scheduled_posts():
     """Retrieve scheduled posts."""
     return {
@@ -73,18 +87,6 @@ def get_scheduled_posts():
         ]
     }
 
-def generate_preview(post):
-    """Generate a preview of the post before publishing."""
-    return {
-        "message": "Preview generated successfully",
-        "preview": {
-            "title": post.title,
-            "caption": post.caption,
-            "media_url": post.media_url,
-            "scheduled_time": post.scheduled_time,
-            "social_accounts": post.social_accounts
-        }
-    }
 
 def get_publishing_calendar():
     """Retrieve publishing calendar."""
@@ -144,4 +146,42 @@ def get_publishing_queue():
                 "status": "Published"
             }
         ]
+    }
+
+
+
+def create_recurring_schedule(post):
+    """Create a recurring schedule."""
+
+    return {
+        "message": "Recurring schedule created successfully",
+        "frequency": "daily",
+        "data": post
+    }
+
+def publish_post(post_id: int):
+    """Publish a scheduled post."""
+
+    return {
+        "message": "Post published successfully",
+        "post_id": post_id,
+        "status": "Published"
+    }
+
+
+def retry_failed_post(post_id: int, retry_count: int):
+    """Retry failed post publishing."""
+
+    if retry_count >= MAX_RETRY_LIMIT:
+        return {
+            "message": "Maximum retry limit reached",
+            "post_id": post_id,
+            "status": "Failed"
+        }
+
+    return {
+        "message": "Retry attempt successful",
+        "post_id": post_id,
+        "attempt_number": retry_count + 1,
+        "remaining_attempts": MAX_RETRY_LIMIT - retry_count - 1
     }

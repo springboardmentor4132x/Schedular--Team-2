@@ -20,6 +20,8 @@ def delete_campaign(campaign_id: int):
     "Delete a campaign."
     return {"message": f"Delete Campaign {campaign_id} - Pending Database Integration"}
 
+
+
 def assign_post_to_campaign(campaign_id: int, post_id: int):
     """Assign a post to a campaign."""
     return {
@@ -37,6 +39,8 @@ def remove_post_from_campaign(campaign_id: int, post_id: int):
         "post_id": post_id,
         "status": "Removed"
     }
+
+
 
 def get_campaign_timeline(campaign_id: int):
     """Retrieve campaign timeline."""
@@ -87,3 +91,37 @@ def get_campaign_summary(campaign_id: int):
             "status": "Active"
         }
     }
+
+
+
+def get_campaign_analytics(campaign_id: int):
+    """Retrieve campaign analytics."""
+
+    return {
+        "message": "Campaign analytics retrieved successfully",
+        "campaign_id": campaign_id,
+        "analytics": {
+            "likes": 1200,
+            "comments": 240,
+            "shares": 150,
+            "reach": 5000,
+            "impressions": 7000,
+            "engagement_rate": "8.5%"
+        }
+    }
+
+
+def get_campaign_performance(campaign_id: int):
+    """Retrieve campaign performance."""
+
+    return {
+        "message": "Campaign performance retrieved successfully",
+        "campaign_id": campaign_id,
+        "performance": {
+            "completed_posts": 12,
+            "scheduled_posts": 4,
+            "failed_posts": 1
+        }
+    }
+
+

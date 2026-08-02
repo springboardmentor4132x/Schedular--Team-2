@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from app.core.config import settings
 
 # Import our API routers
@@ -39,7 +38,7 @@ app.include_router(campaigns.router, prefix="/api/v1", tags=["Campaigns"])
 app.include_router(posts.router, prefix="/api/v1", tags=["Posts"])
 app.include_router(users.router, prefix="/api/v1", tags=["Users"])
 app.include_router(social_accounts.router, prefix="/api/v1", tags=["Social Accounts"])
-
+# app.include_router(publishing_logs.router,prefix="/api/v1", tags=["Publishing Logs"])
 
 @app.get("/")
 def root():

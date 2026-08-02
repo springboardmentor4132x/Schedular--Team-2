@@ -1,3 +1,5 @@
+from urllib import response
+
 import requests
 from urllib.parse import urlencode
 
@@ -28,7 +30,7 @@ def get_twitter_login_url():
     return f"{AUTH_URL}?{urlencode(params)}"
 
 
-def exchange_code_for_access_token(code: str):
+def exchange_twitter_token(code: str):
     data = {
         "grant_type": "authorization_code",
         "code": code,
@@ -46,5 +48,36 @@ def exchange_code_for_access_token(code: str):
     response.raise_for_status()
     return response.json()
 
+def get_twitter_profile(access_token: str):
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
 
+    response = requests.get(
+        "https://api.x.com/2/users/me",
+        headers=headers,
+    )
 
+    response.raise_for_status()
+
+    return response.json()
+
+def publish_tweet(access_token: str, message: str):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "text": message
+    }
+
+    response = requests.post(
+    "https://api.x.com/2/tweets",
+    headers=headers,
+    json=payload,
+    )
+
+    response.raise_for_status()
+
+    return response.json()
