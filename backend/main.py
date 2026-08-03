@@ -3,7 +3,6 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-
 from app.core.config import settings
 from app.database.database import engine, Base
 import app.models  # Import all models to register with Base
@@ -70,6 +69,7 @@ app.include_router(users.router, prefix="/api/v1", tags=["Users"])
 app.include_router(workspaces.router, prefix="/api/v1", tags=["Workspaces"])
 app.include_router(settings_router.router, prefix="/api/v1", tags=["Settings"])
 app.include_router(social_accounts.router, prefix="/api/v1", tags=["Social Accounts"])
+
 app.include_router(admin.router, prefix="/api/v1", tags=["Admin"])
 app.include_router(notifications.router, prefix="/api/v1", tags=["Notifications"])
 app.include_router(business.router, prefix="/api/v1", tags=["Business"])

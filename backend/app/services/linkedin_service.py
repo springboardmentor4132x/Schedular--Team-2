@@ -16,6 +16,7 @@ def get_linkedin_login_url():
         "state": "socialpilot",
     }
 
+
     url = LINKEDIN_AUTH_URL + "?" + urlencode(params)
 
     return url
@@ -39,11 +40,10 @@ def exchange_code_for_access_token(code: str):
         timeout=30,
     )
 
-    if response.status_code != 200:
+    if response.status_code not in [200, 201]:
         raise Exception(response.json())
 
     return response.json()
-
 
 def get_linkedin_user_info(access_token: str):
     """Get user's LinkedIn profile info"""
@@ -63,4 +63,58 @@ def get_linkedin_user_info(access_token: str):
         "username": profile.get("name", "").replace(" ", "").lower(),
         "followers_count": 0,
         "profile_image": profile.get("picture"),
+    }
+
+def get_linkedin_profile(access_token: str):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "X-Restli-Protocol-Version": "2.0.0",
+    }
+
+    response = requests.get(
+        "https://api.linkedin.com/v2/userinfo",
+        headers=headers,
+    )
+
+    print("Status code:", response.status_code)
+    print("Response:", response.text)
+
+    return response.json()
+
+
+def create_linkedin_post(
+    access_token: str,
+    author_id: str,
+    message: str,
+):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+        "X-Restli-Protocol-Version": "2.0.0",
+    }
+
+    response = requests.post(
+        "https://api.linkedin.com/v2/ugcPosts",
+        headers=headers,
+        json={
+            "author": f"urn:li:person:{author_id}",
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                    "shareCommentary": {
+                        "text": message,
+                    },
+                    "shareMediaCategory": "NONE",
+                }
+            },
+            "visibility": {
+                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
+            },
+        },
+    )
+
+    return {
+        "status_code": response.status_code,
+        "headers": dict(response.headers),
+        "body": response.json(),
     }

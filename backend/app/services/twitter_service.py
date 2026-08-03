@@ -1,3 +1,5 @@
+from urllib import response
+
 import requests
 from urllib.parse import urlencode
 
@@ -29,7 +31,7 @@ def get_twitter_login_url():
     return f"{AUTH_URL}?{urlencode(params)}"
 
 
-def exchange_code_for_access_token(code: str):
+def exchange_twitter_token(code: str):
     data = {
         "grant_type": "authorization_code",
         "code": code,
@@ -48,23 +50,36 @@ def exchange_code_for_access_token(code: str):
     response.raise_for_status()
     return response.json()
 
+def get_twitter_profile(access_token: str):
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
 
 def get_twitter_user_info(access_token: str):
     """Get user's Twitter/X profile info"""
+
     url = f"{API_URL}/users/me"
+
     params = {
         "user.fields": "username,name,public_metrics,profile_image_url",
     }
+
     headers = {
         "Authorization": f"Bearer {access_token}",
     }
-    response = requests.get(url, params=params, headers=headers, timeout=30)
-    if response.status_code != 200:
-        raise Exception(response.json())
-    
+
+    response = requests.get(
+        url,
+        params=params,
+        headers=headers,
+        timeout=30,
+    )
+
+    response.raise_for_status()
+
     data = response.json().get("data", {})
     metrics = data.get("public_metrics", {})
-    
+
     return {
         "platform_user_id": data.get("id"),
         "username": data.get("username", ""),
@@ -72,5 +87,22 @@ def get_twitter_user_info(access_token: str):
         "profile_image": data.get("profile_image_url"),
     }
 
+def publish_tweet(access_token: str, message: str):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
 
+    payload = {
+        "text": message
+    }
 
+    response = requests.post(
+    "https://api.x.com/2/tweets",
+    headers=headers,
+    json=payload,
+    )
+
+    response.raise_for_status()
+
+    return response.json()

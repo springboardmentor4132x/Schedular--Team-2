@@ -6,6 +6,7 @@ from sqlalchemy import (
     ForeignKey,
 )
 from sqlalchemy.orm import relationship
+
 from sqlalchemy.sql import func
 
 from app.database.database import Base
@@ -101,4 +102,4 @@ class SocialAccount(Base):
         "Post",
         secondary="post_social_accounts",
         back_populates="social_accounts",
-    )
+   )

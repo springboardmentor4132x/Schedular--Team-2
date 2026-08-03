@@ -1,35 +1,52 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from typing import List
+from datetime import datetime, timezone
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from app.database.database import get_db
-from app.models.user import User
+
+from app.auth.dependencies import get_current_user
+from app.database.database import SessionLocal, get_db
 from app.models.social_account import SocialAccount
+from app.models.user import User
+
 from app.schemas.social_account import (
     SocialAccountConnect,
     SocialAccountResponse,
 )
-from app.auth.dependencies import get_current_user
-from typing import List
-from datetime import datetime, timezone
-import uuid
+
+from app.schemas.facebook import (
+    FacebookInsightsRequest,
+    FacebookPostRequest,
+    FacebookPhotoRequest,
+)
 
 from app.services.facebook_service import (
     get_facebook_login_url,
     exchange_code_for_access_token,
     get_facebook_user_info,
     get_long_lived_access_token as get_fb_long_lived_token,
+    get_page_insights,
+    get_user_pages,
+    create_facebook_post,
+    upload_facebook_photo,
 )
 
 from app.services.linkedin_service import (
     get_linkedin_login_url,
     exchange_code_for_access_token as exchange_linkedin_token,
     get_linkedin_user_info,
+    get_linkedin_profile,
+    create_linkedin_post,
 )
 
 from app.services.youtube_service import (
     get_youtube_login_url,
     exchange_code_for_access_token as exchange_youtube_token,
     get_youtube_user_info,
+    get_channel_details,
+    upload_video,
 )
 
 from app.services.instagram_service import (
@@ -37,12 +54,17 @@ from app.services.instagram_service import (
     exchange_code_for_access_token as exchange_instagram_token,
     get_instagram_user_info,
     get_long_lived_access_token as get_ig_long_lived_token,
+    get_instagram_business_account,
+    create_media_container,
+    publish_media,
 )
 
 from app.services.twitter_service import (
     get_twitter_login_url,
     exchange_code_for_access_token as exchange_twitter_token,
     get_twitter_user_info,
+    get_twitter_profile,
+    publish_tweet,
 )
 
 from app.services.pinterest_service import (
@@ -76,11 +98,35 @@ def connect_facebook():
     return RedirectResponse(url=url)
 
 
+# @router.get("/facebook/callback")
+# def facebook_callback(code: str):
+#     """
+#     Facebook redirects here after login.
+#     Exchange authorization code for access token.
+#     """
+#     try:
+#         token_data = exchange_code_for_access_token(code)
+
+#         return {
+#             "message": "Facebook connected successfully",
+#             "access_token": token_data["access_token"],
+#             "token_type": token_data["token_type"],
+#             "expires_in": token_data["expires_in"]
+#         }
+
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
 @router.get("/facebook/callback")
-def facebook_callback(request: Request, code: str, db: Session = Depends(get_db)):
+def facebook_callback(
+    request: Request,
+    code: str,
+    db: Session = Depends(get_db),
+    ):
     """
     Facebook redirects here after login.
-    Exchange authorization code for access token, get user info, store in DB.
+    Exchange authorization code for the access token,
+    retrieve user information, and store it in the database.
     """
     try:
         # Get the user from session (OAuth state)
@@ -158,9 +204,43 @@ def facebook_callback(request: Request, code: str, db: Session = Depends(get_db)
         )
 
     except Exception as e:
-        return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
+        return RedirectResponse(
+            url=f"http://localhost:5173/social-accounts?error={str(e)}"
+    )
 
 
+@router.post("/facebook/post")
+def publish_post(data: FacebookPostRequest):
+    try:
+        return create_facebook_post(
+            data.page_id,
+            data.page_access_token,
+            data.message,
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e),
+        )
+
+
+@router.post("/facebook/photo")
+def upload_photo(photo: FacebookPhotoRequest):
+    return upload_facebook_photo(
+        photo.page_id,
+        photo.page_access_token,
+        photo.image_url,
+        photo.caption,
+    )
+
+@router.post("/facebook/insights")
+def facebook_insights(data: FacebookInsightsRequest):
+    return get_page_insights(
+        data.page_id,
+        data.page_access_token
+    )
+    
 # ===========================
 # LinkedIn OAuth
 # ===========================    
@@ -240,6 +320,18 @@ def linkedin_callback(request: Request, code: str, db: Session = Depends(get_db)
         return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
 
 
+@router.post("/linkedin/post")
+def linkedin_post(
+    access_token: str,
+    author_id: str,
+    message: str,
+):
+    return create_linkedin_post(
+        access_token,
+        author_id,
+        message,
+    )
+
 # ===========================
 # YouTube OAuth
 # ===========================
@@ -254,7 +346,11 @@ def connect_youtube(request: Request):
 
 
 @router.get("/youtube/callback")
-def youtube_callback(request: Request, code: str, db: Session = Depends(get_db)):
+def youtube_callback(
+    request: Request,
+    code: str,
+    db: Session = Depends(get_db),
+    ):
     try:
         user_id = request.session.get("user_id") or request.query_params.get("user_id")
         if not user_id:
@@ -321,6 +417,20 @@ def youtube_callback(request: Request, code: str, db: Session = Depends(get_db))
         return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
 
 
+@router.post("/youtube/upload")
+def youtube_upload(
+    access_token: str,
+    video_path: str,
+    title: str,
+    description: str,
+):
+    return upload_video(
+        access_token,
+        video_path,
+        title,
+        description,
+    )
+    
 # ===========================
 # Instagram OAuth
 # ===========================
@@ -399,8 +509,43 @@ def instagram_callback(request: Request, code: str, db: Session = Depends(get_db
         )
 
     except Exception as e:
-        return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
+        return RedirectResponse(
+            url=f"http://localhost:5173/social-accounts?error={str(e)}"
+        )
 
+
+@router.post("/instagram/post")
+def instagram_post(
+    instagram_account_id: str,
+    image_url: str,
+    caption: str,
+    access_token: str,
+):
+    media = create_media_container(
+        instagram_account_id,
+        image_url,
+        caption,
+        access_token,
+    )
+
+    creation_id = media["id"]
+
+    return publish_media(
+        instagram_account_id,
+        creation_id,
+        access_token,
+    )
+
+
+@router.get("/instagram/account")
+def get_instagram_account(
+    page_id: str,
+    access_token: str,
+):
+    return get_instagram_business_account(
+        page_id,
+        access_token,
+    )
 
 # ===========================
 # Twitter OAuth
@@ -476,6 +621,16 @@ def twitter_callback(request: Request, code: str, db: Session = Depends(get_db))
     except Exception as e:
         return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
 
+
+@router.post("/twitter/post")
+def twitter_post(
+    access_token: str,
+    message: str
+):
+    return publish_tweet(
+        access_token,
+        message,
+    )
 
 # ===========================
 # Pinterest OAuth

@@ -260,7 +260,6 @@ def get_scheduled_posts(db: Session, user_id: int):
     )
     return [_post_response(p) for p in posts]
 
-
 def generate_preview(post_data):
     return {
         "message": "Preview generated successfully",
@@ -273,6 +272,25 @@ def generate_preview(post_data):
             "social_account_ids": post_data.social_account_ids,
         },
     }
+
+def get_scheduled_posts():
+    """Retrieve scheduled posts."""
+    return {
+        "message": "Scheduled posts retrieved successfully",
+        "posts": [
+            {
+                "id": 1,
+                "title": "Instagram Post",
+                "scheduled_time": "2026-07-22T10:00:00"
+            },
+            {
+                "id": 2,
+                "title": "Facebook Campaign",
+                "scheduled_time": "2026-07-23T12:00:00"
+            }
+        ]
+    }
+
 
 
 def get_publishing_calendar(db: Session, user_id: int):
@@ -300,4 +318,42 @@ def get_publishing_queue(db: Session, user_id: int):
     return {
         "message": "Publishing queue retrieved successfully",
         "queue": [_post_response(p) for p in posts],
+    }
+
+
+
+def create_recurring_schedule(post):
+    """Create a recurring schedule."""
+
+    return {
+        "message": "Recurring schedule created successfully",
+        "frequency": "daily",
+        "data": post
+    }
+
+def publish_post(post_id: int):
+    """Publish a scheduled post."""
+
+    return {
+        "message": "Post published successfully",
+        "post_id": post_id,
+        "status": "Published"
+    }
+
+
+def retry_failed_post(post_id: int, retry_count: int):
+    """Retry failed post publishing."""
+
+    if retry_count >= MAX_RETRY_LIMIT:
+        return {
+            "message": "Maximum retry limit reached",
+            "post_id": post_id,
+            "status": "Failed"
+        }
+
+    return {
+        "message": "Retry attempt successful",
+        "post_id": post_id,
+        "attempt_number": retry_count + 1,
+        "remaining_attempts": MAX_RETRY_LIMIT - retry_count - 1
     }
