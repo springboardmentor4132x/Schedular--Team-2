@@ -9,7 +9,7 @@ from app.database.database import get_db
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
-from app.schemas.user import UserCreate, UserResponse, Token
+from app.schemas.user import UserCreate, UserResponse, TokenResponse
 from app.schemas.auth import ChangePasswordRequest
 from app.auth.dependencies import get_current_user
 from app.auth.security import hash_password, verify_password
@@ -92,7 +92,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     
     return new_user
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=TokenResponse)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)

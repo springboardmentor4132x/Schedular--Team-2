@@ -61,9 +61,8 @@ from app.services.instagram_service import (
 
 from app.services.twitter_service import (
     get_twitter_login_url,
-    exchange_code_for_access_token as exchange_twitter_token,
+    exchange_twitter_token,
     get_twitter_user_info,
-    get_twitter_profile,
     publish_tweet,
 )
 
@@ -90,11 +89,14 @@ def get_social_accounts(current_user: User = Depends(get_current_user), db: Sess
 # ===========================
 
 @router.get("/facebook/connect")
-def connect_facebook():
-    """
-    Redirect user to Facebook Login.
-    """
+def connect_facebook(request: Request):
+    user_id = request.query_params.get("user_id")
+
+    if user_id:
+        request.session["user_id"] = user_id
+
     url = get_facebook_login_url()
+
     return RedirectResponse(url=url)
 
 
@@ -131,7 +133,8 @@ def facebook_callback(
     try:
         # Get the user from session (OAuth state)
         # In production, use proper state parameter to identify user
-        user_id = request.session.get("user_id")
+        # user_id = request.session.get("user_id")
+        user_id = 3
         if not user_id:
             # Try to get from query param or cookie
             user_id = request.query_params.get("user_id")
@@ -204,9 +207,14 @@ def facebook_callback(
         )
 
     except Exception as e:
-        return RedirectResponse(
-            url=f"http://localhost:5173/social-accounts?error={str(e)}"
-    )
+        import traceback
+
+        print("=" * 80)
+        print("FACEBOOK ERROR")
+        print(traceback.format_exc())
+        print("=" * 80)
+
+        raise e
 
 
 @router.post("/facebook/post")
@@ -456,18 +464,26 @@ def instagram_callback(request: Request, code: str, db: Session = Depends(get_db
             return RedirectResponse(url="http://localhost:5173/social-accounts?error=UserNotFound")
 
         # Exchange code for short-lived token
+        print("========== STEP 1 ==========")
         token_data = exchange_instagram_token(code)
+        print(token_data)
+
         short_lived_token = token_data.get("access_token")
         
         # Exchange for long-lived token (60 days)
+        print("========== STEP 2 ==========")
         long_lived_data = get_ig_long_lived_token(short_lived_token)
+        print(long_lived_data)
+
         access_token = long_lived_data["access_token"]
         expires_in = long_lived_data.get("expires_in", 5184000)
         
         token_expires_at = datetime.now(timezone.utc) + __import__('datetime').timedelta(seconds=expires_in)
 
+        print("========== STEP 3 ==========")
         user_info = get_instagram_user_info(access_token)
-
+        print(user_info)
+        
         existing = db.query(SocialAccount).filter(
             SocialAccount.user_id == user.id,
             SocialAccount.platform == "instagram",
@@ -554,36 +570,91 @@ def get_instagram_account(
 @router.get("/twitter/connect")
 def connect_twitter(request: Request):
     user_id = request.query_params.get("user_id")
-    if user_id:
-        request.session["user_id"] = user_id
-    url = get_twitter_login_url()
+
+    if not user_id:
+        return {
+            "error": "Please provide a user_id."
+        }
+
+    request.session["user_id"] = user_id
+
+    url = get_twitter_login_url(user_id)
+
     return RedirectResponse(url=url)
 
 
+
 @router.get("/twitter/callback")
-def twitter_callback(request: Request, code: str, db: Session = Depends(get_db)):
+def twitter_callback(
+    request: Request,
+    code: str,
+    db: Session = Depends(get_db),
+):
     try:
-        user_id = request.session.get("user_id") or request.query_params.get("user_id")
+        user_id = (
+            request.session.get("user_id")
+            or request.query_params.get("state")
+        )
+
         if not user_id:
-            return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")
-        
-        user = db.query(User).filter(User.id == int(user_id)).first()
+            return {
+                "error": "No user session found."
+            }
+
+        user = db.query(User).filter(
+            User.id == int(user_id)
+        ).first()
+
         if not user:
-            return RedirectResponse(url="http://localhost:5173/social-accounts?error=UserNotFound")
+            return {
+                "error": "User not found."
+            }
 
         token_data = exchange_twitter_token(code)
+
+        print("=" * 50)
+        print("TOKEN DATA")
+        print(token_data)
+        print("=" * 50)
+
         access_token = token_data.get("access_token")
         refresh_token = token_data.get("refresh_token")
-        # Twitter tokens don't expire with offline.access scope
-        
+
+        print("=" * 50)
+        print("ACCESS TOKEN")
+        print(access_token)
+        print("=" * 50)
+
+        print("TOKEN LENGTH")
+        print(len(access_token))
+
+        print("=" * 50)
+        print("REFRESH TOKEN")
+        print(refresh_token)
+        print("=" * 50)
+
         user_info = get_twitter_user_info(access_token)
 
-        existing = db.query(SocialAccount).filter(
-            SocialAccount.user_id == user.id,
-            SocialAccount.platform == "twitter",
-            SocialAccount.platform_user_id == user_info["platform_user_id"]
-        ).first()
-        
+        print("=" * 50)
+        print("USER INFO")
+        print(user_info)
+        print("=" * 50)
+
+        access_token = token_data.get("access_token")
+        refresh_token = token_data.get("refresh_token")
+
+        user_info = get_twitter_user_info(access_token)
+
+        existing = (
+            db.query(SocialAccount)
+            .filter(
+                SocialAccount.user_id == user.id,
+                SocialAccount.platform == "twitter",
+                SocialAccount.platform_user_id == user_info["platform_user_id"],
+            )
+            .first()
+        )
+
         if existing:
             existing.access_token = access_token
             existing.refresh_token = refresh_token
@@ -593,8 +664,7 @@ def twitter_callback(request: Request, code: str, db: Session = Depends(get_db))
             existing.last_sync = datetime.now(timezone.utc)
             existing.status = "Connected"
             existing.health = "Healthy"
-            db.commit()
-            db.refresh(existing)
+
         else:
             new_account = SocialAccount(
                 user_id=user.id,
@@ -608,20 +678,29 @@ def twitter_callback(request: Request, code: str, db: Session = Depends(get_db))
                 status="Connected",
                 health="Healthy",
                 connected_since=datetime.now(timezone.utc),
-                last_sync=datetime.now(timezone.utc)
+                last_sync=datetime.now(timezone.utc),
             )
+
             db.add(new_account)
-            db.commit()
-            db.refresh(new_account)
+
+        db.commit()
 
         return RedirectResponse(
-            url="http://localhost:5173/social-accounts?success=true&platform=twitter"
+            url="http://localhost:5173/social-accounts"
         )
 
     except Exception as e:
-        return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
+        import traceback
+        print("=" * 80)
+        print("TWITTER ERROR")
+        print(traceback.format_exc())
+        print("=" * 80)
+        
+        return {
+            "error": str(e)
+        }
 
-
+    
 @router.post("/twitter/post")
 def twitter_post(
     access_token: str,

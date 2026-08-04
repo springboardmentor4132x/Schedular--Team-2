@@ -11,7 +11,6 @@ from app.schemas.post import (
     PostCreate,
     PostResponse,
     PostUpdate,
-    CreatePostRequest,
 )
 
 from app.services import post_service
@@ -31,7 +30,6 @@ from app.services.post_service import (
     get_publishing_queue,
     publish_post,
     create_recurring_schedule,
-    get_queue_status,
 )
 
 router = APIRouter(
@@ -93,12 +91,6 @@ def save_post_draft(
 ):
     return post_service.save_draft(db, current_user.id, post)
 
-
-# Save a draft
-@router.post("/save-draft")
-def save_post_draft(post: CreatePostRequest):
-    return save_draft(post)
-
 # Generate a preview
 @router.post("/preview")
 def preview_post(
@@ -114,13 +106,6 @@ def retrieve_scheduled_posts(
     db: Session = Depends(get_db),
 ):
     return post_service.get_scheduled_posts(db, current_user.id)
-
-# Retrieve scheduled posts
-@router.get("/scheduled")
-def retrieve_scheduled_posts():
-    return get_scheduled_posts()
-
-
 
 # View publishing calendar
 @router.get("/calendar")
@@ -138,18 +123,22 @@ def publishing_queue(
 ):
     return post_service.get_publishing_queue(db, current_user.id)
 
-@router.get("/queue/status")
-def queue_status():
-    return get_queue_status()
-
 
 @router.post("/publish/{post_id}")
-def publish_scheduled_post(post_id: int):
-    return publish_post(post_id)
+def publish_scheduled_post(
+    post_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return post_service.publish_post(
+        db,
+        current_user.id,
+        post_id,
+    )
 
 
 @router.post("/recurring")
-def recurring_schedule(post: CreatePostRequest):
+def recurring_schedule(post: PostCreate):
     return create_recurring_schedule(post)
 
 

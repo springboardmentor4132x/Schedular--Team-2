@@ -29,7 +29,7 @@ export const PLATFORM_OPTIONS = [
   { id: 'instagram', label: 'Instagram' },
   { id: 'facebook', label: 'Facebook' },
   { id: 'linkedin', label: 'LinkedIn' },
-  { id: 'x', label: 'X / Twitter' },
+  { id: 'twitter', label: 'X / Twitter' },
   { id: 'youtube', label: 'YouTube' },
   { id: 'pinterest', label: 'Pinterest' },
 ]

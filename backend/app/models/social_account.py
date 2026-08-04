@@ -76,6 +76,8 @@ class SocialAccount(Base):
         default="Healthy",
     )
 
+   
+
     # Tracking information
     connected_since = Column(
         DateTime(timezone=True),
@@ -90,6 +92,12 @@ class SocialAccount(Base):
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
+    )
+
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
     )
 
     # Relationships

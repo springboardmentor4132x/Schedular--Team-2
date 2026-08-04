@@ -76,8 +76,31 @@ class Post(Base):
 
     updated_at = Column(
         DateTime(timezone=True),
+        server_default=func.now(),
         onupdate=func.now(),
     )
+
+    published_at = Column(
+         DateTime(timezone=True),
+        nullable=True,
+    )
+
+    failure_reason = Column(
+        String(500),
+        nullable=True,
+    )
+
+    retry_count = Column(
+        Integer,
+        default=0,
+        nullable=False,
+    )
+
+    platform_post_id = Column(
+        String(255),
+        nullable=True,
+    )
+
 
     # Relationships
     user = relationship("User", back_populates="posts")

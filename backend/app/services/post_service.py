@@ -19,6 +19,7 @@ ALLOWED_MEDIA_TYPES = {
     "video/mp4",
 }
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_RETRY_LIMIT = 3
 
 PUBLISHING_STATUSES = ("Scheduled", "Queued")
 
@@ -49,7 +50,7 @@ def _get_owned_accounts(db: Session, user_id: int, account_ids: list[int]):
 
 
 def _post_response(post: Post):
-    data = {
+    return {
         "id": post.id,
         "user_id": post.user_id,
         "workspace_id": post.workspace_id,
@@ -63,15 +64,39 @@ def _post_response(post: Post):
         "timezone": post.timezone,
         "created_at": post.created_at,
         "updated_at": post.updated_at,
-        "social_account_ids": [acc.id for acc in post.social_accounts],
+        "published_at": post.published_at,
+        "failure_reason": post.failure_reason,
+        "retry_count": post.retry_count,
+        "platform_post_id": post.platform_post_id,
+        "social_account_ids": [
+            acc.id for acc in post.social_accounts
+        ],
     }
-    return data
 
 
-def create_post(db: Session, user_id: int, post: PostCreate, status: str = "Scheduled", account_ids: list[int] | None = None):
+def create_post(
+    db: Session,
+    user_id: int,
+    post: PostCreate,
+    status: str = "Scheduled",
+    account_ids: list[int] | None = None,
+):
     """Create a new post and schedule it for publication."""
 
+    if not post.caption or not post.caption.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Caption is required.",
+        )
+
+    if not post.social_account_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="Select at least one platform.",
+        )
+
     scheduled_for = _to_aware(post.scheduled_for)
+
     if scheduled_for is not None and scheduled_for <= _now():
         raise HTTPException(
             status_code=400,
@@ -95,17 +120,32 @@ def create_post(db: Session, user_id: int, post: PostCreate, status: str = "Sche
     db.flush()
 
     if account_ids is not None:
-        new_post.social_accounts = db.query(SocialAccount).filter(SocialAccount.id.in_(account_ids)).all()
+        new_post.social_accounts = (
+            db.query(SocialAccount)
+            .filter(SocialAccount.id.in_(account_ids))
+            .all()
+        )
     else:
-        new_post.social_accounts = _get_owned_accounts(db, user_id, post.social_account_ids)
+        new_post.social_accounts = _get_owned_accounts(
+            db,
+            user_id,
+            post.social_account_ids,
+        )
 
     db.commit()
     db.refresh(new_post)
+
     return _post_response(new_post)
 
 
 def save_draft(db: Session, user_id: int, post: PostCreate, account_ids: list[int] | None = None):
     """Save a post as a draft (no future-time requirement)."""
+    if post.caption is not None and not post.caption.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Caption cannot be empty.",
+        )
+    
     new_post = Post(
         user_id=user_id,
         workspace_id=post.workspace_id,
@@ -141,6 +181,18 @@ def get_all_posts(db: Session, user_id: int):
     )
     return [_post_response(p) for p in posts]
 
+def get_scheduled_posts(db: Session, user_id: int):
+    posts = (
+        db.query(Post)
+        .filter(
+            Post.user_id == user_id,
+            Post.status.in_(PUBLISHING_STATUSES),
+        )
+        .order_by(Post.scheduled_for.asc())
+        .all()
+    )
+
+    return [_post_response(post) for post in posts]
 
 def get_post_by_id(db: Session, user_id: int, post_id: int):
     post = db.query(Post).filter(Post.id == post_id).first()
@@ -167,6 +219,13 @@ def update_post(db: Session, user_id: int, post_id: int, post_data: PostUpdate):
             )
         post.scheduled_for = scheduled_for
 
+    if post_data.caption is not None:
+        if not post_data.caption.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Caption cannot be empty.",
+            )
+        
     fields = {
         "title": post_data.title,
         "caption": post_data.caption,
@@ -248,17 +307,6 @@ def upload_media(file: UploadFile):
     }
 
 
-def get_scheduled_posts(db: Session, user_id: int):
-    posts = (
-        db.query(Post)
-        .filter(
-            Post.user_id == user_id,
-            Post.status.in_(PUBLISHING_STATUSES),
-        )
-        .order_by(Post.scheduled_for.asc())
-        .all()
-    )
-    return [_post_response(p) for p in posts]
 
 def generate_preview(post_data):
     return {
@@ -266,31 +314,12 @@ def generate_preview(post_data):
         "preview": {
             "title": post_data.title,
             "caption": post_data.caption,
-            "media_url": post_data.media_url,
+            "media_file_path": post_data.media_url,
             "scheduled_for": post_data.scheduled_for,
             "timezone": post_data.timezone,
             "social_account_ids": post_data.social_account_ids,
         },
     }
-
-def get_scheduled_posts():
-    """Retrieve scheduled posts."""
-    return {
-        "message": "Scheduled posts retrieved successfully",
-        "posts": [
-            {
-                "id": 1,
-                "title": "Instagram Post",
-                "scheduled_time": "2026-07-22T10:00:00"
-            },
-            {
-                "id": 2,
-                "title": "Facebook Campaign",
-                "scheduled_time": "2026-07-23T12:00:00"
-            }
-        ]
-    }
-
 
 
 def get_publishing_calendar(db: Session, user_id: int):
@@ -315,11 +344,11 @@ def get_publishing_queue(db: Session, user_id: int):
         .order_by(Post.scheduled_for.asc())
         .all()
     )
+
     return {
         "message": "Publishing queue retrieved successfully",
-        "queue": [_post_response(p) for p in posts],
+        "queue": [_post_response(post) for post in posts],
     }
-
 
 
 def create_recurring_schedule(post):
@@ -331,14 +360,33 @@ def create_recurring_schedule(post):
         "data": post
     }
 
-def publish_post(post_id: int):
-    """Publish a scheduled post."""
+def publish_post(
+    db: Session,
+    user_id: int,
+    post_id: int,
+):
+    post = (
+        db.query(Post)
+        .filter(
+            Post.id == post_id,
+            Post.user_id == user_id,
+        )
+        .first()
+    )
 
-    return {
-        "message": "Post published successfully",
-        "post_id": post_id,
-        "status": "Published"
-    }
+    if post is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Post not found",
+        )
+
+    post.status = "Published"
+    post.published_at = _now()
+
+    db.commit()
+    db.refresh(post)
+
+    return _post_response(post)
 
 
 def retry_failed_post(post_id: int, retry_count: int):

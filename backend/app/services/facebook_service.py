@@ -69,11 +69,18 @@ def get_facebook_user_info(access_token: str):
     if response.status_code != 200:
         raise Exception(response.json())
     
-    pages = response.json().get("data", [])
+    data = response.json()
+
+    print("\n========== FACEBOOK RESPONSE ==========")
+    print(data)
+    print("=======================================\n")
+
+    pages = data.get("data", [])
+
     if not pages:
-        raise Exception("No Facebook pages found. You need a Facebook Page to connect.")
-    
+        raise Exception("No Facebook pages found.")
     # Return the first page (in production, let user choose)
+
     page = pages[0]
     return {
         "platform_user_id": page["id"],

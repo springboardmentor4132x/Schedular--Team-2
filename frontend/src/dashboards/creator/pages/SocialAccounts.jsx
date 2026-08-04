@@ -57,6 +57,7 @@ export default function SocialAccounts() {
   const loadAccounts = useCallback(async () => {
     setLoading(true)
     const data = await getAccounts()
+    console.log(data)
     setAccounts(data)
     setLoading(false)
   }, [getAccounts])
@@ -95,7 +96,13 @@ export default function SocialAccounts() {
       setToast(`${getPlatformLabel(account.platform)} disconnected.`)
       await loadAccounts()
     } catch (err) {
-      setToast(err?.response?.data?.detail || 'Failed to disconnect account.')
+        console.log("Error:", err)
+        console.log("Response:", err.response)
+        console.log("Data:", err.response?.data)
+
+        setToast(
+          err?.response?.data?.detail || 'Failed to disconnect account.'
+      )
     } finally {
       setBusyId(null)
     }
@@ -115,8 +122,12 @@ export default function SocialAccounts() {
     }
   }
 
-  const connectedPlatforms = accounts.map((a) => a.platform?.toLowerCase())
-  const availablePlatforms = PLATFORM_OPTIONS.filter((p) => !connectedPlatforms.includes(p.id))
+  const connectedPlatforms = accounts.map(
+    (a) => a.platform?.toLowerCase()
+  )
+  const availablePlatforms = PLATFORM_OPTIONS.filter(
+    (p) => !connectedPlatforms.includes(p.id)
+  )
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto animate-fade-in pb-12">

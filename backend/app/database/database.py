@@ -7,6 +7,7 @@ from app.core.config import settings
 # =====================================================
 # POSTGRESQL SETUP (Relational Database)
 # =====================================================
+print(settings.SQLALCHEMY_DATABASE_URI)
 engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
 
 SessionLocal = sessionmaker(
@@ -27,7 +28,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
 
 # =====================================================
 # MONGODB SETUP (Document Database)

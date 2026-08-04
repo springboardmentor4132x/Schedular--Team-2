@@ -62,12 +62,12 @@ export default function ContentScheduling() {
   const [uploadProgress, setUploadProgress] = useState(null)
   const fileInputRef = useRef(null)
 
-  const [scheduleDate, setScheduleDate] = useState(todayLocalStr)
+  const [scheduleDate, setScheduleDate] = useState(todayLocalStr())
   const [scheduleTime, setScheduleTime] = useState('16:30')
   const [recurrence, setRecurrence] = useState('Never')
   const [previewTab, setPreviewTab] = useState('instagram')
 
-  const [recStartDate, setRecStartDate] = useState(todayLocalStr)
+  const [recStartDate, setRecStartDate] = useState(todayLocalStr())
   const [recEndDate, setRecEndDate] = useState(() => daysFromToday(30))
   const [selectedWeekdays, setSelectedWeekdays] = useState(['Mon', 'Wed'])
   const [monthlyOption, setMonthlyOption] = useState('Same date each month')
@@ -199,6 +199,15 @@ export default function ContentScheduling() {
   }
 
   const handleSchedulePost = async () => {
+    if (selectedPlatforms.length === 0) {
+      setToast('Please select at least one platform.')
+      return
+    }
+
+    if (!caption.trim()) {
+      setToast('Caption cannot be empty.')
+      return
+    }
     if (submitting) return
     setSubmitting(true)
     try {

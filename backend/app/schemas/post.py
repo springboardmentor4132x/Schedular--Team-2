@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field,field_validator
 
 
 class PostCreate(BaseModel):
@@ -39,12 +39,18 @@ class PostResponse(BaseModel):
     title: Optional[str] = None
     caption: Optional[str] = None
     content_type: str = "text"
-    media_file_path: Optional[str] = None
+    media_url: Optional[str] = None
     status: str = "Draft"
     scheduled_for: Optional[datetime] = None
     timezone: str = "UTC"
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+    published_at: Optional[datetime] = None
+    failure_reason: Optional[str] = None
+    retry_count: int = 0
+    platform_post_id: Optional[str] = None
+
     social_account_ids: list[int] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

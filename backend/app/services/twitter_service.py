@@ -1,5 +1,3 @@
-from urllib import response
-
 import requests
 from urllib.parse import urlencode
 
@@ -14,16 +12,17 @@ SCOPES = [
     "tweet.write",
     "users.read",
     "offline.access",
+    "media.write",
 ]
 
 
-def get_twitter_login_url():
+def get_twitter_login_url(user_id: int):
     params = {
         "response_type": "code",
         "client_id": settings.TWITTER_CLIENT_ID,
         "redirect_uri": settings.TWITTER_REDIRECT_URI,
         "scope": " ".join(SCOPES),
-        "state": "twitter_oauth",
+        "state": str(user_id),
         "code_challenge": "challenge",
         "code_challenge_method": "plain",
     }
@@ -47,13 +46,10 @@ def exchange_twitter_token(code: str):
         timeout=30
     )
 
-    response.raise_for_status()
+    if response.status_code != 200:
+        raise Exception(response.text)
     return response.json()
 
-def get_twitter_profile(access_token: str):
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
 
 def get_twitter_user_info(access_token: str):
     """Get user's Twitter/X profile info"""
@@ -94,15 +90,19 @@ def publish_tweet(access_token: str, message: str):
     }
 
     payload = {
-        "text": message
+        "text": message,
     }
 
     response = requests.post(
-    "https://api.x.com/2/tweets",
-    headers=headers,
-    json=payload,
+        "https://api.x.com/2/tweets",
+        headers=headers,
+        json=payload,
     )
 
-    response.raise_for_status()
+    print("STATUS CODE:", response.status_code)
+    print("RESPONSE:", response.text)
 
-    return response.json()
+    return {
+        "status_code": response.status_code,
+        "response": response.text,
+    }
