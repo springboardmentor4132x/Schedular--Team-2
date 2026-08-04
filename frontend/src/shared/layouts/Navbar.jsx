@@ -145,14 +145,14 @@ export default function Navbar() {
 
   return (
     <header className="relative flex items-center justify-between px-6 py-4
-                       bg-white dark:bg-slate-800
-                       border-b border-slate-100 dark:border-slate-700 z-20">
+                       bg-white dark:bg-slate-900
+                       border-b border-slate-200/80 dark:border-slate-800 z-20">
       <div className="flex items-center gap-3">
         {sidebarCtx && (
           <button
             type="button"
             onClick={sidebarCtx.toggleMobile}
-            className="p-2 -ml-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 md:hidden focus:outline-none"
+            className="p-2 -ml-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden focus:outline-none"
             aria-label="Open mobile menu"
           >
             <MenuIcon />
@@ -228,8 +228,8 @@ export default function Navbar() {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-800 rounded-2xl shadow-card-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-slate-100 dark:border-slate-700 overflow-hidden transform origin-top-right transition-all duration-200 ease-out z-50">
-              <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700">
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-card-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-slate-200/80 dark:border-slate-800 overflow-hidden transform origin-top-right transition-all duration-200 ease-out z-50">
+              <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Notifications</span>
                 {unreadCount > 0 && (
                   <button
@@ -240,7 +240,7 @@ export default function Navbar() {
                   </button>
                 )}
               </div>
-              <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/60">
+              <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
                 {notifications.length === 0 ? (
                   <div className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
                     No new notifications
@@ -252,8 +252,8 @@ export default function Navbar() {
                       onClick={() => handleNotificationClick(item.id)}
                       className={`flex gap-3 p-4 cursor-pointer transition-colors duration-150 ${
                         item.read
-                          ? 'bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700/60'
-                          : 'bg-indigo-50/30 hover:bg-indigo-50/50 dark:bg-indigo-950/10 dark:hover:bg-indigo-950/20'
+                          ? 'bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800'
+                          : 'bg-indigo-50/30 hover:bg-indigo-50/50 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40'
                       }`}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${
@@ -276,7 +276,7 @@ export default function Navbar() {
                   ))
                 )}
               </div>
-              <div className="border-t border-slate-100 dark:border-slate-700 p-2 text-center bg-slate-50 dark:bg-slate-800/80">
+              <div className="border-t border-slate-100 dark:border-slate-800 p-2 text-center bg-slate-50 dark:bg-slate-800/80">
                 <button
                   type="button"
                   onClick={() => setShowNotifications(false)}
@@ -289,7 +289,7 @@ export default function Navbar() {
           )}
         </div>
 
-        <div className="w-px h-6 bg-slate-200 dark:bg-slate-600" />
+        <div className="w-px h-6 bg-slate-200 dark:bg-slate-800" />
 
         <div className="relative" ref={userMenuRef}>
           <button
@@ -301,8 +301,8 @@ export default function Navbar() {
             }}
             className={`flex items-center gap-2 rounded-lg p-1 transition-colors duration-150 focus:outline-none ${
               showUserMenu
-                ? 'bg-slate-100 dark:bg-slate-700'
-                : 'hover:bg-slate-50 dark:hover:bg-slate-700'
+                ? 'bg-slate-100 dark:bg-slate-800'
+                : 'hover:bg-slate-50 dark:hover:bg-slate-800'
             }`}
             aria-label="User menu"
             aria-expanded={showUserMenu}
@@ -320,7 +320,7 @@ export default function Navbar() {
           </button>
 
           {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-2xl shadow-card-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-slate-100 dark:border-slate-700 overflow-hidden transform origin-top-right transition-all duration-200 ease-out z-50">
+            <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-card-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-slate-200/80 dark:border-slate-800 overflow-hidden transform origin-top-right transition-all duration-200 ease-out z-50">
               <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
                   JD

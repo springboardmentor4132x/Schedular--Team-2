@@ -48,14 +48,14 @@ import {
 // Settings Card Wrapper matching OrbitSocial Settings style
 function SettingsCard({ title, icon: IconComponent, children }) {
   return (
-    <Card className="p-6 space-y-6">
+    <Card className="p-6 space-y-6 border border-slate-200/80 dark:border-slate-800">
       <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
         {IconComponent && (
-          <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
-            <IconComponent size={20} />
+          <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+            <IconComponent size={20} strokeWidth={2} />
           </div>
         )}
-        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{title}</h3>
+        <h3 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100">{title}</h3>
       </div>
       {children}
     </Card>
@@ -66,7 +66,7 @@ function SettingsCard({ title, icon: IconComponent, children }) {
 function SettingsDropdown({ id, label, value, options, onChange }) {
   return (
     <div className="space-y-1.5 w-full">
-      <label htmlFor={id} className="label-base">
+      <label htmlFor={id} className="label-base text-xs font-semibold">
         {label}
       </label>
       <select
@@ -90,11 +90,11 @@ function ToggleSwitch({ checked, onChange, label, description, id }) {
   return (
     <div className="flex items-center justify-between py-2 gap-4">
       <div>
-        <label htmlFor={id} className="text-sm font-bold text-slate-900 dark:text-slate-100 cursor-pointer block">
+        <label htmlFor={id} className="text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 cursor-pointer block">
           {label}
         </label>
         {description && (
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>
         )}
       </div>
       <button
@@ -103,12 +103,12 @@ function ToggleSwitch({ checked, onChange, label, description, id }) {
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
-          checked ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 ${
+          checked ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-800'
         }`}
       >
         <span
-          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
             checked ? 'translate-x-5' : 'translate-x-0'
           }`}
         />
@@ -234,19 +234,19 @@ export default function CreatorSettings() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+      <section aria-label="Page header" className="card relative overflow-hidden bg-gradient-to-r from-indigo-50/50 via-white to-purple-50/40 dark:from-indigo-950/30 dark:via-slate-900 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 p-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Creator Settings</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Creator Settings</h1>
+          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
             Manage your workspace, notifications, privacy and creator preferences.
           </p>
         </div>
-      </div>
+      </section>
 
       {/* Two-Column Settings Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
         {/* LEFT PANEL — Vertical Settings Navigation */}
-        <Card className="p-3 lg:p-4 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible whitespace-nowrap lg:whitespace-normal gap-1 scrollbar-hide shrink-0 z-10">
+        <Card className="p-2.5 lg:p-3 border border-slate-200/80 dark:border-slate-800 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible whitespace-nowrap lg:whitespace-normal gap-1 scrollbar-hide shrink-0 z-10">
           {tabs.map((tab) => {
             const IconComponent = tab.icon
             const isActive = activeTab === tab.id
@@ -256,15 +256,15 @@ export default function CreatorSettings() {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={[
-                  'flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-150 w-full text-left',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                  'flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-all duration-150 w-full text-left cursor-pointer',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30',
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
                 ].join(' ')}
               >
                 <span className={isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}>
-                  <IconComponent size={18} />
+                  <IconComponent size={16} strokeWidth={2} />
                 </span>
                 <span className="flex-1">{tab.label}</span>
               </button>

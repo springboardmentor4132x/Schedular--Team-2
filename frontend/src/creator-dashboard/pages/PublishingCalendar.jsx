@@ -162,33 +162,33 @@ export default function PublishingCalendar() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in relative pb-12">
       
-      <section aria-label="Page header" className="card bg-gradient-to-r from-indigo-50/50 to-slate-50 dark:from-indigo-950/10 dark:to-slate-800/80 border border-slate-100 dark:border-slate-700/60 shadow-card">
+      <section aria-label="Page header" className="card bg-gradient-to-r from-indigo-50/50 via-white to-purple-50/40 dark:from-indigo-950/30 dark:via-slate-900 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Publishing Calendar</h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm font-medium">Manage and visualize all scheduled content across platforms.</p>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Publishing Calendar</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-xs md:text-sm font-medium">Manage and visualize all scheduled content across platforms.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={handleCreatePostSimulated} className="btn btn-primary btn-md">
-              <Plus size={16} />
+            <button onClick={handleCreatePostSimulated} className="btn btn-primary btn-md shadow-xs">
+              <Plus size={16} strokeWidth={2} />
               <span>Create Post</span>
             </button>
-            <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl">
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
               <button 
                 onClick={() => setViewTab('month')} 
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${viewTab === 'month' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-400 hover:text-slate-700'}`}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${viewTab === 'month' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
               >
                 Month
               </button>
               <button 
                 onClick={() => setViewTab('week')} 
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${viewTab === 'week' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-400 hover:text-slate-700'}`}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${viewTab === 'week' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
               >
                 Week
               </button>
               <button 
                 onClick={() => setViewTab('day')} 
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${viewTab === 'day' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-400 hover:text-slate-700'}`}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${viewTab === 'day' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
               >
                 Day
               </button>
@@ -197,7 +197,7 @@ export default function PublishingCalendar() {
         </div>
       </section>
 
-      <section aria-label="Filters bar" className="card py-4 space-y-4 shadow-card">
+      <section aria-label="Filters bar" className="card py-4 space-y-4 border border-slate-200/80 dark:border-slate-800">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -206,7 +206,7 @@ export default function PublishingCalendar() {
               placeholder="Search scheduled posts..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 w-full text-sm bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-800 dark:text-white"
+              className="pl-9 pr-4 py-2 w-full text-xs bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-900 dark:text-slate-100"
             />
           </div>
 
@@ -214,7 +214,7 @@ export default function PublishingCalendar() {
             <select 
               value={platformFilter} 
               onChange={(e) => setPlatformFilter(e.target.value)}
-              className="px-3 py-2 text-xs font-semibold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-400"
+              className="px-2.5 py-1.5 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100"
             >
               <option value="All">All Platforms</option>
               <option value="Instagram">Instagram</option>
@@ -227,7 +227,7 @@ export default function PublishingCalendar() {
             <select 
               value={campaignFilter} 
               onChange={(e) => setCampaignFilter(e.target.value)}
-              className="px-3 py-2 text-xs font-semibold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-400"
+              className="px-2.5 py-1.5 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100"
             >
               <option value="All">All Campaigns</option>
               <option value="Nike Summer Launch">Nike Summer Launch</option>
@@ -238,7 +238,7 @@ export default function PublishingCalendar() {
             <select 
               value={statusFilter} 
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 text-xs font-semibold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-400"
+              className="px-2.5 py-1.5 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100"
             >
               <option value="All">All Statuses</option>
               <option value="Scheduled">Scheduled</option>

@@ -160,10 +160,10 @@ function Dropdown({ id, label, value, options, onChange }) {
 
 function SettingsCard({ title, icon: Icon, children, id, className = '' }) {
   return (
-    <Card id={id} className={`p-5 sm:p-7 flex flex-col gap-6 ${className}`}>
-      <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700/60 pb-4">
+    <Card id={id} className={`p-5 sm:p-7 flex flex-col gap-6 border border-slate-200/80 dark:border-slate-800 ${className}`}>
+      <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
         {Icon && (
-          <span className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+          <span className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
             <Icon />
           </span>
         )}
@@ -298,7 +298,7 @@ export default function Settings() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
-        <Card className="p-3 lg:p-4 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible whitespace-nowrap lg:whitespace-normal gap-1 scrollbar-hide shrink-0 z-10">
+        <Card className="p-3 lg:p-4 border border-slate-200/80 dark:border-slate-800 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible whitespace-nowrap lg:whitespace-normal gap-1 scrollbar-hide shrink-0 z-10">
           {tabs.map((tab) => {
             const IconComponent = tab.icon
             const isActive = activeTab === tab.id
@@ -308,11 +308,11 @@ export default function Settings() {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={[
-                  'flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-150 w-full text-left',
+                  'flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-150 w-full text-left cursor-pointer',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
                   isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'
                 ].join(' ')}
               >
                 <span className={isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}>
@@ -320,7 +320,7 @@ export default function Settings() {
                 </span>
                 <span className="flex-1">{tab.label}</span>
                 {tab.badge && (
-                  <span className="px-2 py-0.5 text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-400 rounded-full">
+                  <span className="px-2 py-0.5 text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-400 rounded-full">
                     {tab.badge}
                   </span>
                 )}

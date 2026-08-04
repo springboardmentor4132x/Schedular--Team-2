@@ -59,17 +59,17 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
 
   return (
     <Modal isOpen title="Edit Profile" onClose={onClose} size="lg">
-      <div className="flex border-b border-slate-100 dark:border-slate-700 mb-6 -mx-6 px-6">
+      <div className="flex border-b border-default mb-6 -mx-6 px-6">
         {TABS.map(t => (
           <button
             key={t.id}
             type="button"
             id={`edit-tab-${t.id}`}
             onClick={() => setTab(t.id)}
-            className={`px-4 py-2.5 text-sm font-medium transition-colors -mb-px border-b-2
+            className={`px-4 py-2.5 text-sm font-medium transition-colors -mb-px border-b-2 cursor-pointer
                         ${tab === t.id
                           ? 'text-indigo-600 dark:text-indigo-400 border-indigo-600 dark:border-indigo-400'
-                          : 'text-slate-500 border-transparent hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300'}`}
+                          : 'text-secondary border-transparent hover:text-primary hover:border-slate-300'}`}
           >
             {t.label}
           </button>
@@ -78,12 +78,12 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
 
       {tab === 'basic' && (
         <div className="space-y-5">
-          <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-default">
             <Avatar initials={form.firstName[0] + form.lastName[0]} size="lg"
               className="ring-4 ring-white shadow" />
             <div>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Profile Photo</p>
-              <p className="text-xs text-slate-400 mb-2">JPG, PNG or GIF — max 2 MB</p>
+              <p className="text-sm font-semibold text-primary mb-1">Profile Photo</p>
+              <p className="text-xs text-secondary mb-2">JPG, PNG or GIF — max 2 MB</p>
               <button
                 type="button"
                 id="edit-upload-photo-btn"
@@ -129,7 +129,7 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
             <textarea id="edit-bio" rows={4} className={`${inp} resize-none`}
               value={form.bio} onChange={e => set('bio', e.target.value)}
               placeholder="Tell the world about yourself…" />
-            <p className="text-xs text-slate-400 mt-1 text-right">
+            <p className="text-xs text-secondary mt-1 text-right">
               {form.bio.length} / 300 characters
             </p>
           </Field>
@@ -152,7 +152,7 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
 
       {tab === 'skills' && (
         <div className="space-y-4">
-          <p className="text-sm text-slate-500">Add skills to showcase your expertise on your profile.</p>
+          <p className="text-sm text-secondary">Add skills to showcase your expertise on your profile.</p>
           <div className="flex gap-2">
             <input
               id="edit-skill-input"
@@ -166,10 +166,10 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
               + Add
             </button>
           </div>
-          <div className="min-h-16 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-dashed border-slate-200 dark:border-slate-700
+          <div className="min-h-16 p-4 rounded-xl bg-surface border border-dashed border-default
                           flex flex-wrap gap-2 content-start">
             {form.skills.length === 0
-              ? <p className="text-sm text-slate-400 w-full text-center self-center">No skills added yet</p>
+              ? <p className="text-sm text-secondary w-full text-center self-center">No skills added yet</p>
               : form.skills.map(skill => (
                   <Badge key={skill} variant="primary" onRemove={() => removeSkilll(skill)}>
                     {skill}
@@ -184,7 +184,7 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
         <div className="space-y-5">
           {form.socialLinks.map((link, i) => (
             <div key={link.platform} className="space-y-3">
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{link.platform}</p>
+              <p className="text-sm font-semibold text-primary">{link.platform}</p>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Handle" id={`edit-handle-${i}`}>
                   <input id={`edit-handle-${i}`} className={inp} value={link.handle}
@@ -200,7 +200,7 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
         </div>
       )}
 
-      <div className="flex items-center justify-end gap-3 mt-8 pt-5 border-t border-slate-100 dark:border-slate-700">
+      <div className="flex items-center justify-end gap-3 mt-8 pt-5 border-t border-default">
         <button type="button" onClick={onClose} className="btn btn-ghost btn-md">Cancel</button>
         <button type="button" id="edit-profile-save-btn" onClick={handleSave} className="btn btn-primary btn-md">
           Save Changes

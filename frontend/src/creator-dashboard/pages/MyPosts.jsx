@@ -156,18 +156,18 @@ export default function MyPosts() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
-      <section aria-label="Page header" className="card bg-gradient-to-r from-indigo-50/50 to-slate-50 dark:from-indigo-950/10 dark:to-slate-800/80 border border-slate-100 dark:border-slate-700/60 shadow-card">
+      <section aria-label="Page header" className="card bg-gradient-to-r from-indigo-50/50 via-white to-purple-50/40 dark:from-indigo-950/30 dark:via-slate-900 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">My Posts</h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm font-medium">Manage all your content from one place.</p>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">My Posts</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-xs md:text-sm font-medium">Manage all your content from one place.</p>
           </div>
           <div className="flex items-center gap-2">
             <button 
               onClick={handleCreatePostSimulated}
-              className="btn btn-primary btn-md min-w-[185px] justify-center shadow-sm"
+              className="btn btn-primary btn-md min-w-[185px] justify-center shadow-xs"
             >
-              <Plus size={16} />
+              <Plus size={16} strokeWidth={2} />
               <span>Create Post</span>
             </button>
           </div>
@@ -175,64 +175,64 @@ export default function MyPosts() {
       </section>
 
       <section aria-label="My posts metrics" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div onClick={() => handleSelectTab('Drafts')} className="stat-card cursor-pointer hover:-translate-y-1 hover:border-indigo-500/50 transition-all duration-300 group">
-          <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-            <FileText size={20} />
+        <div onClick={() => handleSelectTab('Drafts')} className="stat-card cursor-pointer group">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+            <FileText size={18} strokeWidth={2} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Draft Posts</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{stats.drafts}</p>
-            <p className="text-[10px] text-slate-400 mt-1">In editing vault</p>
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Draft Posts</p>
+            <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-50 mt-1 tracking-tight">{stats.drafts}</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">In editing vault</p>
           </div>
         </div>
 
-        <div onClick={() => handleSelectTab('Scheduled')} className="stat-card cursor-pointer hover:-translate-y-1 hover:border-indigo-500/50 transition-all duration-300 group">
-          <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-            <Calendar size={20} />
+        <div onClick={() => handleSelectTab('Scheduled')} className="stat-card cursor-pointer group">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+            <Calendar size={18} strokeWidth={2} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Scheduled Posts</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{stats.scheduled}</p>
-            <p className="text-[10px] text-emerald-500 font-semibold mt-1">▲ +2 active</p>
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Scheduled Posts</p>
+            <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-50 mt-1 tracking-tight">{stats.scheduled}</p>
+            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">▲ +2 active</p>
           </div>
         </div>
 
-        <div onClick={() => handleSelectTab('Published')} className="stat-card cursor-pointer hover:-translate-y-1 hover:border-indigo-500/50 transition-all duration-300 group">
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-            <CheckCircle size={20} />
+        <div onClick={() => handleSelectTab('Published')} className="stat-card cursor-pointer group">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+            <CheckCircle size={18} strokeWidth={2} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Published Posts</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{stats.published}</p>
-            <p className="text-[10px] text-emerald-500 font-semibold mt-1">▲ +12% this week</p>
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Published Posts</p>
+            <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-50 mt-1 tracking-tight">{stats.published}</p>
+            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">▲ +12% this week</p>
           </div>
         </div>
 
-        <div onClick={() => handleSelectTab('Rejected')} className="stat-card cursor-pointer hover:-translate-y-1 hover:border-indigo-500/50 transition-all duration-300 group">
-          <div className="w-11 h-11 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-            <XCircle size={20} />
+        <div onClick={() => handleSelectTab('Rejected')} className="stat-card cursor-pointer group">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+            <XCircle size={18} strokeWidth={2} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rejected Posts</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{stats.rejected}</p>
-            <p className="text-[10px] text-rose-500 font-semibold mt-1">Needs review</p>
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Rejected Posts</p>
+            <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-50 mt-1 tracking-tight">{stats.rejected}</p>
+            <p className="text-[10px] text-rose-500 font-semibold mt-0.5">Needs review</p>
           </div>
         </div>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         <div className="lg:col-span-3 space-y-6">
-          <div className="card space-y-4 shadow-card">
-            <div className="flex items-center gap-1 border-b border-slate-100 dark:border-slate-700/60 pb-1 overflow-x-auto scrollbar-none">
+          <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+            <div className="flex items-center gap-1 border-b border-slate-100 dark:border-slate-800 pb-1 overflow-x-auto scrollbar-none">
               {['All', 'Drafts', 'Scheduled', 'Published', 'Rejected'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => handleSelectTab(tab)}
                   className={`
-                    px-4 py-2 text-sm font-semibold rounded-lg transition-all whitespace-nowrap
+                    px-4 py-2 text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer
                     ${activeTab === tab 
-                      ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40' 
-                      : 'text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/60 dark:bg-indigo-950/40' 
+                      : 'text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                     }
                   `}
                 >
@@ -249,7 +249,7 @@ export default function MyPosts() {
                   placeholder="Search by title, platform or campaign..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="input-base pl-9"
+                  className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-900 dark:text-slate-100"
                 />
               </div>
 
@@ -257,7 +257,7 @@ export default function MyPosts() {
                 <select 
                   value={platformFilter} 
                   onChange={(e) => setPlatformFilter(e.target.value)}
-                  className="select-base !w-auto text-xs"
+                  className="px-2.5 py-1.5 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100"
                 >
                   <option value="All">All Platforms</option>
                   <option value="Instagram">Instagram</option>
@@ -270,7 +270,7 @@ export default function MyPosts() {
                 <select 
                   value={campaignFilter} 
                   onChange={(e) => setCampaignFilter(e.target.value)}
-                  className="select-base !w-auto text-xs"
+                  className="px-2.5 py-1.5 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100"
                 >
                   <option value="All">All Campaigns</option>
                   <option value="Nike Summer Launch">Nike Summer Launch</option>
@@ -282,7 +282,7 @@ export default function MyPosts() {
                 <select 
                   value={sortOrder} 
                   onChange={(e) => setSortOrder(e.target.value)}
-                  className="select-base !w-auto text-xs"
+                  className="px-2.5 py-1.5 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100"
                 >
                   <option value="Newest">Newest First</option>
                   <option value="Oldest">Oldest First</option>
@@ -293,9 +293,9 @@ export default function MyPosts() {
           </div>
 
           {filteredPosts.length === 0 ? (
-            <div className="card flex flex-col items-center justify-center p-12 text-center border-dashed border-2 border-slate-200 dark:border-slate-700 bg-slate-50/20 dark:bg-slate-800/10">
+            <div className="card flex flex-col items-center justify-center p-12 text-center border-dashed border-2 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
               <span className="text-4xl mb-3">📝</span>
-              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">No Drafts Yet</h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">No Drafts Yet</h3>
               <p className="text-xs text-slate-500 mt-1 max-w-sm">
                 Get started by creating your first creative update post draft or importing one.
               </p>
@@ -303,7 +303,7 @@ export default function MyPosts() {
                 onClick={handleCreatePostSimulated}
                 className="btn btn-primary btn-md mt-4"
               >
-                <Plus size={16} />
+                <Plus size={16} strokeWidth={2} />
                 <span>Create Post</span>
               </button>
             </div>
@@ -312,16 +312,16 @@ export default function MyPosts() {
               {filteredPosts.map((post) => {
                 const PlatformIcon = post.platformIcon
                 return (
-                  <div key={post.id} className="card p-5 hover:border-indigo-400/50 hover:shadow-card-lg transition-all duration-300 flex flex-col space-y-4">
+                  <div key={post.id} className="card p-5 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-500/40 transition-all duration-200 flex flex-col space-y-4">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-2.5">
                         <span className="text-2xl">{post.thumb}</span>
                         <div>
-                          <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-1">{post.title}</h4>
+                          <h4 className="font-bold text-xs md:text-sm text-slate-900 dark:text-slate-100 line-clamp-1">{post.title}</h4>
                           <span className="text-[10px] text-slate-400 font-medium">{post.edited}</span>
                         </div>
                       </div>
-                      <div className="p-1.5 bg-indigo-50 dark:bg-indigo-950/60 rounded text-indigo-600 dark:text-indigo-400">
+                      <div className="p-1.5 bg-indigo-50 dark:bg-indigo-950/60 rounded-lg text-indigo-600 dark:text-indigo-400">
                         <PlatformIcon size={14} />
                       </div>
                     </div>
@@ -331,15 +331,15 @@ export default function MyPosts() {
                       <StatusBadge status="draft" />
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700/60 pt-3 mt-auto">
+                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3 mt-auto">
                       <div className="flex items-center gap-1">
-                        <button className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-500 dark:text-slate-400" title="Edit draft">
+                        <button className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors" title="Edit draft">
                           <Edit size={14} />
                         </button>
-                        <button onClick={() => handleDuplicate(post)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-500 dark:text-slate-400" title="Duplicate">
+                        <button onClick={() => handleDuplicate(post)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors" title="Duplicate">
                           <Copy size={14} />
                         </button>
-                        <button onClick={() => handleDelete(post.id)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950 text-rose-500 rounded" title="Delete">
+                        <button onClick={() => handleDelete(post.id)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500 rounded-lg transition-colors" title="Delete">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -353,28 +353,28 @@ export default function MyPosts() {
               })}
             </div>
           ) : (
-            <div className="card p-0 overflow-hidden shadow-card">
+            <div className="card p-0 overflow-hidden border border-slate-200/80 dark:border-slate-800">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="table-head">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200/80 dark:border-slate-800">
                     <tr>
-                      <th className="table-th">Post</th>
-                      <th className="table-th">Platform</th>
-                      <th className="table-th">Campaign</th>
-                      <th className="table-th">Status</th>
-                      <th className="table-th">Scheduled / Date</th>
-                      <th className="table-th text-right">Actions</th>
+                      <th className="py-3 px-4 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs text-left">Post</th>
+                      <th className="py-3 px-4 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs text-left">Platform</th>
+                      <th className="py-3 px-4 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs text-left">Campaign</th>
+                      <th className="py-3 px-4 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs text-left">Status</th>
+                      <th className="py-3 px-4 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs text-left">Scheduled / Date</th>
+                      <th className="py-3 px-4 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                     {filteredPosts.map((post) => {
                       const PlatformIcon = post.platformIcon
                       return (
                         <tr key={post.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-3">
-                              <span className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-lg">{post.thumb}</span>
-                              <span className="font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{post.title}</span>
+                              <span className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-lg">{post.thumb}</span>
+                              <span className="font-bold text-slate-900 dark:text-slate-100 line-clamp-1">{post.title}</span>
                             </div>
                           </td>
                           <td className="py-3.5 px-4">
@@ -384,22 +384,22 @@ export default function MyPosts() {
                             </span>
                           </td>
                           <td className="py-3.5 px-4 text-xs text-slate-500 font-medium">{post.campaign}</td>
-                          <td className="table-td">
+                          <td className="py-3.5 px-4">
                             <StatusBadge status={post.status === 'Needs Review' ? 'review' : post.status} dot />
                           </td>
                           <td className="py-3.5 px-4 text-xs text-slate-500 font-medium">{post.time}</td>
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              <button className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-500 dark:text-slate-400" title="Preview">
+                              <button className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors" title="Preview">
                                 <Eye size={14} />
                               </button>
-                              <button className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-500 dark:text-slate-400" title="Edit">
+                              <button className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors" title="Edit">
                                 <Edit size={14} />
                               </button>
-                              <button onClick={() => handleDuplicate(post)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-500 dark:text-slate-400" title="Duplicate">
+                              <button onClick={() => handleDuplicate(post)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors" title="Duplicate">
                                 <Copy size={14} />
                               </button>
-                              <button onClick={() => handleDelete(post.id)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950 text-rose-500 rounded" title="Delete">
+                              <button onClick={() => handleDelete(post.id)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500 rounded-lg transition-colors" title="Delete">
                                 <Trash2 size={14} />
                               </button>
                             </div>
@@ -415,9 +415,9 @@ export default function MyPosts() {
         </div>
 
         <div className="space-y-6">
-          <div className="card space-y-4 shadow-card">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700/60 pb-3 flex items-center gap-2">
-              <Database size={16} className="text-indigo-500" />
+          <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+            <h2 className="text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+              <Database size={16} className="text-indigo-500" strokeWidth={2} />
               Content Summary
             </h2>
             
@@ -427,12 +427,12 @@ export default function MyPosts() {
                   <span>Draft Completion</span>
                   <span>78%</span>
                 </div>
-                <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div className="h-full bg-amber-500" style={{ width: '78%' }}></div>
                 </div>
               </div>
 
-              <div className="flex justify-between border-b border-slate-100 dark:border-slate-700/60 pb-2">
+              <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                 <span>Posts Ready</span>
                 <span className="font-bold text-slate-900 dark:text-slate-100">{stats.scheduled} ready</span>
               </div>
@@ -442,22 +442,22 @@ export default function MyPosts() {
                   <span>Cloud Storage Used</span>
                   <span>4.2 GB / 10 GB</span>
                 </div>
-                <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div className="h-full bg-indigo-600" style={{ width: '42%' }}></div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="card space-y-4 shadow-card">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700/60 pb-3 flex items-center gap-2">
-              <Activity size={16} className="text-indigo-500" />
+          <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+            <h2 className="text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+              <Activity size={16} className="text-indigo-500" strokeWidth={2} />
               Recent Activity
             </h2>
 
             <div className="space-y-3">
               <div className="flex gap-2.5 items-start">
-                <span className="p-1 bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded mt-0.5">
+                <span className="p-1 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 rounded-lg mt-0.5 border border-amber-200/60 dark:border-amber-800/40">
                   <FileText size={12} />
                 </span>
                 <div>
@@ -467,7 +467,7 @@ export default function MyPosts() {
               </div>
 
               <div className="flex gap-2.5 items-start">
-                <span className="p-1 bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded mt-0.5">
+                <span className="p-1 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-lg mt-0.5 border border-indigo-200/60 dark:border-indigo-800/40">
                   <Calendar size={12} />
                 </span>
                 <div>
@@ -477,7 +477,7 @@ export default function MyPosts() {
               </div>
 
               <div className="flex gap-2.5 items-start">
-                <span className="p-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded mt-0.5">
+                <span className="p-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-lg mt-0.5 border border-emerald-200/60 dark:border-emerald-800/40">
                   <CheckCircle size={12} />
                 </span>
                 <div>

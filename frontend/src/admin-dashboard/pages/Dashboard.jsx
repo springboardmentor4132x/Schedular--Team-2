@@ -25,14 +25,14 @@ function QuickAction({ emoji, label, desc, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-col items-start gap-1.5 p-5 rounded-xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800
+      className="flex flex-col items-start gap-1.5 p-5 rounded-xl border border-default bg-card
                  hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-card-lg hover:-translate-y-1 transition-all duration-300 text-left group focus:outline-none focus:ring-2 focus:ring-indigo-400"
     >
       <span className="text-2xl transition-transform duration-300 group-hover:scale-110">{emoji}</span>
-      <span className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+      <span className="text-sm font-bold text-primary group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
         {label}
       </span>
-      <span className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{desc}</span>
+      <span className="text-xs text-secondary leading-relaxed">{desc}</span>
     </button>
   )
 }
@@ -106,8 +106,8 @@ export default function Dashboard() {
     return (
       <div className="space-y-6 max-w-7xl mx-auto">
         <div className="card animate-pulse space-y-3">
-          <div className="w-64 h-7 rounded bg-slate-200 dark:bg-slate-700"></div>
-          <div className="w-96 h-4 rounded bg-slate-200 dark:bg-slate-700"></div>
+          <div className="w-64 h-7 rounded bg-surface"></div>
+          <div className="w-96 h-4 rounded bg-surface"></div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8 gap-4">
@@ -126,15 +126,15 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
-      <section aria-label="Dashboard header" className="card relative overflow-hidden bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-800 dark:to-slate-800/80 border border-slate-100 dark:border-slate-700 shadow-card">
+      <section aria-label="Dashboard header" className="card relative overflow-hidden bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-800 dark:to-slate-800/80 border border-default shadow-card">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Welcome back, Administrator</h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">Manage users, teams, campaigns and platform operations.</p>
+            <h1 className="text-2xl font-bold text-primary">Welcome back, Administrator</h1>
+            <p className="text-secondary mt-1">Manage users, teams, campaigns and platform operations.</p>
           </div>
-          <div className="flex flex-wrap gap-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
-            <span className="bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-200/50 dark:border-slate-600/40">Current Date: {new Date().toLocaleDateString()}</span>
-            <span className="bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-200/50 dark:border-slate-600/40">Last Login: 2026-07-19 08:30</span>
+          <div className="flex flex-wrap gap-3 text-xs font-semibold text-secondary">
+            <span className="bg-surface px-3 py-1.5 rounded-lg border border-default">Current Date: {new Date().toLocaleDateString()}</span>
+            <span className="bg-surface px-3 py-1.5 rounded-lg border border-default">Last Login: 2026-07-19 08:30</span>
             <span className="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-200/30 dark:border-emerald-900/30">System Online</span>
           </div>
         </div>
@@ -149,7 +149,7 @@ export default function Dashboard() {
       </section>
 
       <section className="card" aria-label="Admin quick actions">
-        <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-4 border-b border-slate-100 dark:border-slate-700 pb-3">Quick Actions</h2>
+        <h2 className="text-base font-bold text-primary mb-4 border-b border-default pb-3">Quick Actions</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {adminQuickActions.map((a, i) => (
             <QuickAction key={i} {...a} />
@@ -159,22 +159,22 @@ export default function Dashboard() {
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4" aria-label="System overview">
         <div className="card space-y-4">
-          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700 pb-3">Recent User Registrations</h2>
-          <div className="overflow-x-auto rounded-lg border border-slate-100 dark:border-slate-700/60">
+          <h2 className="text-base font-bold text-primary border-b border-default pb-3">Recent User Registrations</h2>
+          <div className="overflow-x-auto rounded-lg border border-default">
             <table className="w-full text-sm">
-              <thead className="text-xs text-slate-400 dark:text-slate-500 uppercase bg-slate-50/50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-700">
+              <thead className="text-xs text-secondary uppercase bg-surface border-b border-default">
                 <tr>
                   <th className="py-3 px-4 text-left font-semibold">Name</th>
                   <th className="py-3 px-4 text-left font-semibold">Email</th>
                   <th className="py-3 px-4 text-left font-semibold">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
+              <tbody className="divide-y divide-default">
                 {recentUserRegistrations.map((u, i) => (
-                  <tr key={i} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/40 transition-colors">
-                    <td className="py-3 px-4 font-semibold text-slate-800 dark:text-slate-100">{u.name}</td>
-                    <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{u.email}</td>
-                    <td className="py-3 px-4 text-slate-400 dark:text-slate-500 text-xs">{u.date}</td>
+                  <tr key={i} className="hover:bg-hover transition-colors">
+                    <td className="py-3 px-4 font-semibold text-primary">{u.name}</td>
+                    <td className="py-3 px-4 text-secondary">{u.email}</td>
+                    <td className="py-3 px-4 text-secondary text-xs">{u.date}</td>
                   </tr>
                 ))}
               </tbody>
@@ -183,22 +183,22 @@ export default function Dashboard() {
         </div>
 
         <div className="card space-y-4">
-          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700 pb-3">Recent Business Requests</h2>
-          <div className="overflow-x-auto rounded-lg border border-slate-100 dark:border-slate-700/60">
+          <h2 className="text-base font-bold text-primary border-b border-default pb-3">Recent Business Requests</h2>
+          <div className="overflow-x-auto rounded-lg border border-default">
             <table className="w-full text-sm">
-              <thead className="text-xs text-slate-400 dark:text-slate-500 uppercase bg-slate-50/50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-700">
+              <thead className="text-xs text-secondary uppercase bg-surface border-b border-default">
                 <tr>
                   <th className="py-3 px-4 text-left font-semibold">Company</th>
                   <th className="py-3 px-4 text-left font-semibold">Contact</th>
                   <th className="py-3 px-4 text-left font-semibold">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
+              <tbody className="divide-y divide-default">
                 {recentBusinessRequests.map((b, i) => (
-                  <tr key={i} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/40 transition-colors">
-                    <td className="py-3 px-4 font-semibold text-slate-800 dark:text-slate-100">{b.company}</td>
-                    <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{b.contact}</td>
-                    <td className="py-3 px-4 text-slate-400 dark:text-slate-500 text-xs">{b.date}</td>
+                  <tr key={i} className="hover:bg-hover transition-colors">
+                    <td className="py-3 px-4 font-semibold text-primary">{b.company}</td>
+                    <td className="py-3 px-4 text-secondary">{b.contact}</td>
+                    <td className="py-3 px-4 text-secondary text-xs">{b.date}</td>
                   </tr>
                 ))}
               </tbody>
@@ -209,13 +209,13 @@ export default function Dashboard() {
 
       <section aria-label="Platform status" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {platformStatus.map((p, i) => (
-          <div key={i} className="card p-5 flex flex-col hover:-translate-y-1 hover:shadow-card-lg transition-all duration-300 ease-out border border-slate-100 dark:border-slate-700/80">
+          <div key={i} className="card p-5 flex flex-col hover:-translate-y-1 hover:shadow-card-lg transition-all duration-300 ease-out border border-default">
             <div className="flex items-center justify-between mb-3">
-              <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{p.name}</span>
+              <span className="font-bold text-primary text-sm">{p.name}</span>
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${p.status === 'Running' || p.status === 'Healthy' || p.status === 'Good' ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300'}`}>{p.status}</span>
             </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">Usage Metric: {p.usage}</div>
-            <div className="mt-auto h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div className="text-xs text-secondary mb-2">Usage Metric: {p.usage}</div>
+            <div className="mt-auto h-2 bg-surface rounded-full overflow-hidden">
               <div className="h-full bg-indigo-600 rounded-full transition-all duration-500" style={{ width: p.usage }}></div>
             </div>
           </div>
@@ -224,8 +224,8 @@ export default function Dashboard() {
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="card lg:col-span-1 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Recent Activity Timeline</h2>
+          <div className="flex items-center justify-between border-b border-default pb-3">
+            <h2 className="text-base font-bold text-primary">Recent Activity Timeline</h2>
             {timeline.length > 0 ? (
               <button 
                 type="button" 
@@ -246,21 +246,21 @@ export default function Dashboard() {
           </div>
           
           {timeline.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400">
+            <div className="flex flex-col items-center justify-center p-8 text-center text-secondary">
               <span className="text-3xl mb-2">📋</span>
               <p className="font-semibold text-sm">No recent activities available</p>
               <p className="text-xs mt-1 leading-relaxed">Platform events will appear here in real-time.</p>
             </div>
           ) : (
-            <ul className="space-y-4 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100 dark:before:bg-slate-700">
+            <ul className="space-y-4 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-surface">
               {timeline.map((item, i) => (
                 <li key={i} className="flex items-start gap-3 pl-6 relative">
                   <span className="absolute left-[8px] top-1.5 w-2 h-2 rounded-full bg-indigo-600 ring-4 ring-white dark:ring-slate-800"></span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-800 dark:text-slate-200">
+                    <p className="text-sm text-primary">
                       <strong className="font-semibold">{item.event}:</strong> {item.details}
                     </p>
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{item.time}</span>
+                    <span className="text-[10px] text-secondary block mt-0.5">{item.time}</span>
                   </div>
                 </li>
               ))}
@@ -269,8 +269,8 @@ export default function Dashboard() {
         </div>
 
         <div className="card lg:col-span-2 space-y-4">
-          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700 pb-3">Analytics Overview</h2>
-          <div className="h-64 flex flex-col items-center justify-center border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400">
+          <h2 className="text-base font-bold text-primary border-b border-default pb-3">Analytics Overview</h2>
+          <div className="h-64 flex flex-col items-center justify-center border border-dashed border-default rounded-xl bg-surface text-secondary">
             <span className="text-3xl mb-2">📊</span>
             <p className="font-semibold text-sm">Analytics Engine Configured</p>
             <p className="text-xs mt-1">Platform growth indices will render here.</p>

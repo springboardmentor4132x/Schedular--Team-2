@@ -136,23 +136,23 @@ export default function CreatorProfile() {
       )}
 
       {/* Page Header */}
-      <section aria-label="Page header" className="card relative overflow-hidden bg-gradient-to-r from-indigo-50/60 to-purple-50/60 dark:from-indigo-950/20 dark:to-purple-950/20 border border-indigo-100/50 dark:border-indigo-950/40 shadow-card">
+      <section aria-label="Page header" className="card relative overflow-hidden bg-gradient-to-r from-indigo-50/50 via-white to-purple-50/40 dark:from-indigo-950/30 dark:via-slate-900 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Creator Profile</h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm font-medium">Manage your creator profile, social presence and account settings.</p>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Creator Profile</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-xs md:text-sm font-medium">Manage your creator profile, social presence and account settings.</p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="primary" size="md" onClick={() => setIsEditModalOpen(true)}>
-              <Edit3 size={16} />
+              <Edit3 size={16} strokeWidth={2} />
               <span>Edit Profile</span>
             </Button>
             <Button variant="outline" size="md" onClick={handleShareProfile}>
-              <Share2 size={16} />
+              <Share2 size={16} strokeWidth={2} />
               <span>Share Profile</span>
             </Button>
-            <Button variant="ghost" size="md" onClick={handleDownloadPortfolio} className="border border-slate-200 dark:border-slate-700">
-              <Download size={16} />
+            <Button variant="ghost" size="md" onClick={handleDownloadPortfolio} className="border border-slate-200/80 dark:border-slate-800">
+              <Download size={16} strokeWidth={2} />
               <span>Portfolio</span>
             </Button>
           </div>
@@ -161,14 +161,14 @@ export default function CreatorProfile() {
 
       {/* SECTION 1 — PROFILE HEADER CARD */}
       <section aria-label="Profile Card">
-        <Card className="p-6">
+        <Card className="p-6 border border-slate-200/80 dark:border-slate-800">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               <div className="relative group">
-                <Avatar initials="AR" size="2xl" className="ring-4 ring-indigo-500/20 shadow-lg" />
+                <Avatar initials="AR" size="2xl" className="ring-4 ring-indigo-500/20 shadow-xs" />
                 <button 
                   onClick={() => setIsEditModalOpen(true)}
-                  className="absolute bottom-0 right-0 p-1.5 rounded-full bg-indigo-600 text-white shadow-md hover:bg-indigo-700 transition-transform group-hover:scale-110"
+                  className="absolute bottom-0 right-0 p-1.5 rounded-full bg-indigo-600 text-white shadow-xs hover:bg-indigo-700 transition-transform group-hover:scale-105"
                   title="Change photo"
                 >
                   <Edit3 size={14} />
@@ -177,24 +177,24 @@ export default function CreatorProfile() {
 
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">{profile.name}</h2>
+                  <h2 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">{profile.name}</h2>
                   {profile.isVerified && (
-                    <span className="inline-flex items-center gap-1 text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-200/60 dark:border-indigo-800/40">
                       <CheckCircle2 size={12} className="text-indigo-500" />
                       Verified Creator
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400 flex-wrap">
+                <div className="flex items-center gap-3 text-xs md:text-sm text-slate-500 dark:text-slate-400 flex-wrap">
                   <span className="font-semibold text-slate-700 dark:text-slate-300">@{profile.username}</span>
                   <span>•</span>
-                  <span className="bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-xs font-bold text-slate-600 dark:text-slate-300">ID: {profile.id}</span>
+                  <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-xs font-bold text-slate-600 dark:text-slate-300">ID: {profile.id}</span>
                   <span>•</span>
                   <span className="text-indigo-600 dark:text-indigo-400 font-bold">{profile.category}</span>
                 </div>
 
-                <p className="text-sm text-slate-600 dark:text-slate-300 max-w-2xl mt-2 leading-relaxed font-medium">
+                <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 max-w-2xl mt-2 leading-relaxed font-medium">
                   {profile.bio}
                 </p>
 
@@ -216,7 +216,7 @@ export default function CreatorProfile() {
                 <Share2 size={16} />
                 <span>Share Profile</span>
               </Button>
-              <Button variant="ghost" size="md" fullWidth onClick={handleDownloadPortfolio} className="border border-slate-200 dark:border-slate-700">
+              <Button variant="ghost" size="md" fullWidth onClick={handleDownloadPortfolio} className="border border-slate-200/80 dark:border-slate-800">
                 <Download size={16} />
                 <span>Download Portfolio</span>
               </Button>
@@ -227,19 +227,19 @@ export default function CreatorProfile() {
 
       {/* SECTION 2 — PROFILE STATISTICS */}
       <section aria-label="Profile Statistics">
-        <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
-          <Zap size={18} className="text-indigo-500" />
+        <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+          <Zap size={18} className="text-indigo-500" strokeWidth={2} />
           <span>Profile Statistics</span>
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {initialStats.map((stat, idx) => (
-            <div key={idx} className="stat-card cursor-pointer hover:-translate-y-1 hover:border-indigo-500/50 transition-all duration-300 group">
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 group-hover:scale-105 transition-transform ${stat.color}`}>
+            <div key={idx} className="stat-card cursor-pointer group hover:border-indigo-500/40 transition-all duration-200">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-105 transition-transform ${stat.color}`}>
                 <span>{stat.icon}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{stat.label}</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">{stat.value}</p>
+                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{stat.label}</p>
+                <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-50 mt-0.5 tracking-tight">{stat.value}</p>
                 <p className={`text-[11px] font-semibold mt-1 ${stat.positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
                   {stat.change}
                 </p>

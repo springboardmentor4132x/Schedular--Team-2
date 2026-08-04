@@ -49,19 +49,19 @@ const Youtube = (props) => (
 
 function MetricCard({ icon: Icon, count, label, trend, trendPositive, badgeColor, badgeText }) {
   return (
-    <div className="stat-card cursor-pointer transform hover:-translate-y-1 hover:border-indigo-500/50 dark:hover:border-indigo-400/40 hover:shadow-card-lg transition-all duration-300 ease-out group">
-      <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 transition-transform duration-300 group-hover:scale-110">
-        <Icon size={20} />
+    <div className="stat-card cursor-pointer group hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all duration-200">
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform duration-200">
+        <Icon size={18} strokeWidth={2} />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold tracking-wide uppercase text-[10px] truncate">{label}</p>
-          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${badgeColor}`}>
+        <div className="flex items-center justify-between gap-1.5">
+          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">{label}</p>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${badgeColor}`}>
             {badgeText}
           </span>
         </div>
-        <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight">{count}</p>
-        <p className={`text-xs font-semibold mt-1.5 flex items-center gap-1 ${trendPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
+        <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-50 mt-1 tracking-tight">{count}</p>
+        <p className={`text-xs font-semibold mt-1 flex items-center gap-1 ${trendPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
           <span>{trendPositive ? '▲' : '▼'} {trend}</span>
           <span className="text-slate-400 dark:text-slate-500 font-normal">this week</span>
         </p>
@@ -75,37 +75,39 @@ function QuickActionCard({ icon: Icon, label, desc, bgAccent, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-col items-start gap-2 p-5 rounded-xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800
-                 hover:border-indigo-500/50 dark:hover:border-indigo-400/50 hover:shadow-card-lg hover:-translate-y-1 transition-all duration-300 text-left group focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"
+      className="flex flex-col justify-between h-full p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900
+                 hover:border-indigo-500/40 dark:hover:border-indigo-500/40 hover:-translate-y-0.5 transition-all duration-200 text-left group focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer"
     >
-      <div className={`p-2.5 rounded-lg ${bgAccent} text-white transition-transform duration-300 group-hover:scale-105 shadow-sm`}>
-        <Icon size={20} />
-      </div>
-      <div className="mt-2">
-        <span className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1">
-          {label}
-          <ArrowUpRight size={14} className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-0.5 group-hover:translate-y-0" />
-        </span>
-        <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 block leading-relaxed">{desc}</span>
+      <div>
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${bgAccent} text-white transition-transform duration-200 group-hover:scale-105 shadow-xs`}>
+          <Icon size={18} strokeWidth={2} />
+        </div>
+        <div className="mt-3">
+          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1">
+            {label}
+            <ArrowUpRight size={13} className="opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-0.5 group-hover:translate-y-0" />
+          </span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block leading-normal line-clamp-2">{desc}</span>
+        </div>
       </div>
     </button>
   )
 }
 
 const creatorMetrics = [
-  { icon: FileEdit, count: '12', label: 'Draft Posts', trend: '+4%', trendPositive: true, badgeColor: 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300', badgeText: 'In Progress' },
-  { icon: Clock, count: '8', label: 'Scheduled Posts', trend: '+2%', trendPositive: true, badgeColor: 'bg-indigo-100 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300', badgeText: 'Ready' },
-  { icon: CheckCircle, count: '142', label: 'Published Posts', trend: '+15%', trendPositive: true, badgeColor: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300', badgeText: 'Live' },
-  { icon: AlertCircle, count: '3', label: 'Pending Reviews', trend: '-1%', trendPositive: false, badgeColor: 'bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300', badgeText: 'Needs Action' },
+  { icon: FileEdit, count: '12', label: 'Draft Posts', trend: '+4%', trendPositive: true, badgeColor: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/40', badgeText: 'In Progress' },
+  { icon: Clock, count: '8', label: 'Scheduled Posts', trend: '+2%', trendPositive: true, badgeColor: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200/60 dark:border-indigo-800/40', badgeText: 'Ready' },
+  { icon: CheckCircle, count: '142', label: 'Published Posts', trend: '+15%', trendPositive: true, badgeColor: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/40', badgeText: 'Live' },
+  { icon: AlertCircle, count: '3', label: 'Pending Reviews', trend: '-1%', trendPositive: false, badgeColor: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/40', badgeText: 'Needs Action' },
 ]
 
 const quickActions = [
   { icon: PlusCircle, label: 'Create Post', desc: 'Compose a new post update', bgAccent: 'bg-indigo-600', link: '/creator/create-post' },
   { icon: Upload, label: 'Upload Media', desc: 'Upload to content vault', bgAccent: 'bg-emerald-600', link: '/creator/create-post' },
   { icon: FileEdit, label: 'Continue Draft', desc: 'Resume where you left off', bgAccent: 'bg-amber-500', link: '/creator/my-posts?tab=drafts' },
-  { icon: Calendar, label: 'Schedule Content', desc: 'Plan dates for social sharing', bgAccent: 'bg-sky-500', link: '/creator/content-scheduling' },
-  { icon: Users, label: 'Join Campaign', desc: 'Collaborate with brands', bgAccent: 'bg-purple-500', link: '/creator/campaigns' },
-  { icon: Folder, label: 'Content Library', desc: 'Manage your creative assets', bgAccent: 'bg-pink-500', link: '/creator/my-posts' },
+  { icon: Calendar, label: 'Schedule Content', desc: 'Plan dates for social sharing', bgAccent: 'bg-indigo-500', link: '/creator/content-scheduling' },
+  { icon: Users, label: 'Join Campaign', desc: 'Collaborate with brands', bgAccent: 'bg-purple-600', link: '/creator/campaigns' },
+  { icon: Folder, label: 'Content Library', desc: 'Manage your creative assets', bgAccent: 'bg-indigo-700', link: '/creator/my-posts' },
 ]
 
 const initialCampaigns = [
@@ -179,28 +181,28 @@ export default function CreatorDashboard() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
-      <section aria-label="Welcome section" className="card relative overflow-hidden bg-gradient-to-r from-indigo-50/60 to-purple-50/60 dark:from-indigo-950/20 dark:to-purple-950/20 border border-indigo-100/50 dark:border-indigo-950/40 shadow-card">
+      <section aria-label="Welcome section" className="card relative overflow-hidden bg-gradient-to-r from-indigo-50/50 via-white to-purple-50/40 dark:from-indigo-950/30 dark:via-slate-900 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 z-10 relative">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
               Welcome back, Creator 👋
             </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm font-medium">
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-xs md:text-sm font-medium">
               Create, schedule and manage your content efficiently.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
-            <div className="bg-white dark:bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-100 dark:border-slate-700/60 shadow-sm">
+          <div className="flex flex-wrap gap-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+            <div className="bg-white/80 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex items-center">
               <span className="text-slate-400 mr-1.5 font-normal">Date:</span>
               {today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
-            <div className="bg-white dark:bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-100 dark:border-slate-700/60 shadow-sm">
+            <div className="bg-white/80 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex items-center">
               <span className="text-slate-400 mr-1.5 font-normal">Next Post:</span>
-              <span className="text-indigo-600 dark:text-indigo-400">4:30 PM (Instagram)</span>
+              <span className="text-indigo-600 dark:text-indigo-400 font-semibold">4:30 PM (Instagram)</span>
             </div>
-            <div className="bg-white dark:bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-100 dark:border-slate-700/60 shadow-sm flex items-center gap-1.5">
-              <span className="text-slate-400 font-normal">Productivity Score:</span>
-              <span className="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded text-[10px] font-bold">
+            <div className="bg-white/80 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex items-center gap-1.5">
+              <span className="text-slate-400 font-normal">Productivity:</span>
+              <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 px-2 py-0.5 rounded-md text-[10px] font-bold">
                 94% Very Good
               </span>
             </div>
@@ -214,12 +216,12 @@ export default function CreatorDashboard() {
         ))}
       </section>
 
-      <section aria-label="Quick action panel" className="card border border-indigo-100/50 dark:border-indigo-950/40 shadow-card">
-        <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-3">
-          <Sparkles className="text-indigo-500" size={18} />
+      <section aria-label="Quick action panel" className="card border border-slate-200/80 dark:border-slate-800">
+        <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+          <Sparkles className="text-indigo-500" size={18} strokeWidth={2} />
           Creator Command Center
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {quickActions.map((action, i) => (
             <QuickActionCard key={i} {...action} onClick={() => navigate(action.link)} />
           ))}
@@ -227,43 +229,43 @@ export default function CreatorDashboard() {
       </section>
 
       <section aria-label="Today's Workspace" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card space-y-4 shadow-card">
-          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center gap-2">
-            <CheckCircle className="text-indigo-500" size={18} />
+        <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+          <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+            <CheckCircle className="text-indigo-500" size={18} strokeWidth={2} />
             Today's Workspace Tasks
           </h2>
           
-          <div className="space-y-3">
-            <div className="p-3.5 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl flex items-start gap-3 border border-slate-100 dark:border-slate-700/60 hover:border-indigo-100 dark:hover:border-indigo-950/80 transition-all duration-300">
-              <input type="checkbox" className="mt-1.5 text-indigo-600 rounded focus:ring-indigo-400 w-4 h-4 cursor-pointer" defaultChecked={false} />
+          <div className="space-y-2.5">
+            <div className="p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl flex items-start gap-3 border border-slate-200/60 dark:border-slate-800 hover:border-indigo-500/30 transition-all duration-200">
+              <input type="checkbox" className="mt-1 text-indigo-600 rounded focus:ring-indigo-500/30 w-4 h-4 cursor-pointer" defaultChecked={false} />
               <div className="flex-1">
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Record B-Roll for Nike Campaign</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Deadline: Today at 5:00 PM · Priority: High</p>
+                <p className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200">Record B-Roll for Nike Campaign</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Deadline: Today at 5:00 PM · Priority: High</p>
               </div>
             </div>
             
-            <div className="p-3.5 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl flex items-start gap-3 border border-slate-100 dark:border-slate-700/60 opacity-80 hover:opacity-100 transition-all duration-300">
-              <input type="checkbox" className="mt-1.5 text-indigo-600 rounded focus:ring-indigo-400 w-4 h-4 cursor-pointer" defaultChecked={true} />
+            <div className="p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl flex items-start gap-3 border border-slate-200/60 dark:border-slate-800 opacity-80 hover:opacity-100 transition-all duration-200">
+              <input type="checkbox" className="mt-1 text-indigo-600 rounded focus:ring-indigo-500/30 w-4 h-4 cursor-pointer" defaultChecked={true} />
               <div className="flex-1">
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200 line-through opacity-60">Review Adidas Sports Week brief</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-through opacity-65">Completed 1 hour ago</p>
+                <p className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 line-through opacity-60">Review Adidas Sports Week brief</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-through opacity-65">Completed 1 hour ago</p>
               </div>
             </div>
 
-            <div className="p-3.5 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl flex items-start gap-3 border border-slate-100 dark:border-slate-700/60 hover:border-indigo-100 dark:hover:border-indigo-950/80 transition-all duration-300">
-              <input type="checkbox" className="mt-1.5 text-indigo-600 rounded focus:ring-indigo-400 w-4 h-4 cursor-pointer" defaultChecked={false} />
+            <div className="p-3.5 bg-slate-50/60 dark:bg-slate-800/40 rounded-xl flex items-start gap-3 border border-slate-200/60 dark:border-slate-800 hover:border-indigo-500/30 transition-all duration-200">
+              <input type="checkbox" className="mt-1 text-indigo-600 rounded focus:ring-indigo-500/30 w-4 h-4 cursor-pointer" defaultChecked={false} />
               <div className="flex-1">
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Draft outline for YouTube short</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Deadline: Tomorrow · Priority: Medium</p>
+                <p className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200">Draft outline for YouTube short</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Deadline: Tomorrow · Priority: Medium</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="card space-y-4 shadow-card">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <MessageSquare className="text-indigo-500" size={18} />
+        <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <MessageSquare className="text-indigo-500" size={18} strokeWidth={2} />
               Reviewer Feedback & Activity
             </h2>
             {feedbackList.length > 0 ? (
@@ -278,27 +280,27 @@ export default function CreatorDashboard() {
           </div>
           
           {feedbackList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 h-48 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
+            <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 h-48 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50">
               <span className="text-2xl mb-1.5">💬</span>
-              <p className="font-bold text-sm">No notifications or feedback</p>
-              <p className="text-xs mt-1">Reviewers have not posted new comments on your drafts.</p>
+              <p className="font-bold text-xs md:text-sm text-slate-800 dark:text-slate-200">No notifications or feedback</p>
+              <p className="text-xs mt-1 text-slate-500 dark:text-slate-400">Reviewers have not posted new comments on your drafts.</p>
             </div>
           ) : (
-            <div className="space-y-3.5">
+            <div className="space-y-3">
               {feedbackList.map((item) => (
                 <div 
                   key={item.id}
-                  className={`p-3.5 rounded-xl border transition-all duration-300 ${
+                  className={`p-3.5 rounded-xl border transition-all duration-200 ${
                     item.type === 'warning' 
-                      ? 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/20 hover:border-amber-500/40' 
-                      : 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40'
+                      ? 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/20 hover:border-amber-500/30' 
+                      : 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/30'
                   }`}
                 >
                   <div className="flex justify-between items-center mb-1">
                     <span className={`text-xs font-bold ${item.type === 'warning' ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
                       {item.title}
                     </span>
-                    <span className="text-[10px] text-slate-400">{item.time}</span>
+                    <span className="text-[10px] text-slate-400 font-medium">{item.time}</span>
                   </div>
                   <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                     {item.text}
@@ -310,10 +312,10 @@ export default function CreatorDashboard() {
         </div>
       </section>
 
-      <section aria-label="Brand campaigns" className="card space-y-4 shadow-card">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Layers className="text-indigo-500" size={18} />
+      <section aria-label="Brand campaigns" className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Layers className="text-indigo-500" size={18} strokeWidth={2} />
             Brand Campaigns
           </h2>
           {campaigns.length > 0 ? (
@@ -328,30 +330,30 @@ export default function CreatorDashboard() {
         </div>
         
         {campaigns.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 h-44 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
+          <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 h-44 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50">
             <span className="text-2xl mb-1.5">🚀</span>
-            <p className="font-bold text-sm">No campaigns yet</p>
-            <p className="text-xs mt-1">You are not currently enrolled in any brand campaigns.</p>
+            <p className="font-bold text-xs md:text-sm text-slate-800 dark:text-slate-200">No campaigns yet</p>
+            <p className="text-xs mt-1 text-slate-500 dark:text-slate-400">You are not currently enrolled in any brand campaigns.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {campaigns.map((camp, i) => (
-              <div key={i} className="p-5 rounded-xl border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/20 hover:border-indigo-300 dark:hover:border-indigo-900 transition-all duration-300 space-y-3.5 shadow-sm">
+              <div key={i} className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:border-indigo-500/40 transition-all duration-200 space-y-3">
                 <div className="flex justify-between items-start gap-2">
-                  <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-1">{camp.name}</h3>
-                  <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap ${
-                    camp.status === 'Active' ? 'bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300' :
-                    camp.status === 'Reviewing' ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300' :
-                    'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                  <h3 className="font-bold text-xs md:text-sm text-slate-900 dark:text-slate-100 line-clamp-1">{camp.name}</h3>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap border ${
+                    camp.status === 'Active' ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200/60 dark:border-indigo-800/40' :
+                    camp.status === 'Reviewing' ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/40' :
+                    'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
                   }`}>{camp.status}</span>
                 </div>
-                <p className="text-xs text-slate-400 font-medium">Due Date: {camp.due}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Due Date: {camp.due}</p>
                 <div className="space-y-1.5">
-                  <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                  <div className="flex justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400">
                     <span>Progress</span>
                     <span>{camp.progress}%</span>
                   </div>
-                  <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full transition-all duration-500 ${camp.color}`} style={{ width: `${camp.progress}%` }}></div>
                   </div>
                 </div>
@@ -362,10 +364,10 @@ export default function CreatorDashboard() {
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6" aria-label="Drafts and scheduling">
-        <div className="card lg:col-span-2 space-y-4 shadow-card">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <FileEdit className="text-indigo-500" size={18} />
+        <div className="card lg:col-span-2 space-y-4 border border-slate-200/80 dark:border-slate-800">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <FileEdit className="text-indigo-500" size={18} strokeWidth={2} />
               Recent Creative Drafts
             </h2>
             {drafts.length > 0 ? (
@@ -380,16 +382,16 @@ export default function CreatorDashboard() {
           </div>
           
           {drafts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 h-48 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/30 dark:bg-slate-800/20">
+            <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 dark:text-slate-400 h-48 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50">
               <span className="text-2xl mb-1.5">📝</span>
-              <p className="font-bold text-sm">No drafts available</p>
-              <p className="text-xs mt-1">Start writing a new post to save it as a draft.</p>
+              <p className="font-bold text-xs md:text-sm text-slate-800 dark:text-slate-200">No drafts available</p>
+              <p className="text-xs mt-1 text-slate-500 dark:text-slate-400">Start writing a new post to save it as a draft.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-slate-100 dark:border-slate-700/60">
+            <div className="overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-slate-400 uppercase tracking-wide bg-slate-50/50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-700/60">
+                  <tr className="text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200/80 dark:border-slate-800">
                     <th className="py-3 px-4">Title</th>
                     <th className="py-3 px-4">Platform</th>
                     <th className="py-3 px-4">Campaign</th>
@@ -397,12 +399,12 @@ export default function CreatorDashboard() {
                     <th className="py-3 px-4 text-right">Last Edited</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-700/60">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {drafts.map((d, i) => {
                     const PlatformIcon = d.icon
                     return (
                       <tr key={i} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">{d.title}</td>
+                        <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">{d.title}</td>
                         <td className="py-3 px-4">
                           <span className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-semibold">
                             <PlatformIcon size={14} className="text-indigo-500" />
@@ -411,9 +413,9 @@ export default function CreatorDashboard() {
                         </td>
                         <td className="py-3 px-4 text-xs text-slate-500 font-medium">{d.campaign}</td>
                         <td className="py-3 px-4">
-                          <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${
-                            d.status === 'Draft' ? 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300' :
-                            'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
+                          <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${
+                            d.status === 'Draft' ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700' :
+                            'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/40'
                           }`}>
                             {d.status}
                           </span>
@@ -428,25 +430,25 @@ export default function CreatorDashboard() {
           )}
         </div>
 
-        <div className="card space-y-4 shadow-card">
-          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center gap-2">
-            <Clock className="text-indigo-500" size={18} />
+        <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+          <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+            <Clock className="text-indigo-500" size={18} strokeWidth={2} />
             Upcoming Publishing Schedule
           </h2>
           
-          <div className="space-y-4">
+          <div className="space-y-3.5">
             {upcomingPosts.map((up, i) => {
               const PlatformIcon = up.icon
               return (
                 <div key={i} className="flex gap-3 items-start border-l-2 border-indigo-500 pl-3">
-                  <div className="p-1 bg-indigo-50 dark:bg-indigo-950/60 rounded text-indigo-600 dark:text-indigo-400 mt-0.5">
+                  <div className="p-1.5 bg-indigo-50 dark:bg-indigo-950/60 rounded-lg text-indigo-600 dark:text-indigo-400 mt-0.5">
                     <PlatformIcon size={14} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{up.title}</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">{up.time} · {up.platform}</p>
+                    <h4 className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{up.title}</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">{up.time} · {up.platform}</p>
                     {up.campaign !== 'None' && (
-                      <span className="inline-block mt-1.5 text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded">
+                      <span className="inline-block mt-1 text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 px-2 py-0.5 rounded">
                         {up.campaign}
                       </span>
                     )}
@@ -459,10 +461,10 @@ export default function CreatorDashboard() {
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6" aria-label="Calendar and analytics snapshot">
-        <div className="card space-y-4 shadow-card">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Calendar className="text-indigo-500" size={18} />
+        <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Calendar className="text-indigo-500" size={18} strokeWidth={2} />
               Publishing Calendar
             </h2>
             <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
@@ -482,10 +484,10 @@ export default function CreatorDashboard() {
               return (
                 <div 
                   key={i} 
-                  className={`py-1.5 rounded-lg flex flex-col items-center justify-center relative cursor-pointer font-semibold ${
-                    isToday ? 'bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-500/30' : 
-                    hasPost ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400' :
-                    'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                  className={`py-1.5 rounded-lg flex flex-col items-center justify-center relative cursor-pointer font-semibold transition-colors ${
+                    isToday ? 'bg-indigo-600 text-white font-bold shadow-xs' : 
+                    hasPost ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400' :
+                    'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
                   <span>{dayNum}</span>
@@ -498,62 +500,62 @@ export default function CreatorDashboard() {
           </div>
         </div>
 
-        <div className="card lg:col-span-2 space-y-4 shadow-card">
-          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center gap-2">
-            <Share2 className="text-indigo-500" size={18} />
+        <div className="card lg:col-span-2 space-y-4 border border-slate-200/80 dark:border-slate-800">
+          <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+            <Share2 className="text-indigo-500" size={18} strokeWidth={2} />
             Creator Performance Metrics
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-800/40 space-y-2">
-              <p className="text-xs text-slate-400 font-medium">Weekly Content Created</p>
+            <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Weekly Content Created</p>
               <div className="flex justify-between items-end">
-                <span className="text-xl font-extrabold text-slate-800 dark:text-slate-200">14 Posts</span>
-                <span className="text-xs text-emerald-500 font-bold">▲ +12%</span>
+                <span className="text-xl font-extrabold text-slate-900 dark:text-slate-100">14 Posts</span>
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">▲ +12%</span>
               </div>
               <div className="flex gap-1 h-8 items-end pt-2">
                 {[4, 6, 8, 5, 9, 7, 10].map((val, i) => (
-                  <div key={i} className="flex-1 bg-indigo-500/20 dark:bg-indigo-500/10 rounded-t overflow-hidden">
+                  <div key={i} className="flex-1 bg-indigo-500/15 dark:bg-indigo-500/20 rounded-t overflow-hidden">
                     <div className="bg-indigo-600 w-full rounded-t" style={{ height: `${val * 10}%` }}></div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-800/40 space-y-2">
-              <p className="text-xs text-slate-400 font-medium">Engagement Rate</p>
+            <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Engagement Rate</p>
               <div className="flex justify-between items-end">
-                <span className="text-xl font-extrabold text-slate-800 dark:text-slate-200">6.8% Average</span>
-                <span className="text-xs text-emerald-500 font-bold">▲ +0.5%</span>
+                <span className="text-xl font-extrabold text-slate-900 dark:text-slate-100">6.8% Average</span>
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">▲ +0.5%</span>
               </div>
               <div className="flex gap-1 h-8 items-end pt-2">
                 {[6.2, 6.4, 6.3, 6.7, 6.5, 6.8, 6.9].map((val, i) => (
-                  <div key={i} className="flex-1 bg-purple-500/20 dark:bg-purple-500/10 rounded-t overflow-hidden">
+                  <div key={i} className="flex-1 bg-purple-500/15 dark:bg-purple-500/20 rounded-t overflow-hidden">
                     <div className="bg-purple-600 w-full rounded-t" style={{ height: `${(val - 5) * 45}%` }}></div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-800/40 space-y-3">
-              <p className="text-xs text-slate-400 font-medium">Platform Distribution</p>
-              <div className="space-y-1.5 pt-1">
+            <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-3">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Platform Distribution</p>
+              <div className="space-y-2 pt-1">
                 <div>
-                  <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
+                  <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-1">
                     <span>Instagram</span>
                     <span>45%</span>
                   </div>
-                  <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full">
+                  <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div className="bg-pink-500 h-full rounded-full" style={{ width: '45%' }}></div>
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between text-[10px] text-slate-500 font-semibold">
+                  <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-1">
                     <span>LinkedIn</span>
                     <span>35%</span>
                   </div>
-                  <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full">
-                    <div className="bg-blue-600 h-full rounded-full" style={{ width: '35%' }}></div>
+                  <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="bg-indigo-600 h-full rounded-full" style={{ width: '35%' }}></div>
                   </div>
                 </div>
               </div>

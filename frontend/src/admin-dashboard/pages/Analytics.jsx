@@ -22,13 +22,13 @@ export default function Analytics() {
           { label: 'Link Clicks', value: '3,847', icon: '🔗', color: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400' },
           { label: 'New Followers', value: '+892', icon: '📈', color: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400' },
         ].map((stat, idx) => (
-          <Card key={idx} className="p-5 flex items-center gap-4 transition-all duration-300 hover:shadow-card-lg dark:hover:shadow-[0_4px_24px_rgba(0,0,0,0.45)]">
+          <Card key={idx} className="p-5 flex items-center gap-4 transition-all duration-300 hover:shadow-card-lg">
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${stat.color}`}>
               {stat.icon}
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{stat.label}</p>
-              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">{stat.value}</p>
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider">{stat.label}</p>
+              <p className="text-2xl font-bold text-primary mt-1">{stat.value}</p>
             </div>
           </Card>
         ))}
@@ -36,8 +36,8 @@ export default function Analytics() {
 
       <Card className="p-12 flex flex-col items-center justify-center text-center min-h-[340px]">
         <ChartLargeIcon />
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-5">Performance Analytics</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-md leading-relaxed">
+        <h3 className="text-lg font-bold text-primary mt-5">Performance Analytics</h3>
+        <p className="text-sm text-secondary mt-2 max-w-md leading-relaxed">
           Track engagement, reach, and growth across all your connected social platforms.
           Detailed charts and reports will appear here once data is available.
         </p>
@@ -48,7 +48,7 @@ export default function Analytics() {
       </Card>
 
       <Card className="p-6">
-        <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-4">Top Performing Posts</h3>
+        <h3 className="text-base font-bold text-primary mb-4">Top Performing Posts</h3>
         <div className="space-y-3">
           {[
             { platform: 'Instagram', text: 'Product launch teaser video',      reach: '12.4K', engagement: '8.3%' },
@@ -56,13 +56,13 @@ export default function Analytics() {
             { platform: 'LinkedIn',  text: 'Company culture behind the scenes', reach: '5.2K',  engagement: '9.4%' },
             { platform: 'Facebook',  text: 'Customer success spotlight',       reach: '3.8K',  engagement: '4.7%' },
           ].map((post, i) => (
-            <div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-hover transition-colors">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{post.text}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{post.platform}</p>
+                <p className="text-sm font-semibold text-primary truncate">{post.text}</p>
+                <p className="text-xs text-secondary mt-0.5">{post.platform}</p>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{post.reach}</p>
+                <p className="text-sm font-bold text-primary">{post.reach}</p>
                 <p className="text-xs text-emerald-600 dark:text-emerald-400">{post.engagement}</p>
               </div>
             </div>

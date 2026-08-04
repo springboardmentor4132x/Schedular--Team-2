@@ -161,11 +161,11 @@ function ProfileAvatar({ initials, onUpload }) {
 function ViewRow({ label, value, id: rowId }) {
   return (
     <div id={rowId} className="py-3 first:pt-0 last:pb-0">
-      <dt className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">
+      <dt className="text-xs font-semibold text-secondary uppercase tracking-widest mb-0.5">
         {label}
       </dt>
-      <dd className="text-sm font-medium text-slate-800 dark:text-slate-200 break-words">
-        {value || <span className="text-slate-400 dark:text-slate-600 italic">Not set</span>}
+      <dd className="text-sm font-medium text-primary break-words">
+        {value || <span className="text-secondary italic">Not set</span>}
       </dd>
     </div>
   )
@@ -173,7 +173,7 @@ function ViewRow({ label, value, id: rowId }) {
 
 function ProfileHeader({ profile, onEdit }) {
   return (
-    <Card id="profile-header-card" className="overflow-hidden">
+    <Card id="profile-header-card" className="overflow-hidden border border-default">
       <div
         className="relative h-28 sm:h-32"
         style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 60%, #818cf8 100%)' }}
@@ -201,18 +201,18 @@ function ProfileHeader({ profile, onEdit }) {
         </div>
 
         <div className="mt-4">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+          <h2 className="text-xl font-bold text-primary">
             {profile.firstName} {profile.lastName}
           </h2>
           <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mt-0.5">
             {profile.role}
           </p>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-sm text-secondary mt-0.5">
             {profile.email}
           </p>
 
           <div className="flex flex-wrap items-center gap-3 mt-3">
-            <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+            <span className="inline-flex items-center gap-1.5 text-xs text-secondary">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 className="w-3.5 h-3.5" aria-hidden="true">
@@ -236,7 +236,7 @@ function ProfileHeader({ profile, onEdit }) {
 
             <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" aria-hidden="true"/>
 
-            <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+            <span className="inline-flex items-center gap-1.5 text-xs text-secondary">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 className="w-3.5 h-3.5" aria-hidden="true">

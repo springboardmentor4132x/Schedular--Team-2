@@ -227,28 +227,28 @@ export default function ContentScheduling() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in pb-20">
       
-      <section className="card bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700/60 shadow-card flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4">
+      <section className="card bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
             {workspaceTab === 'composer' ? 'Content Composer Workspace' : 'Queue & Publishing Monitor'}
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-0.5 text-xs font-semibold">
+          <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-xs font-semibold">
             {workspaceTab === 'composer' 
               ? 'Draft updates, setup recurrence schedules, and preview post designs.' 
               : 'Monitor scheduling timelines, adjust queue priorities, and trigger mock publishing flows.'
             }
           </p>
         </div>
-        <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl">
+        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
           <button 
             onClick={() => setWorkspaceTab('composer')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${workspaceTab === 'composer' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-400 hover:text-slate-700'}`}
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${workspaceTab === 'composer' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
           >
             Composer
           </button>
           <button 
             onClick={() => setWorkspaceTab('queue')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${workspaceTab === 'queue' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-400 hover:text-slate-700'}`}
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${workspaceTab === 'queue' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
           >
             Queue & Monitor
           </button>
@@ -260,9 +260,9 @@ export default function ContentScheduling() {
           
           <div className="lg:col-span-2 space-y-6">
             
-            <div className="card space-y-4 shadow-card">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700/60 pb-3 flex items-center gap-2">
-                <Layers size={16} className="text-indigo-500" />
+            <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+              <h2 className="text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+                <Layers size={16} className="text-indigo-500" strokeWidth={2} />
                 Select Social Platforms
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
@@ -274,10 +274,10 @@ export default function ContentScheduling() {
                       key={p.id}
                       onClick={() => handlePlatformToggle(p.id)}
                       className={`
-                        flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold transition-all duration-200
+                        flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer
                         ${isSelected 
-                          ? 'border-indigo-500 bg-indigo-50/40 text-indigo-700 dark:text-indigo-400 dark:border-indigo-400 dark:bg-indigo-950/20' 
-                          : 'border-slate-100 bg-slate-50/50 hover:bg-slate-50 dark:border-slate-700/60 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300'
+                          ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700 dark:text-indigo-300 dark:border-indigo-500/60 dark:bg-indigo-950/40' 
+                          : 'border-slate-200/80 bg-slate-50/50 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900/50 text-slate-600 dark:text-slate-300'
                         }
                       `}
                     >
@@ -289,10 +289,10 @@ export default function ContentScheduling() {
               </div>
             </div>
 
-            <div className="card space-y-4 shadow-card">
-              <div className="flex justify-between items-center border-b pb-3">
-                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Sparkles size={16} className="text-indigo-500" />
+            <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h2 className="text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Sparkles size={16} className="text-indigo-500" strokeWidth={2} />
                   Caption Editor
                 </h2>
                 <span className="text-[10px] text-slate-400 font-bold">Words: {wordCount}</span>
@@ -301,43 +301,43 @@ export default function ContentScheduling() {
                 rows={5}
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                className="w-full p-4 text-sm bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-400 leading-relaxed text-slate-800 dark:text-slate-100"
+                className="w-full p-3.5 text-sm bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 leading-relaxed text-slate-900 dark:text-slate-100"
               />
               <div className="flex flex-wrap gap-2">
                 {hashtagSuggestions.map(tag => (
-                  <button key={tag} onClick={() => setCaption(prev => prev + ' ' + tag)} className="px-2 py-0.5 bg-indigo-50/50 dark:bg-indigo-950/30 border text-[10px] text-indigo-600 dark:text-indigo-400 rounded-lg">
+                  <button key={tag} onClick={() => setCaption(prev => prev + ' ' + tag)} className="px-2.5 py-1 bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 text-[10px] font-bold text-indigo-600 dark:text-indigo-300 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
                     {tag}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="card space-y-4 shadow-card">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 border-b pb-3">Media Attachments</h2>
+            <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+              <h2 className="text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">Media Attachments</h2>
               <div 
                 onClick={handleSimulatedUpload}
-                className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 p-6 rounded-2xl text-center cursor-pointer flex flex-col items-center justify-center space-y-1.5"
+                className="border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-indigo-500 p-6 rounded-xl text-center cursor-pointer flex flex-col items-center justify-center space-y-1.5 transition-colors"
               >
-                <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center">
-                  <Upload size={18} />
+                <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <Upload size={18} strokeWidth={2} />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Simulate Drag & Drop asset upload</p>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Simulate Drag & Drop asset upload</p>
                   <p className="text-[10px] text-slate-400">Add creative sneaker_shot.png to post</p>
                 </div>
               </div>
 
               {uploadProgress && (
-                <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div className="h-full bg-indigo-600" style={{ width: `${uploadProgress}%` }}></div>
                 </div>
               )}
 
               {mediaList.map((m, i) => (
-                <div key={i} className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-100 dark:border-slate-700">
+                <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-50/60 dark:bg-slate-900/50 rounded-xl border border-slate-200/80 dark:border-slate-800">
                   <span className="text-xl">{m.emoji}</span>
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">sneaker_product_shot.png</span>
-                  <button onClick={() => setMediaList([])} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 text-rose-500 rounded ml-auto">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">sneaker_product_shot.png</span>
+                  <button onClick={() => setMediaList([])} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 text-rose-500 rounded-lg ml-auto transition-colors">
                     <X size={14} />
                   </button>
                 </div>
@@ -348,29 +348,29 @@ export default function ContentScheduling() {
 
           <div className="lg:col-span-2 space-y-6">
             
-            <div className="card space-y-4 shadow-card">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 border-b pb-3 flex items-center gap-2">
-                <Calendar size={16} className="text-indigo-500" />
+            <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+              <h2 className="text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+                <Calendar size={16} className="text-indigo-500" strokeWidth={2} />
                 Scheduling & Recurrence
               </h2>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-extrabold text-slate-400 uppercase">Publish Date</label>
-                  <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="w-full p-2 text-xs font-semibold bg-slate-50 dark:bg-slate-700 border rounded-xl" />
+                  <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Publish Date</label>
+                  <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="w-full p-2.5 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-extrabold text-slate-400 uppercase">Publish Time</label>
-                  <input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} className="w-full p-2 text-xs font-semibold bg-slate-50 dark:bg-slate-700 border rounded-xl" />
+                  <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Publish Time</label>
+                  <input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} className="w-full p-2.5 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100" />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[9px] font-extrabold text-slate-400 uppercase">Recurring Recurrence Mode</label>
+                <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Recurring Recurrence Mode</label>
                 <select 
                   value={recurrence} 
                   onChange={e => setRecurrence(e.target.value)} 
-                  className="w-full p-2.5 text-xs font-semibold bg-slate-50 dark:bg-slate-700 border rounded-xl"
+                  className="w-full p-2.5 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100"
                 >
                   <option value="Never">Repeat Once (Never)</option>
                   <option value="Daily">Daily Recurrence</option>
@@ -381,7 +381,7 @@ export default function ContentScheduling() {
               </div>
 
               {recurrence !== 'Never' && (
-                <div className="p-4 bg-slate-50/50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700 rounded-2xl space-y-4">
+                <div className="p-4 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-4">
                   <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
                     <Sliders size={14} className="text-indigo-500" />
                     Configure Recurrence Rules
@@ -390,12 +390,12 @@ export default function ContentScheduling() {
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div className="space-y-1">
                       <label className="text-[9px] font-bold text-slate-400 uppercase">Start Date</label>
-                      <input type="date" value={recStartDate} onChange={e => setRecStartDate(e.target.value)} className="w-full p-2 bg-white dark:bg-slate-700 border rounded-lg" />
+                      <input type="date" value={recStartDate} onChange={e => setRecStartDate(e.target.value)} className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100" />
                     </div>
                     {recurrence === 'Daily' || recurrence === 'Custom' ? (
                       <div className="space-y-1">
                         <label className="text-[9px] font-bold text-slate-400 uppercase">End Date</label>
-                        <input type="date" value={recEndDate} onChange={e => setRecEndDate(e.target.value)} className="w-full p-2 bg-white dark:bg-slate-700 border rounded-lg" />
+                        <input type="date" value={recEndDate} onChange={e => setRecEndDate(e.target.value)} className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100" />
                       </div>
                     ) : null}
                   </div>
@@ -410,7 +410,7 @@ export default function ContentScheduling() {
                             <button
                               key={day}
                               onClick={() => handleWeekdayToggle(day)}
-                              className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${isActive ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-400' : 'bg-white dark:bg-slate-700'}`}
+                              className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border transition-colors ${isActive ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-300' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}
                             >
                               {day}
                             </button>
@@ -423,7 +423,7 @@ export default function ContentScheduling() {
                   {recurrence === 'Monthly' && (
                     <div className="space-y-1">
                       <label className="text-[9px] font-bold text-slate-400 uppercase block">Monthly Option</label>
-                      <select value={monthlyOption} onChange={e => setMonthlyOption(e.target.value)} className="w-full p-2 text-xs bg-white dark:bg-slate-700 border rounded-lg">
+                      <select value={monthlyOption} onChange={e => setMonthlyOption(e.target.value)} className="w-full p-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100">
                         <option value="Same date each month">Same date each month (e.g. 28th)</option>
                         <option value="Last day of month">Last day of month</option>
                         <option value="First Monday">First Monday of each month</option>
@@ -431,7 +431,7 @@ export default function ContentScheduling() {
                     </div>
                   )}
 
-                  <div className="space-y-1 border-t dark:border-slate-700 pt-3">
+                  <div className="space-y-1 border-t border-slate-200 dark:border-slate-800 pt-3">
                     <label className="text-[9px] font-bold text-slate-400 uppercase block">Recurrence Preview Details</label>
                     <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold leading-normal">
                       {recurrencePreviewText}
@@ -441,22 +441,22 @@ export default function ContentScheduling() {
               )}
             </div>
 
-            <div className="card space-y-4 shadow-card">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 border-b pb-3 flex items-center gap-2">
-                <Eye size={16} className="text-indigo-500" />
+            <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+              <h2 className="text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+                <Eye size={16} className="text-indigo-500" strokeWidth={2} />
                 Social Previews
               </h2>
-              <div className="flex gap-1 border-b pb-1">
+              <div className="flex gap-1 border-b border-slate-100 dark:border-slate-800 pb-1">
                 {['instagram', 'facebook', 'linkedin'].map(tab => (
-                  <button key={tab} onClick={() => setPreviewTab(tab)} className={`px-3 py-1.5 text-xs font-bold rounded-lg capitalize ${previewTab === tab ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30' : 'text-slate-400'}`}>
+                  <button key={tab} onClick={() => setPreviewTab(tab)} className={`px-3 py-1.5 text-xs font-bold rounded-lg capitalize transition-colors ${previewTab === tab ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/60 dark:bg-indigo-950/40' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
                     {tab}
                   </button>
                 ))}
               </div>
-              <div className="p-4 bg-slate-50/50 dark:bg-slate-700/30 border rounded-2xl max-w-sm mx-auto text-xs space-y-3">
+              <div className="p-4 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl max-w-sm mx-auto text-xs space-y-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-indigo-500 text-white font-bold flex items-center justify-center text-[10px]">AC</div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">alex_creator</span>
+                  <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[10px]">AC</div>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">alex_creator</span>
                 </div>
                 <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-semibold">{caption}</p>
                 {mediaList.length > 0 && (
@@ -497,16 +497,16 @@ export default function ContentScheduling() {
             </div>
 
             {activePublishingItem && (
-              <div className="card space-y-4 shadow-card bg-gradient-to-r from-indigo-50/20 to-slate-50/20 dark:from-indigo-950/10 dark:to-slate-800/10 border-indigo-100 dark:border-indigo-900/30">
-                <div className="flex justify-between items-center pb-2 border-b dark:border-slate-700">
+              <div className="card space-y-4 border border-indigo-200/80 dark:border-indigo-900/40 bg-gradient-to-r from-indigo-50/30 via-white to-slate-50/30 dark:from-indigo-950/20 dark:via-slate-900 dark:to-slate-900">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-200/80 dark:border-slate-800">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{activePublishingItem.thumb}</span>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">Active publishing pipeline</h4>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Active publishing pipeline</h4>
                       <p className="text-[10px] text-slate-400 mt-0.5">{activePublishingItem.title}</p>
                     </div>
                   </div>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-400`}>
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40`}>
                     Step {timelineStep + 1} of 5
                   </span>
                 </div>
@@ -520,9 +520,9 @@ export default function ContentScheduling() {
                         <div className="flex flex-col items-center space-y-1">
                           <div className={`
                             w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300
-                            ${isActive ? 'bg-indigo-600 text-white ring-4 ring-indigo-500/35 scale-110' :
+                            ${isActive ? 'bg-indigo-600 text-white ring-4 ring-indigo-500/20 scale-105' :
                               isPassed ? 'bg-emerald-500 text-white' :
-                              'bg-slate-200 text-slate-400 dark:bg-slate-700'
+                              'bg-slate-200 text-slate-400 dark:bg-slate-800'
                             }
                           `}>
                             {isPassed && !isActive ? '✓' : stepIndex + 1}
@@ -532,7 +532,7 @@ export default function ContentScheduling() {
                           </span>
                         </div>
                         {stepIndex < 4 && (
-                          <div className="flex-1 h-0.5 mx-2 bg-slate-200 dark:bg-slate-700 relative overflow-hidden">
+                          <div className="flex-1 h-0.5 mx-2 bg-slate-200 dark:bg-slate-800 relative overflow-hidden">
                             <div className={`h-full bg-emerald-500 transition-all duration-700 ${isPassed ? 'w-full' : 'w-0'}`}></div>
                           </div>
                         )}
@@ -543,7 +543,7 @@ export default function ContentScheduling() {
               </div>
             )}
 
-            <div className="card space-y-4 shadow-card">
+            <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -552,12 +552,12 @@ export default function ContentScheduling() {
                     placeholder="Search queue posts..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    className="pl-9 pr-4 py-2 w-full text-xs bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-800 dark:text-white"
+                    className="pl-9 pr-4 py-2 w-full text-xs bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-900 dark:text-slate-100"
                   />
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <select value={qPlatformFilter} onChange={e => setQPlatformFilter(e.target.value)} className="px-2.5 py-1.5 text-xs font-bold bg-slate-50 dark:bg-slate-700 border rounded-xl">
+                  <select value={qPlatformFilter} onChange={e => setQPlatformFilter(e.target.value)} className="px-2.5 py-1.5 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100">
                     <option value="All">All Platforms</option>
                     <option value="Instagram">Instagram</option>
                     <option value="LinkedIn">LinkedIn</option>
@@ -565,13 +565,13 @@ export default function ContentScheduling() {
                     <option value="YouTube">YouTube</option>
                     <option value="Twitter">Twitter/X</option>
                   </select>
-                  <select value={qCampaignFilter} onChange={e => setQCampaignFilter(e.target.value)} className="px-2.5 py-1.5 text-xs font-bold bg-slate-50 dark:bg-slate-700 border rounded-xl">
+                  <select value={qCampaignFilter} onChange={e => setQCampaignFilter(e.target.value)} className="px-2.5 py-1.5 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100">
                     <option value="All">All Campaigns</option>
                     <option value="Nike Summer Launch">Nike Summer Launch</option>
                     <option value="Adidas Sports Week">Adidas Sports Week</option>
                     <option value="None">No Campaign</option>
                   </select>
-                  <select value={qPriorityFilter} onChange={e => setQPriorityFilter(e.target.value)} className="px-2.5 py-1.5 text-xs font-bold bg-slate-50 dark:bg-slate-700 border rounded-xl">
+                  <select value={qPriorityFilter} onChange={e => setQPriorityFilter(e.target.value)} className="px-2.5 py-1.5 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100">
                     <option value="All">All Priorities</option>
                     <option value="High">High</option>
                     <option value="Medium">Medium</option>
@@ -586,28 +586,28 @@ export default function ContentScheduling() {
                   No posts match your queue filters.
                 </div>
               ) : (
-                <div className="overflow-x-auto border rounded-xl dark:border-slate-700/60">
+                <div className="overflow-x-auto border border-slate-200/80 dark:border-slate-800 rounded-xl">
                   <table className="w-full text-xs text-left">
-                    <thead className="table-head">
+                    <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200/80 dark:border-slate-800">
                       <tr>
-                        <th className="table-th">Post</th>
-                        <th className="table-th">Platform</th>
-                        <th className="table-th">Campaign</th>
-                        <th className="table-th">Priority</th>
-                        <th className="table-th">Schedule</th>
-                        <th className="table-th">Status</th>
-                        <th className="table-th text-right">Actions</th>
+                        <th className="py-3 px-3 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Post</th>
+                        <th className="py-3 px-3 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Platform</th>
+                        <th className="py-3 px-3 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Campaign</th>
+                        <th className="py-3 px-3 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Priority</th>
+                        <th className="py-3 px-3 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Schedule</th>
+                        <th className="py-3 px-3 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                        <th className="py-3 px-3 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                       {filteredQueue.map((post, index) => {
                         const PlatformIcon = post.platformIcon
                         return (
-                          <tr key={post.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                          <tr key={post.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                             <td className="py-3 px-3">
                               <div className="flex items-center gap-2">
-                                <span className="text-lg bg-slate-100 dark:bg-slate-700 p-1 rounded">{post.thumb}</span>
-                                <span className="font-bold text-slate-800 dark:text-white line-clamp-1">{post.title}</span>
+                                <span className="text-lg bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">{post.thumb}</span>
+                                <span className="font-bold text-slate-900 dark:text-slate-100 line-clamp-1">{post.title}</span>
                               </div>
                             </td>
                             <td className="py-3 px-3">
@@ -626,19 +626,19 @@ export default function ContentScheduling() {
                             </td>
                             <td className="py-3 px-3 text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <button onClick={() => handleMoveUp(index)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-500" title="Move Up priority">
+                                <button onClick={() => handleMoveUp(index)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors" title="Move Up priority">
                                   <ArrowUp size={12} />
                                 </button>
-                                <button onClick={() => handleMoveDown(index)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-500" title="Move Down priority">
+                                <button onClick={() => handleMoveDown(index)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors" title="Move Down priority">
                                   <ArrowDown size={12} />
                                 </button>
-                                <button onClick={() => handleDuplicate(post)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-500" title="Duplicate">
+                                <button onClick={() => handleDuplicate(post)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors" title="Duplicate">
                                   <Copy size={12} />
                                 </button>
-                                <button onClick={() => handlePublishNowSimulated(post)} className="p-1 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-600 rounded" title="Publish now (Mock)">
+                                <button onClick={() => handlePublishNowSimulated(post)} className="p-1 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-600 rounded-lg transition-colors" title="Publish now (Mock)">
                                   <Play size={12} />
                                 </button>
-                                <button onClick={() => handleDelete(post.id)} className="p-1 hover:bg-rose-50 dark:hover:bg-rose-950 text-rose-500 rounded" title="Delete">
+                                <button onClick={() => handleDelete(post.id)} className="p-1 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500 rounded-lg transition-colors" title="Delete">
                                   <Trash2 size={12} />
                                 </button>
                               </div>
@@ -656,25 +656,25 @@ export default function ContentScheduling() {
 
           <div className="space-y-6">
             
-            <div className="card space-y-4 shadow-card">
-              <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 border-b pb-3 flex items-center gap-1.5">
-                <RotateCw size={14} className="text-indigo-500" />
+            <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
+              <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-1.5">
+                <RotateCw size={14} className="text-indigo-500" strokeWidth={2} />
                 Publishing Monitor
               </h2>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {queueList.map((post) => {
                   const PlatformIcon = post.platformIcon
                   return (
-                    <div key={post.id} className="p-3 bg-slate-50/50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/60 rounded-xl space-y-2">
+                    <div key={post.id} className="p-3 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-2">
                       <div className="flex justify-between items-center text-[10px] font-bold">
-                        <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
+                        <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
                           <PlatformIcon size={12} />
                           {post.platform}
                         </span>
                         <StatusBadge status={post.status} />
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-slate-800 dark:text-white truncate">{post.title}</h4>
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{post.title}</h4>
                         <p className="text-[9px] text-slate-400 mt-0.5">Campaign: {post.campaign} · Time: {post.time}</p>
                       </div>
                     </div>

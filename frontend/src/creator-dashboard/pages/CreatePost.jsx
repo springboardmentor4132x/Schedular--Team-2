@@ -105,19 +105,19 @@ export default function CreatePost() {
       )}
 
       {/* Header */}
-      <section aria-label="Page header" className="card relative overflow-hidden bg-gradient-to-r from-indigo-50/60 to-purple-50/60 dark:from-indigo-950/20 dark:to-purple-950/20 border border-indigo-100/50 dark:border-indigo-950/40 shadow-card">
+      <section aria-label="Page header" className="card relative overflow-hidden bg-gradient-to-r from-indigo-50/50 via-white to-purple-50/40 dark:from-indigo-950/30 dark:via-slate-900 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors"
+              className="p-2 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               title="Go Back"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={18} strokeWidth={2} />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Create New Post</h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-0.5 text-sm font-medium">Compose, schedule, and publish content across your social channels.</p>
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Create New Post</h1>
+              <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-xs md:text-sm font-medium">Compose, schedule, and publish content across your social channels.</p>
             </div>
           </div>
 
@@ -143,10 +143,10 @@ export default function CreatePost() {
         {/* Left Column — Editor & Configuration */}
         <div className="space-y-6">
           {/* SECTION: Platform Selector */}
-          <Card className="p-6 space-y-4">
+          <Card className="p-6 space-y-4 border border-slate-200/80 dark:border-slate-800">
             <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Globe size={18} className="text-indigo-500" />
+              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Globe size={18} className="text-indigo-500" strokeWidth={2} />
                 <span>Select Target Platforms</span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Choose where this content will be published simultaneously.</p>
@@ -160,10 +160,10 @@ export default function CreatePost() {
                     key={platform.id}
                     type="button"
                     onClick={() => handleTogglePlatform(platform.id)}
-                    className={`p-3.5 rounded-xl border text-left transition-all duration-200 flex items-center justify-between ${
+                    className={`p-3.5 rounded-xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
                       isSelected
-                        ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold shadow-sm'
-                        : 'bg-slate-50 dark:bg-slate-700/30 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                        ? 'bg-indigo-50/60 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold'
+                        : 'bg-slate-50/50 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -178,16 +178,16 @@ export default function CreatePost() {
           </Card>
 
           {/* SECTION: Media Upload Dropzone Placeholder */}
-          <Card className="p-6 space-y-4">
+          <Card className="p-6 space-y-4 border border-slate-200/80 dark:border-slate-800">
             <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Upload size={18} className="text-indigo-500" />
+              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Upload size={18} className="text-indigo-500" strokeWidth={2} />
                 <span>Upload Media Assets</span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Drag and drop images, video clips, or infographics (JPG, PNG, MP4 up to 500MB).</p>
             </div>
 
-            <div className="relative border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-8 text-center bg-slate-50/50 dark:bg-slate-800/30 hover:border-indigo-400 transition-colors group cursor-pointer">
+            <div className="relative border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center bg-slate-50/50 dark:bg-slate-900/50 hover:border-indigo-500 transition-colors group cursor-pointer">
               <input 
                 type="file" 
                 accept="image/*,video/*" 
@@ -195,13 +195,13 @@ export default function CreatePost() {
                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" 
               />
               <div className="flex flex-col items-center justify-center space-y-2">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                  <Upload size={24} />
+                <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
+                  <Upload size={22} strokeWidth={2} />
                 </div>
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                   Click to upload <span className="text-slate-400 font-normal">or drag & drop</span>
                 </p>
-                <div className="flex items-center gap-3 text-xs text-slate-400 font-medium pt-1">
+                <div className="flex items-center gap-3 text-[11px] text-slate-400 font-medium pt-1">
                   <span className="flex items-center gap-1"><ImageIcon size={14} /> Images</span>
                   <span>•</span>
                   <span className="flex items-center gap-1"><Video size={14} /> Reels & Short Videos</span>

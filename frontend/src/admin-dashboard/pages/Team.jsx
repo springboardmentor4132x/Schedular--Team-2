@@ -29,13 +29,13 @@ export default function Team() {
           { label: 'Pending Invites', value: '1', icon: '✉️', color: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400' },
           { label: 'Roles Assigned', value: '4', icon: '🔑', color: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400' },
         ].map((stat, idx) => (
-          <Card key={idx} className="p-5 flex items-center gap-4 transition-all duration-300 hover:shadow-card-lg dark:hover:shadow-[0_4px_24px_rgba(0,0,0,0.45)]">
+          <Card key={idx} className="p-5 flex items-center gap-4 transition-all duration-300 hover:shadow-card-lg">
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${stat.color}`}>
               {stat.icon}
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{stat.label}</p>
-              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">{stat.value}</p>
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider">{stat.label}</p>
+              <p className="text-2xl font-bold text-primary mt-1">{stat.value}</p>
             </div>
           </Card>
         ))}
@@ -43,20 +43,20 @@ export default function Team() {
 
       <Card className="p-6">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Team Members</h3>
+          <h3 className="text-base font-bold text-primary">Team Members</h3>
           <Button variant="primary" size="sm">Invite Member</Button>
         </div>
         <div className="space-y-3">
           {members.map((m, i) => (
-            <div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-hover transition-colors">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                 {m.initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{m.name}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{m.email}</p>
+                <p className="text-sm font-semibold text-primary truncate">{m.name}</p>
+                <p className="text-xs text-secondary mt-0.5">{m.email}</p>
               </div>
-              <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">
+              <span className="text-xs px-2.5 py-1 rounded-full bg-surface text-secondary font-medium border border-default">
                 {m.role}
               </span>
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
@@ -73,8 +73,8 @@ export default function Team() {
 
       <Card className="p-12 flex flex-col items-center justify-center text-center min-h-[240px]">
         <TeamLargeIcon />
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-5">Team Workspaces</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-md leading-relaxed">
+        <h3 className="text-lg font-bold text-primary mt-5">Team Workspaces</h3>
+        <p className="text-sm text-secondary mt-2 max-w-md leading-relaxed">
           Collaborate with your team by creating shared workspaces. Assign roles, manage permissions,
           and streamline your social media workflow.
         </p>
