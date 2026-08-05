@@ -55,7 +55,18 @@ const navItems = [
   { label: 'Marketing Teams',   to: '/marketing-teams',    Icon: CalendarIcon },
   { label: 'Content Creators',  to: '/content-creators',   Icon: UsersIcon },
   { label: 'Social Accounts',   to: '/social-accounts',    Icon: GridIcon },
-  { label: 'Analytics',         to: '/analytics',          Icon: BarChartIcon },
+  {
+    label: 'Analytics',
+    Icon: BarChartIcon,
+    children: [
+      { label: 'Overview', to: '/analytics', Icon: GridIcon },
+      { label: 'Creator Performance', to: '/analytics/creators', Icon: UsersIcon },
+      { label: 'Campaign Analytics', to: '/analytics/campaigns', Icon: CalendarIcon },
+      { label: 'Platform Analytics', to: '/analytics/platforms', Icon: BarChartIcon },
+      { label: 'Audience Analytics', to: '/analytics/audience', Icon: UsersIcon },
+      { label: 'Performance Trends', to: '/analytics/performance', Icon: BarChartIcon },
+    ],
+  },
   { label: 'Reports',           to: '/reports',            Icon: SettingsIcon },
   { label: 'Settings',          to: '/settings',           Icon: SettingsIcon },
 ]

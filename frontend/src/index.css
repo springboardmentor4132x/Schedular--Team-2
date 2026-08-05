@@ -148,6 +148,7 @@
    SEMANTIC DESIGN TOKENS & UTILITY SYSTEM
    ═══════════════════════════════════════════════════════════════════ */
 
+/* ── Level 0: Page Background ── */
 .bg-background {
   background-color: #f8fafc;
 }
@@ -155,24 +156,41 @@
   background-color: #090d16;
 }
 
-.bg-surface,
-.bg-card {
-  background-color: #ffffff;
+/* ── Level 1: Sections / Toolbars ── */
+.bg-surface {
+  background-color: #f1f5f9;
 }
-.dark .bg-surface,
-.dark .bg-card {
+.dark .bg-surface {
   background-color: #0f172a;
 }
 
-.bg-hover,
-.hover\:bg-hover:hover {
-  background-color: #f1f5f9;
+/* ── Level 2: Cards & Containers ── */
+.bg-card {
+  background-color: #ffffff;
 }
-.dark .bg-hover,
-.dark .hover\:bg-hover:hover {
+.dark .bg-card {
   background-color: #1e293b;
 }
 
+/* ── Level 3: Modals, Dropdowns & Elevated Surfaces ── */
+.bg-elevated {
+  background-color: #ffffff;
+}
+.dark .bg-elevated {
+  background-color: #1e293b;
+}
+
+/* ── Hover States ── */
+.bg-hover,
+.hover\:bg-hover:hover {
+  background-color: #e2e8f0;
+}
+.dark .bg-hover,
+.dark .hover\:bg-hover:hover {
+  background-color: #334155;
+}
+
+/* ── Typography Tokens ── */
 .text-primary {
   color: #0f172a;
 }
@@ -187,11 +205,12 @@
   color: #94a3b8;
 }
 
+/* ── Border Token ── */
 .border-default {
-  border-color: rgba(226, 232, 240, 0.8);
+  border-color: rgba(226, 232, 240, 0.9);
 }
 .dark .border-default {
-  border-color: #1e293b;
+  border-color: rgba(51, 65, 85, 0.7);
 }
 
 
@@ -354,19 +373,19 @@ svg {
 
 .card {
   background: #ffffff;
-  border: 1px solid #f1f5f9;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 1rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.07), 0 1px 2px -1px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
   padding: 1.5rem;
-  color: #1e293b;
-  transition: all 0.3s ease;
+  color: #0f172a;
+  transition: all 0.2s ease;
 }
 
 .dark .card {
-  background: rgba(30, 41, 59, 0.9);
-  border-color: rgba(51, 65, 85, 0.6);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  color: #f1f5f9;
+  background: #1e293b;
+  border-color: rgba(51, 65, 85, 0.7);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  color: #f8fafc;
 }
 
 .card-hover:hover {
@@ -375,26 +394,26 @@ svg {
 }
 
 .dark .card-hover:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
 }
 
 .stat-card {
   background: #ffffff;
-  border: 1px solid #f1f5f9;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 1rem;
   padding: 1.25rem;
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .dark .stat-card {
-  background: rgba(30, 41, 59, 0.9);
-  border-color: rgba(51, 65, 85, 0.6);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  background: #1e293b;
+  border-color: rgba(51, 65, 85, 0.7);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
 .stat-card:hover {
@@ -677,6 +696,53 @@ textarea.input-base {
 
 .dark .input-base:disabled {
   background: #0f172a;
+}
+
+/* ── Global Select & Option Dropdown Theme Rules ── */
+select,
+.select-base {
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 0.75rem;
+  cursor: pointer;
+}
+
+.dark select,
+.dark .select-base {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border-color: rgba(51, 65, 85, 0.7);
+}
+
+select option,
+.select-base option {
+  background-color: #ffffff;
+  color: #0f172a;
+  padding: 0.5rem;
+}
+
+.dark select option,
+.dark .select-base option {
+  background-color: #1e293b;
+  color: #f8fafc;
+  padding: 0.5rem;
+}
+
+select option:hover,
+select option:focus,
+select option:checked,
+.select-base option:hover,
+.select-base option:focus,
+.select-base option:checked,
+.dark select option:hover,
+.dark select option:focus,
+.dark select option:checked,
+.dark .select-base option:hover,
+.dark .select-base option:focus,
+.dark .select-base option:checked {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
 }
 
 .input-error {

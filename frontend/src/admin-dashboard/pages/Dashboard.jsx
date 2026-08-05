@@ -129,8 +129,8 @@ export default function Dashboard() {
       <section aria-label="Dashboard header" className="card relative overflow-hidden bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-800 dark:to-slate-800/80 border border-default shadow-card">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-primary">Welcome back, Administrator</h1>
-            <p className="text-secondary mt-1">Manage users, teams, campaigns and platform operations.</p>
+            <h1 className="text-2xl font-bold text-primary">Admin Dashboard</h1>
+            <p className="text-secondary mt-1">Manage the OrbitSocial platform, creators, campaigns, analytics, and system operations.</p>
           </div>
           <div className="flex flex-wrap gap-3 text-xs font-semibold text-secondary">
             <span className="bg-surface px-3 py-1.5 rounded-lg border border-default">Current Date: {new Date().toLocaleDateString()}</span>

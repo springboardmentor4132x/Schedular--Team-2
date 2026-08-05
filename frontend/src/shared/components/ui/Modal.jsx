@@ -44,8 +44,8 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
       />
 
       <div
-        className={`relative z-10 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full ${sizes[size] ?? sizes.md}
-                    flex flex-col max-h-[90vh] overflow-hidden border border-slate-200/80 dark:border-slate-800`}
+        className={`relative z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full ${sizes[size] ?? sizes.md}
+                    flex flex-col max-h-[90vh] overflow-hidden border border-slate-200/80 dark:border-slate-700/60`}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
           <h2 id="modal-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h2>

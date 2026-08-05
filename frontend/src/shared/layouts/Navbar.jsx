@@ -4,9 +4,16 @@ import { useTheme } from '../hooks/useTheme'
 import { useSidebar } from '../hooks/useSidebar'
 
 const pageTitles = {
-  '/dashboard': { label: 'Dashboard',  sub: 'Welcome back, John 👋' },
+  '/admin/dashboard': { label: 'Admin Dashboard', sub: 'Manage the OrbitSocial platform, creators, campaigns, analytics, and system operations.' },
+  '/dashboard': { label: 'Admin Dashboard',  sub: 'Manage the OrbitSocial platform, creators, campaigns, analytics, and system operations.' },
+  '/admin': { label: 'Admin Dashboard', sub: 'Manage the OrbitSocial platform, creators, campaigns, analytics, and system operations.' },
   '/calendar':  { label: 'Calendar',   sub: 'Manage your scheduled posts' },
-  '/analytics': { label: 'Analytics',  sub: 'Track your performance' },
+  '/analytics': { label: 'Admin Analytics Overview',  sub: 'System-wide performance, creator metrics, and campaign ROI' },
+  '/analytics/creators': { label: 'Creator Performance Matrix', sub: 'Granular creator performance, engagement, reach, and status' },
+  '/analytics/campaigns': { label: 'Admin Campaign Analytics', sub: 'Campaign ROI, participant count, and completion benchmarks' },
+  '/analytics/platforms': { label: 'System Platform Analytics', sub: 'Comparative analytics across Instagram, Facebook, LinkedIn, X, etc.' },
+  '/analytics/audience': { label: 'System Audience Demographics', sub: 'Age, gender, country, city, language, and active hours' },
+  '/analytics/performance': { label: 'System Performance Trends', sub: 'Historical system-wide performance trends across timeframes' },
   '/team':      { label: 'Team',       sub: 'Manage team members' },
   '/inbox':     { label: 'Inbox',      sub: 'Your messages and notifications' },
   '/profile':   { label: 'My Profile', sub: 'Manage your personal information' },
@@ -24,6 +31,23 @@ const pageTitles = {
   '/creator/notifications': { label: 'Notifications', sub: 'Stay updated with your audience and reviewer feedback' },
   '/creator/profile': { label: 'Creator Profile', sub: 'Manage your creator profile details' },
   '/creator/settings': { label: 'Creator Settings', sub: 'Manage your creator preference settings' },
+  '/creator/analytics': { label: 'Creator Analytics', sub: 'Track performance, audience growth, campaign ROI, and platform comparisons' },
+  '/creator/analytics/content': { label: 'Content Analytics', sub: 'Granular metrics for individual published posts across platforms' },
+  '/creator/analytics/audience': { label: 'Audience Analytics', sub: 'Follower growth, demographics, and active times' },
+  '/creator/analytics/campaigns': { label: 'Campaign Analytics', sub: 'Sponsored promotions, ROI tracking, and campaign benchmarks' },
+  '/creator/analytics/platforms': { label: 'Platform Comparison', sub: 'Comparative analytics across all connected platforms' },
+  '/creator/analytics/performance': { label: 'Performance Trends', sub: 'Historical performance trends across timeframe granularities' },
+}
+
+const getPageMeta = (pathname) => {
+  if (pageTitles[pathname]) return pageTitles[pathname]
+  if (pathname.startsWith('/creator/analytics')) {
+    return { label: 'Creator Analytics', sub: 'Track performance, audience growth, campaign ROI, and platform comparisons' }
+  }
+  if (pathname.startsWith('/admin') || pathname === '/dashboard') {
+    return { label: 'Admin Dashboard', sub: 'Manage the OrbitSocial platform, creators, campaigns, analytics, and system operations.' }
+  }
+  return { label: 'Admin Dashboard', sub: 'Manage the OrbitSocial platform, creators, campaigns, analytics, and system operations.' }
 }
 
 const MenuIcon = () => (
@@ -77,7 +101,7 @@ export default function Navbar() {
   const { pathname } = useLocation()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
-  const page = pageTitles[pathname] ?? { label: 'Page', sub: '' }
+  const page = getPageMeta(pathname)
 
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
