@@ -141,10 +141,39 @@ def publish_scheduled_post(
 def recurring_schedule(post: PostCreate):
     return create_recurring_schedule(post)
 
+@router.get("/published")
+def published_posts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return post_service.get_published_posts(
+        db,
+        current_user.id,
+    )
+
+@router.get("/failed")
+def failed_posts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return post_service.get_failed_posts(
+        db,
+        current_user.id,
+    )
 
 @router.post("/retry/{post_id}/{retry_count}")
-def retry_post(post_id: int, retry_count: int):
-    return retry_failed_post(post_id, retry_count)
+def retry_post(
+    post_id: int,
+    retry_count: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return retry_failed_post(
+        db,
+        current_user.id,
+        post_id,
+        retry_count,
+    )
 
 
 @router.get("/{post_id}", response_model=PostResponse)

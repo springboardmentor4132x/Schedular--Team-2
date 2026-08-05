@@ -76,20 +76,23 @@ export default function PublishingCalendar() {
     }
   }, [toast])
 
-  useEffect(() => {
-    let mounted = true
-    loadMappedPosts()
-      .then((mapped) => {
-        if (mounted) setPosts(mapped)
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (mounted) setLoading(false)
-      })
-    return () => {
-      mounted = false
+
+  const fetchPosts = async () => {
+    try {
+      const mapped = await loadMappedPosts()
+      setPosts(mapped)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
+    fetchPosts()
   }, [])
+
+  
 
   const filteredPosts = useMemo(() => {
     return posts.filter(post => {
@@ -123,6 +126,7 @@ export default function PublishingCalendar() {
         }
         return p
       }))
+      await fetchPosts()
       setSelectedEvent(null)
       setToast('Post rescheduled successfully!')
     } catch {
@@ -133,7 +137,7 @@ export default function PublishingCalendar() {
   const handleDelete = async (id) => {
     try {
       await deletePost(id)
-      setPosts(prev => prev.filter(p => p.id !== id))
+      await fetchPosts()
       setSelectedEvent(null)
       setToast('Post deleted successfully.')
     } catch {
@@ -149,6 +153,8 @@ export default function PublishingCalendar() {
         content_type: 'text',
         status: 'Draft',
       })
+
+      await fetchPosts()
       const duplicated = {
         ...post,
         id: created.id,

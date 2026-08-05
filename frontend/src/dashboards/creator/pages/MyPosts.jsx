@@ -117,9 +117,9 @@ export default function MyPosts() {
 
       const query = search.toLowerCase()
       const matchesSearch = 
-        post.title.toLowerCase().includes(query) ||
-        post.campaign.toLowerCase().includes(query) ||
-        post.platform.toLowerCase().includes(query)
+        (post.title || '').toLowerCase().includes(query) ||
+        (post.campaign || 'No campaign').toLowerCase().includes(query) ||
+        (post.platform || '').toLowerCase().includes(query)
 
       const matchesPlatform = platformFilter === 'All' || post.platform.includes(platformFilter)
       const matchesCampaign = campaignFilter === 'All' || post.campaign === campaignFilter

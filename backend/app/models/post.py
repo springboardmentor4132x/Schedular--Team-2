@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table,Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database.database import Base
+
+
 
 # Many-to-Many Association Table
 post_social_accounts = Table(
@@ -111,4 +113,9 @@ class Post(Base):
         "SocialAccount",
         secondary=post_social_accounts,
         back_populates="posts",
+    )
+
+    api_response = Column(
+    Text,
+    nullable=True,
     )

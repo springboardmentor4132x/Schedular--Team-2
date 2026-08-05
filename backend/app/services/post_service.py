@@ -158,6 +158,8 @@ def save_draft(db: Session, user_id: int, post: PostCreate, account_ids: list[in
         scheduled_for=_to_aware(post.scheduled_for),
         timezone=post.timezone or "UTC",
     )
+    print("POST DATA =", post.model_dump())
+    print("SOCIAL IDS =", post.social_account_ids)
 
     db.add(new_post)
     db.flush()
@@ -352,12 +354,12 @@ def get_publishing_queue(db: Session, user_id: int):
 
 
 def create_recurring_schedule(post):
-    """Create a recurring schedule."""
+    frequency = getattr(post, "frequency", "daily")
 
     return {
-        "message": "Recurring schedule created successfully",
-        "frequency": "daily",
-        "data": post
+        "message": "Recurring schedule created",
+        "frequency": frequency,
+        "status": "Scheduled",
     }
 
 def publish_post(
@@ -380,8 +382,30 @@ def publish_post(
             detail="Post not found",
         )
 
-    post.status = "Published"
-    post.published_at = _now()
+    try:
+        post.status = "Publishing"
+
+        # Platform publishing logic
+        # publish_to_twitter()
+        # publish_to_instagram()
+        # publish_to_linkedin()
+
+        post.status = "Published"
+        post.published_at = _now()
+        post.platform_post_id = f"POST-{post.id}"
+
+        db.commit()
+        db.refresh(post)
+
+    except Exception as e:
+        post.status = "Failed"
+        post.failure_reason = str(e)
+        db.commit()
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e),
+        )
 
     db.commit()
     db.refresh(post)
@@ -389,19 +413,74 @@ def publish_post(
     return _post_response(post)
 
 
-def retry_failed_post(post_id: int, retry_count: int):
-    """Retry failed post publishing."""
+def retry_failed_post(
+    db: Session,
+    user_id: int,
+    post_id: int,
+    retry_count: int,
+):
+    post = (
+        db.query(Post)
+        .filter(
+            Post.id == post_id,
+            Post.user_id == user_id,
+        )
+        .first()
+    )
+
+    if not post:
+        raise HTTPException(
+            status_code=404,
+            detail="Post not found",
+        )
+
+    post.retry_count = retry_count
 
     if retry_count >= MAX_RETRY_LIMIT:
+        post.status = "Failed"
+        post.failure_reason = "Maximum retry limit reached"
+
+        db.commit()
+
         return {
             "message": "Maximum retry limit reached",
             "post_id": post_id,
-            "status": "Failed"
+            "status": "Failed",
         }
+
+    db.commit()
 
     return {
         "message": "Retry attempt successful",
         "post_id": post_id,
         "attempt_number": retry_count + 1,
-        "remaining_attempts": MAX_RETRY_LIMIT - retry_count - 1
+        "remaining_attempts": MAX_RETRY_LIMIT - retry_count - 1,
     }
+
+def get_published_posts(db: Session, user_id: int):
+    posts = (
+        db.query(Post)
+        .filter(
+            Post.user_id == user_id,
+            Post.status == "Published",
+        )
+        .order_by(Post.published_at.desc())
+        .all()
+    )
+
+    return [_post_response(post) for post in posts]
+
+def get_failed_posts(
+    db: Session,
+    user_id: int,
+):
+    posts = (
+        db.query(Post)
+        .filter(
+            Post.user_id == user_id,
+            Post.status == "Failed",
+        )
+        .all()
+    )
+
+    return [_post_response(post) for post in posts]

@@ -160,7 +160,7 @@ export default function ContentScheduling() {
 
   const resolveSocialAccountIds = async () => {
     const accounts = await fetchSocialAccounts()
-    const platformSet = selectedPlatforms.map((id) => (id === 'x' ? 'twitter' : id))
+    const platformSet = selectedPlatforms
     return accounts
       .filter((acc) => platformSet.includes(acc.platform?.toLowerCase()))
       .map((acc) => acc.id)
@@ -176,13 +176,16 @@ export default function ContentScheduling() {
       caption: fullCaption,
       content_type: media ? (media.type?.startsWith('video') ? 'video' : 'image') : 'text',
       media_url: media?.url || null,
-      scheduled_for: status === 'Queued' ? null : `${scheduleDate}T${scheduleTime}:00`,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      scheduled_for:
+          status === 'Queued'
+              ? null
+              : new Date(`${scheduleDate}T${scheduleTime}`).toISOString(),      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       social_account_ids: accountIds,
       campaign_id: selectedCampaign ? Number(selectedCampaign) : null,
       status,
     }
   }
+  
 
   const handleSaveDraft = async () => {
     if (submitting) return
@@ -642,7 +645,7 @@ export default function ContentScheduling() {
                 </div>
               )}
 
-              {previewTab === 'x' && (
+              {previewTab === 'twitter' && (
                 <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden text-slate-800 dark:text-slate-100 p-3.5">
                   <div className="flex items-center gap-2">
                     <div className="w-9 h-9 rounded-full bg-slate-400 dark:bg-slate-500 text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0">{previewInitials}</div>

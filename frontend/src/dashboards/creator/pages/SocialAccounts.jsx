@@ -122,13 +122,16 @@ export default function SocialAccounts() {
     }
   }
 
+
   const connectedPlatforms = accounts.map(
     (a) => a.platform?.toLowerCase()
   )
+  console.log('Connected platforms:', connectedPlatforms)
   const availablePlatforms = PLATFORM_OPTIONS.filter(
     (p) => !connectedPlatforms.includes(p.id)
   )
-
+  console.log('Available platforms:', availablePlatforms)
+  
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto animate-fade-in pb-12">
       {toast && (

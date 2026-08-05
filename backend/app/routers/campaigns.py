@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter
+from fastapi import APIRouter,Depends
 
 from app.services.campaign_service import (
     create_campaign,
@@ -17,7 +17,6 @@ from app.services.campaign_service import (
     get_campaign_performance,
 )
 
-from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -45,19 +44,6 @@ def get_campaigns(
 ):
     return campaign_service.get_all_campaigns(db, current_user.id)
 
-
-
-@router.get("/{campaign_id}")
-def get_campaign(campaign_id: int):
-    return get_campaign_by_id(campaign_id)
-
-@router.put("/{campaign_id}")
-def update_existing_campaign(campaign_id: int):
-    return update_campaign(campaign_id)
-
-@router.delete("/{campaign_id}")
-def delete_existing_campaign(campaign_id: int):
-    return delete_campaign(campaign_id)
 
 @router.post("/{campaign_id}/assign-post/{post_id}")
 def assign_post(
