@@ -1,33 +1,36 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Bell, CheckCircle2, XCircle, Info, Megaphone,
-  Check, Trash2, Filter, RefreshCw,
+  Bell, CheckCircle2, XCircle, Info, Megaphone, Link2,
+  Check, Trash2,
 } from 'lucide-react'
 import PageHeader from '../../components/dashboard/PageHeader'
 import EmptyState from '../../components/dashboard/EmptyState'
 
 const TYPES = {
-  success: { icon: CheckCircle2, color: '#22C55E', bg: 'rgba(34,197,94,.10)'   },
-  error:   { icon: XCircle,      color: '#EF4444', bg: 'rgba(239,68,68,.10)'   },
-  info:    { icon: Info,          color: '#1E3A8A', bg: 'rgba(30,58,138,.10)'   },
-  campaign:{ icon: Megaphone,     color: '#F59E0B', bg: 'rgba(245,158,11,.10)'  },
+  success:    { icon: CheckCircle2, color: '#22C55E', bg: 'rgba(34,197,94,.10)',   label: 'Success'     },
+  error:      { icon: XCircle,      color: '#EF4444', bg: 'rgba(239,68,68,.10)',   label: 'Error'       },
+  info:       { icon: Info,         color: '#1E3A8A', bg: 'rgba(30,58,138,.10)',   label: 'Info'        },
+  campaign:   { icon: Megaphone,    color: '#F59E0B', bg: 'rgba(245,158,11,.10)',  label: 'Campaign'    },
+  account:    { icon: Link2,        color: '#4F46E5', bg: 'rgba(79,70,229,.10)',   label: 'Account'     },
 }
 
 const INIT = [
-  { id:1,  type:'success', title:'Post Published Successfully',  message:'Summer Sale Kick-off was published to Instagram.',        time:'2 min ago',   read:false },
-  { id:2,  type:'error',   title:'Publishing Failed',            message:'Facebook Campaign Ad failed to publish. Click to retry.', time:'15 min ago',  read:false },
-  { id:3,  type:'campaign',title:'Campaign Reminder',            message:'Summer Sale 2025 campaign ends in 3 days.',               time:'1 hour ago',  read:false },
-  { id:4,  type:'success', title:'Post Published Successfully',  message:'LinkedIn Thought Post was published successfully.',        time:'2 hours ago', read:false },
-  { id:5,  type:'info',    title:'System Update',                message:'OrbitSocial was updated to v2.4.0. See what\'s new.',     time:'3 hours ago', read:true  },
-  { id:6,  type:'campaign',title:'Campaign Budget Alert',        message:'Brand Awareness campaign has used 81% of its budget.',    time:'5 hours ago', read:true  },
-  { id:7,  type:'success', title:'Post Published Successfully',  message:'X Thread Recap was published successfully.',              time:'Yesterday',   read:true  },
-  { id:8,  type:'error',   title:'Scheduling Error',             message:'Instagram Reel Upload could not be scheduled. Try again.',time:'Yesterday',   read:true  },
-  { id:9,  type:'info',    title:'New Feature Available',        message:'Bulk scheduling is now available. Try it in Create Post.', time:'2 days ago', read:true  },
-  { id:10, type:'campaign',title:'Campaign Milestone',           message:'Summer Sale campaign reached 50,000 impressions!',        time:'2 days ago',  read:true  },
+  { id:1,  type:'campaign', title:'Campaign Started',         message:'Summer Sale 2025 campaign is now live and running.',           time:'2 min ago',   read:false },
+  { id:2,  type:'success',  title:'Publishing Successful',    message:'Instagram post "Summer Sale Kick-off" published successfully.',  time:'5 min ago',   read:false },
+  { id:3,  type:'error',    title:'Publishing Failed',        message:'Facebook Campaign Ad failed to publish. Please retry.',         time:'15 min ago',  read:false },
+  { id:4,  type:'account',  title:'Account Connected',        message:'LinkedIn account "OrbitSocial Inc." has been connected.',       time:'1 hour ago',  read:false },
+  { id:5,  type:'campaign', title:'Campaign Reminder',        message:'Product Launch Q3 campaign ends in 5 days.',                   time:'2 hours ago', read:false },
+  { id:6,  type:'success',  title:'Publishing Successful',    message:'LinkedIn Thought Post was published successfully.',             time:'3 hours ago', read:true  },
+  { id:7,  type:'campaign', title:'Campaign Completed',       message:'Holiday Promo 2024 campaign has been completed successfully.',  time:'5 hours ago', read:true  },
+  { id:8,  type:'account',  title:'Account Disconnected',     message:'X (Twitter) account was disconnected. Please reconnect.',      time:'Yesterday',   read:true  },
+  { id:9,  type:'error',    title:'Publishing Failed',        message:'Instagram Reel Upload could not be scheduled. Try again.',      time:'Yesterday',   read:true  },
+  { id:10, type:'campaign', title:'Campaign Budget Alert',    message:'Brand Awareness campaign has used 81% of its budget.',         time:'2 days ago',  read:true  },
+  { id:11, type:'success',  title:'Publishing Successful',    message:'X Thread Recap was published successfully.',                   time:'2 days ago',  read:true  },
+  { id:12, type:'account',  title:'Account Connected',        message:'Pinterest account connected and ready for publishing.',        time:'3 days ago',  read:true  },
 ]
 
-const FILTERS = ['all','unread','success','error','campaign','info']
+const FILTERS = ['all','unread','campaign','success','error','account','info']
 
 export default function Notifications() {
   const [items,   setItems]   = useState(INIT)
@@ -84,7 +87,7 @@ export default function Notifications() {
                 color:       active ? (meta?.color ?? 'var(--primary)')    : 'var(--text-muted)',
               }}>
               {Icon && <Icon size={11} />}
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'all' ? 'All' : f === 'unread' ? 'Unread' : TYPES[f]?.label ?? f}
               {f === 'unread' && unreadCount > 0 && (
                 <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
                   style={{ background: 'var(--error)' }}>{unreadCount}</span>

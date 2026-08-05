@@ -74,7 +74,7 @@ export default function MarketingActivity() {
     <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="Marketing Activity"
-        subtitle="Monitor all activity from your assigned marketing team. View-only."
+        subtitle="Monitor all activity from your assigned marketing team."
       />
 
       {/* ── Section 1: Team Information ── */}

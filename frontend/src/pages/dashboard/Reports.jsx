@@ -95,24 +95,29 @@ export default function Reports() {
         title="Reports"
         subtitle="Performance reports for your campaigns and monthly activity."
         actions={
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleGenerate('monthly')}
-              disabled={generating}
-              className="flex items-center gap-2 px-4 h-9 rounded-[var(--r-md)] border text-sm font-semibold transition-all hover:shadow-[var(--shadow-sm)]"
-              style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
-            >
-              {generating ? <RefreshCw size={14} className="animate-spin" /> : <Calendar size={14} />}
-              Monthly Report
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={() => handleGenerate('monthly')} disabled={generating}
+              className="flex items-center gap-2 px-3 h-9 rounded-[var(--r-md)] border text-xs font-semibold transition-all hover:shadow-[var(--shadow-sm)]"
+              style={{ background:'var(--card)', borderColor:'var(--border)', color:'var(--text)' }}>
+              {generating ? <RefreshCw size={13} className="animate-spin" /> : <Calendar size={13} />}
+              Monthly
+            </button>
+            <button onClick={() => handleGenerate('campaign')} disabled={generating}
+              className="flex items-center gap-2 px-3 h-9 rounded-[var(--r-md)] border text-xs font-semibold transition-all hover:shadow-[var(--shadow-sm)]"
+              style={{ background:'var(--card)', borderColor:'var(--border)', color:'var(--text)' }}>
+              <Megaphone size={13} /> Campaign
             </button>
             <button
-              onClick={() => handleGenerate('campaign')}
-              disabled={generating}
-              className="flex items-center gap-2 px-4 h-9 rounded-[var(--r-md)] text-sm font-semibold text-white transition-all hover:brightness-105"
-              style={{ background: 'linear-gradient(135deg, #1E3A8A, #4F46E5)' }}
-            >
-              <Megaphone size={14} />
-              Campaign Report
+              onClick={() => { filtered.filter(r => r.status === 'ready').forEach(r => { const a = document.createElement('a'); a.href = `data:application/pdf,${encodeURIComponent(r.title)}`; a.download = `${r.title.replace(/\s+/g,'-')}.pdf`; a.click() }) }}
+              className="flex items-center gap-2 px-3 h-9 rounded-[var(--r-md)] border text-xs font-semibold transition-all hover:shadow-[var(--shadow-sm)]"
+              style={{ background:'rgba(239,68,68,.06)', borderColor:'rgba(239,68,68,.25)', color:'#EF4444' }}>
+              <Download size={13} /> Export PDF
+            </button>
+            <button
+              onClick={() => { filtered.filter(r => r.status === 'ready').forEach(downloadCSV) }}
+              className="flex items-center gap-2 px-3 h-9 rounded-[var(--r-md)] text-xs font-semibold text-white transition-all hover:brightness-105"
+              style={{ background:'linear-gradient(135deg,#1E3A8A,#4F46E5)' }}>
+              <Download size={13} /> Export Excel
             </button>
           </div>
         }

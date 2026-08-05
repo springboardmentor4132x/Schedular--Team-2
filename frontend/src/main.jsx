@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import { ClientProvider } from './context/ClientContext'
+import { AppStateProvider } from './context/AppStateContext'
 import './index.css'
 
 // Apply saved theme before React mounts — prevents flash
@@ -58,9 +59,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <ClientProvider>
-            <App />
-          </ClientProvider>
+          <AppStateProvider>
+            <ClientProvider>
+              <App />
+            </ClientProvider>
+          </AppStateProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

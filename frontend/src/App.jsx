@@ -30,22 +30,22 @@ import MarketingTeams    from './pages/dashboard/MarketingTeams'
 import ScheduledPosts    from './pages/dashboard/ScheduledPosts'
 import PublishedPosts    from './pages/dashboard/PublishedPosts'
 import Reports           from './pages/dashboard/Reports'
-import BrandGuidelines   from './pages/dashboard/BrandGuidelines'
-import ClientRequirements from './pages/dashboard/ClientRequirements'
 import MarketingActivity from './pages/dashboard/MarketingActivity'
 
 // Marketing Team pages (under /dashboard/mkt/*)
-import MktClients           from './pages/dashboard/mkt/Clients'
-import MktClientRequests    from './pages/dashboard/mkt/ClientRequests'
-import MktClientWorkspace   from './pages/dashboard/mkt/ClientWorkspace'
-import MktConnectedApps     from './pages/dashboard/mkt/ConnectedApps'
-import MktContentManagement from './pages/dashboard/mkt/ContentManagement'
-import MktContentScheduling from './pages/dashboard/mkt/ContentScheduling'
+import MktClients            from './pages/dashboard/mkt/Clients'
+import MktClientWorkspace    from './pages/dashboard/mkt/ClientWorkspace'
+import MktConnectedApps      from './pages/dashboard/mkt/ConnectedApps'
+import MktContentManagement  from './pages/dashboard/mkt/ContentManagement'
+import MktContentScheduling  from './pages/dashboard/mkt/ContentScheduling'
 import MktPublishingCalendar from './pages/dashboard/mkt/PublishingCalendar'
-import MktCampaigns         from './pages/dashboard/mkt/CampaignManagement'
-import MktBrandGuidelines   from './pages/dashboard/mkt/BrandGuidelines'
-import MktAnalytics         from './pages/dashboard/mkt/Analytics'
-import MktReports           from './pages/dashboard/mkt/Reports'
+import MktPublishingCenter   from './pages/dashboard/mkt/PublishingCenter'
+import MktCampaigns          from './pages/dashboard/mkt/CampaignManagement'
+import MktMarketingReports   from './pages/dashboard/mkt/MarketingReports'
+import PublishingDashboard   from './pages/dashboard/PublishingDashboard'
+import MktPublishingLogs     from './pages/dashboard/mkt/PublishingLogs'
+import MktFailedPosts        from './pages/dashboard/mkt/FailedPosts'
+import MktPlatformHistory    from './pages/dashboard/mkt/PlatformHistory'
 
 // Route protection
 import RoleGuard from './components/RoleGuard'
@@ -93,25 +93,25 @@ export default function App() {
         <Route path="campaigns"           element={<RoleGuard allowed={['business']}><Campaigns         /></RoleGuard>} />
         <Route path="connected-accounts"  element={<RoleGuard allowed={['business']}><ConnectedAccounts /></RoleGuard>} />
         <Route path="marketing-teams"     element={<RoleGuard allowed={['business']}><MarketingTeams    /></RoleGuard>} />
-        <Route path="brand-guidelines"    element={<RoleGuard allowed={['business']}><BrandGuidelines   /></RoleGuard>} />
-        <Route path="client-requirements" element={<RoleGuard allowed={['business']}><ClientRequirements /></RoleGuard>} />
         <Route path="marketing-activity"  element={<RoleGuard allowed={['business']}><MarketingActivity /></RoleGuard>} />
         <Route path="scheduled-posts"     element={<RoleGuard allowed={['business']}><ScheduledPosts    /></RoleGuard>} />
         <Route path="published-posts"     element={<RoleGuard allowed={['business']}><PublishedPosts    /></RoleGuard>} />
+        <Route path="publishing"          element={<RoleGuard allowed={['business','marketing']}><PublishingDashboard /></RoleGuard>} />
         <Route path="reports"             element={<RoleGuard allowed={['business']}><Reports           /></RoleGuard>} />
 
         {/* ── Marketing Team routes (all under /dashboard/mkt/*) ── */}
         <Route path="mkt/clients"    element={<RoleGuard allowed={['marketing']}><MktClients           /></RoleGuard>} />
-        <Route path="mkt/requests"   element={<RoleGuard allowed={['marketing']}><MktClientRequests    /></RoleGuard>} />
         <Route path="mkt/workspace"  element={<RoleGuard allowed={['marketing']}><MktClientWorkspace   /></RoleGuard>} />
         <Route path="mkt/connected-apps" element={<RoleGuard allowed={['marketing']}><MktConnectedApps /></RoleGuard>} />
         <Route path="mkt/content"    element={<RoleGuard allowed={['marketing']}><MktContentManagement /></RoleGuard>} />
         <Route path="mkt/scheduling" element={<RoleGuard allowed={['marketing']}><MktContentScheduling /></RoleGuard>} />
         <Route path="mkt/calendar"   element={<RoleGuard allowed={['marketing']}><MktPublishingCalendar /></RoleGuard>} />
+        <Route path="mkt/queue"      element={<RoleGuard allowed={['marketing']}><MktPublishingCenter  /></RoleGuard>} />
+        <Route path="mkt/logs"       element={<RoleGuard allowed={['marketing']}><MktPublishingLogs /></RoleGuard>} />
+        <Route path="mkt/failed"     element={<RoleGuard allowed={['marketing']}><MktFailedPosts /></RoleGuard>} />
+        <Route path="mkt/history"    element={<RoleGuard allowed={['marketing']}><MktPlatformHistory /></RoleGuard>} />
         <Route path="mkt/campaigns"  element={<RoleGuard allowed={['marketing']}><MktCampaigns         /></RoleGuard>} />
-        <Route path="mkt/brand-guidelines" element={<RoleGuard allowed={['marketing']}><MktBrandGuidelines /></RoleGuard>} />
-        <Route path="mkt/analytics" element={<RoleGuard allowed={['marketing']}><MktAnalytics         /></RoleGuard>} />
-        <Route path="mkt/reports"    element={<RoleGuard allowed={['marketing']}><MktReports           /></RoleGuard>} />
+        <Route path="mkt/reports"    element={<RoleGuard allowed={['marketing']}><MktMarketingReports  /></RoleGuard>} />
 
         {/* ── Shared (both roles) ── */}
         <Route path="analytics"     element={<RoleGuard allowed={['business','marketing']}><AnalyticsPage    /></RoleGuard>} />

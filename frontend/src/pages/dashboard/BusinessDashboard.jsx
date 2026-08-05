@@ -4,15 +4,14 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
 import {
-  Link2, Megaphone, CalendarCheck, Send,
-  CalendarDays, BarChart2, Users, TrendingUp,
-  CheckCircle2, Clock, AlertCircle, FileText,
+  Link2, Megaphone, Send, CalendarCheck,
+  BarChart2, FileText,
+  CheckCircle2, XCircle, Bell,
 } from 'lucide-react'
-import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter } from 'react-icons/fa6'
+import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import StatCard from '../../components/dashboard/StatCard'
-import ActivityFeed from '../../components/dashboard/ActivityFeed'
 import PageHeader from '../../components/dashboard/PageHeader'
 import {
   MOCK_CONNECTED_ACCOUNTS,
@@ -22,29 +21,28 @@ import {
   MOCK_ANALYTICS,
 } from '../../services/mockData'
 
-/* ── Derived counts from mock data ────────────────────────────── */
-const connectedCount  = MOCK_CONNECTED_ACCOUNTS.filter(a => a.status === 'connected' || a.status === 'warning').length
-const campaignCount   = MOCK_CAMPAIGNS.filter(c => c.status === 'active').length
-const scheduledCount  = MOCK_SCHEDULED_POSTS.filter(p => p.status === 'scheduled').length
-const publishedCount  = MOCK_PUBLISHED_POSTS.length
+/* ── Derived counts ──────────────────────────────────────────────*/
+const connectedCount = MOCK_CONNECTED_ACCOUNTS.filter(a => a.status === 'connected' || a.status === 'warning').length
+const campaignCount  = MOCK_CAMPAIGNS.filter(c => c.status === 'active').length
+const scheduledCount = MOCK_SCHEDULED_POSTS.filter(p => p.status === 'scheduled').length
+const publishedCount = MOCK_PUBLISHED_POSTS.length
 
-/* ── Quick actions ────────────────────────────────────────────── */
+/* ── Quick actions — spec-correct nav ─────────────────────────── */
 const QUICK_ACTIONS = [
-  { label: 'Marketing Teams',    href: '/dashboard/marketing-teams',    color: '#1E3A8A', bg: 'rgba(30,58,138,.10)',   icon: Users },
-  { label: 'Campaigns',          href: '/dashboard/campaigns',           color: '#4F46E5', bg: 'rgba(79,70,229,.10)',   icon: Megaphone },
-  { label: 'Scheduled Posts',    href: '/dashboard/scheduled-posts',     color: '#22C55E', bg: 'rgba(34,197,94,.10)',   icon: CalendarCheck },
-  { label: 'Connected Accounts', href: '/dashboard/connected-accounts',  color: '#F59E0B', bg: 'rgba(245,158,11,.10)',  icon: Link2 },
-  { label: 'Analytics',          href: '/dashboard/analytics',           color: '#E1306C', bg: 'rgba(225,48,108,.10)',  icon: BarChart2 },
-  { label: 'Reports',            href: '/dashboard/reports',             color: '#0A66C2', bg: 'rgba(10,102,194,.10)', icon: FileText },
+  { label: 'Campaigns',          href: '/dashboard/campaigns',          color: '#4F46E5', bg: 'rgba(79,70,229,.10)',   icon: Megaphone },
+  { label: 'Scheduled Posts',    href: '/dashboard/scheduled-posts',    color: '#22C55E', bg: 'rgba(34,197,94,.10)',   icon: CalendarCheck },
+  { label: 'Published Posts',    href: '/dashboard/published-posts',    color: '#F59E0B', bg: 'rgba(245,158,11,.10)',  icon: Send },
+  { label: 'Connected Accounts', href: '/dashboard/connected-accounts', color: '#1E3A8A', bg: 'rgba(30,58,138,.10)',   icon: Link2 },
+  { label: 'Analytics',          href: '/dashboard/analytics',          color: '#E1306C', bg: 'rgba(225,48,108,.10)',  icon: BarChart2 },
+  { label: 'Reports',            href: '/dashboard/reports',            color: '#0A66C2', bg: 'rgba(10,102,194,.10)', icon: FileText },
 ]
 
-/* ── Recent activity ──────────────────────────────────────────── */
-const ACTIVITY = [
-  { id:1, icon:CheckCircle2, iconColor:'#22C55E', iconBg:'rgba(34,197,94,.1)',   title:'Post published successfully',  description:'Instagram · Summer Sale Announcement',  time:'2m ago',  badge:'Published', badgeColor:'#22C55E' },
-  { id:2, icon:Clock,        iconColor:'#1E3A8A', iconBg:'rgba(30,58,138,.1)',   title:'Post scheduled',               description:'LinkedIn · Product Launch Teaser',      time:'14m ago', badge:'Scheduled', badgeColor:'#1E3A8A' },
-  { id:3, icon:AlertCircle,  iconColor:'#F59E0B', iconBg:'rgba(245,158,11,.1)',  title:'Campaign budget at 80%',       description:'Brand Awareness campaign',             time:'1h ago',  badge:'Warning',   badgeColor:'#F59E0B' },
-  { id:4, icon:Users,        iconColor:'#4F46E5', iconBg:'rgba(79,70,229,.1)',   title:'Marketing team assigned',      description:'Digital Spark Agency · Summer Sale',   time:'2h ago',  badge:'Assigned',  badgeColor:'#4F46E5' },
-  { id:5, icon:TrendingUp,   iconColor:'#E1306C', iconBg:'rgba(225,48,108,.1)', title:'Engagement spike detected',    description:'+34% above average this week',         time:'3h ago'  },
+/* ── Recent notifications (for dashboard preview) ─────────────── */
+const RECENT_NOTIFICATIONS = [
+  { id:1, type:'success', icon:CheckCircle2, iconColor:'#22C55E', iconBg:'rgba(34,197,94,.1)',   title:'Campaign Started',         message:'Summer Sale 2025 campaign is now live.',          time:'5m ago'  },
+  { id:2, type:'success', icon:CheckCircle2, iconColor:'#22C55E', iconBg:'rgba(34,197,94,.1)',   title:'Publishing Successful',    message:'Instagram post published successfully.',          time:'18m ago' },
+  { id:3, type:'error',   icon:XCircle,      iconColor:'#EF4444', iconBg:'rgba(239,68,68,.1)',   title:'Publishing Failed',        message:'Facebook post failed. Click to retry.',           time:'1h ago'  },
+  { id:4, type:'info',    icon:Bell,         iconColor:'#1E3A8A', iconBg:'rgba(30,58,138,.1)',   title:'Campaign Reminder',        message:'Product Launch Q3 ends in 5 days.',               time:'2h ago'  },
 ]
 
 /* ── Upcoming scheduled posts (from mock) ─────────────────────── */
@@ -55,6 +53,8 @@ const PLATFORM_ICONS = {
   facebook:  { icon: FaFacebook,  color: '#1877F2' },
   linkedin:  { icon: FaLinkedin,  color: '#0A66C2' },
   x:         { icon: FaXTwitter,  color: '#374151' },
+  youtube:   { icon: FaYoutube,   color: '#FF0000' },
+  pinterest: { icon: FaPinterest, color: '#E60023' },
 }
 
 const STATUS_STYLE = {
@@ -112,45 +112,29 @@ export default function BusinessDashboard() {
           </div>
           <div className="flex gap-2 flex-wrap">
             <button
-              onClick={() => navigate('/dashboard/marketing-teams')}
-              className="flex items-center gap-1.5 px-4 h-9 rounded-[var(--r-md)] text-sm font-semibold transition-all hover:brightness-95"
-              style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', backdropFilter: 'blur(8px)' }}
-            >
-              <Users size={14} /> Marketing Teams
-            </button>
-            <button
               onClick={() => navigate('/dashboard/campaigns')}
               className="flex items-center gap-1.5 px-4 h-9 rounded-[var(--r-md)] text-sm font-semibold transition-all hover:brightness-95"
               style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', backdropFilter: 'blur(8px)' }}
             >
               <Megaphone size={14} /> Campaigns
             </button>
+            <button
+              onClick={() => navigate('/dashboard/analytics')}
+              className="flex items-center gap-1.5 px-4 h-9 rounded-[var(--r-md)] text-sm font-semibold transition-all hover:brightness-95"
+              style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', backdropFilter: 'blur(8px)' }}
+            >
+              <BarChart2 size={14} /> Analytics
+            </button>
           </div>
         </div>
       </motion.div>
 
-      {/* ── KPI cards — spec-correct ── */}
+      {/* ── KPI cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard
-          title="Connected Accounts" value={connectedCount}
-          icon={Link2} iconColor="#1E3A8A" iconBg="rgba(30,58,138,.12)"
-          trend={0} trendLabel="platforms linked" index={0}
-        />
-        <StatCard
-          title="Active Campaigns" value={campaignCount}
-          icon={Megaphone} iconColor="#4F46E5" iconBg="rgba(79,70,229,.10)"
-          trend={0} trendLabel="running now" index={1}
-        />
-        <StatCard
-          title="Scheduled Posts" value={scheduledCount}
-          icon={CalendarCheck} iconColor="#22C55E" iconBg="rgba(34,197,94,.12)"
-          trend={12} index={2}
-        />
-        <StatCard
-          title="Published Posts" value={publishedCount}
-          icon={Send} iconColor="#F59E0B" iconBg="rgba(245,158,11,.12)"
-          trend={8} index={3}
-        />
+        <StatCard title="Connected Accounts" value={connectedCount} icon={Link2}         iconColor="#1E3A8A" iconBg="rgba(30,58,138,.12)" trendLabel="platforms linked" index={0} onClick={() => navigate('/dashboard/connected-accounts')} />
+        <StatCard title="Active Campaigns"   value={campaignCount}  icon={Megaphone}     iconColor="#4F46E5" iconBg="rgba(79,70,229,.10)" trendLabel="running now"     index={1} onClick={() => navigate('/dashboard/campaigns')} />
+        <StatCard title="Scheduled Posts"    value={scheduledCount} icon={CalendarCheck} iconColor="#22C55E" iconBg="rgba(34,197,94,.12)" trend={12} index={2} onClick={() => navigate('/dashboard/scheduled-posts')} />
+        <StatCard title="Published Posts"    value={publishedCount} icon={Send}          iconColor="#F59E0B" iconBg="rgba(245,158,11,.12)" trend={8}  index={3} onClick={() => navigate('/dashboard/published-posts')} />
       </div>
 
       {/* ── Quick Actions ── */}
@@ -274,114 +258,121 @@ export default function BusinessDashboard() {
         </motion.div>
       </div>
 
-      {/* ── Upcoming scheduled posts ── */}
+      {/* ── Campaign Performance + Recent Notifications ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="card p-5 lg:col-span-2"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--text)' }}>
-              Upcoming Scheduled Posts
-            </h2>
-            <button
-              onClick={() => navigate('/dashboard/scheduled-posts')}
-              className="text-xs font-semibold hover:underline"
-              style={{ color: 'var(--primary)' }}
-            >
-              View all →
-            </button>
-          </div>
-          <div className="flex flex-col gap-2">
-            {UPCOMING.map(post => {
-              const meta  = PLATFORM_ICONS[post.platform]
-              const Icon  = meta?.icon
-              const s     = STATUS_STYLE[post.status] ?? STATUS_STYLE.scheduled
-              const dt    = new Date(post.scheduledAt)
-              const label = dt.toLocaleDateString('en-US', { month:'short', day:'numeric' }) +
-                            ' · ' + dt.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' })
-              return (
-                <div key={post.id}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-[var(--r-md)] transition-colors hover:bg-[var(--bg-alt)]"
-                  style={{ border: '1px solid var(--border)' }}
-                >
-                  {Icon && (
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background: `${meta.color}15` }}>
-                      <Icon size={14} style={{ color: meta.color }} />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{post.title}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-subtle)' }}>{label}</p>
-                  </div>
-                  {post.campaign && (
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full hidden sm:block flex-shrink-0"
-                      style={{ background: 'rgba(79,70,229,.10)', color: '#4F46E5' }}>
-                      {post.campaign}
-                    </span>
-                  )}
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                    style={{ background: s.bg, color: s.color }}>
-                    {s.label}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </motion.div>
 
-        {/* Campaign overview */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.25 }}
-          className="card p-5"
-        >
+        {/* Campaign Performance */}
+        <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }}
+          transition={{ duration:0.3, delay:0.2 }}
+          className="card p-5 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--text)' }}>
-              Campaign Overview
+            <h2 className="text-sm font-bold" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", color:'var(--text)' }}>
+              Campaign Performance
             </h2>
-            <button
-              onClick={() => navigate('/dashboard/campaigns')}
-              className="text-xs font-semibold hover:underline"
-              style={{ color: 'var(--primary)' }}
-            >
-              View all →
+            <button onClick={() => navigate('/dashboard/campaigns')}
+              className="text-xs font-semibold hover:underline" style={{ color:'var(--primary)' }}>
+              Manage Campaigns →
             </button>
           </div>
           <div className="flex flex-col gap-4">
             {MOCK_CAMPAIGNS.filter(c => c.status === 'active').map(c => (
               <div key={c.id}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{c.name}</span>
-                  <span className="text-xs font-bold ml-2 flex-shrink-0" style={{ color: 'var(--primary)' }}>
-                    {c.progress}%
-                  </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium truncate" style={{ color:'var(--text)' }}>{c.name}</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{ background:'rgba(34,197,94,.10)', color:'#22C55E' }}>Active</span>
+                    <span className="text-xs font-bold" style={{ color:'var(--primary)' }}>{c.progress}%</span>
+                  </div>
                 </div>
-                <div className="w-full h-2 rounded-full" style={{ background: 'var(--bg-alt)' }}>
+                <div className="w-full h-2 rounded-full" style={{ background:'var(--bg-alt)' }}>
                   <div className="h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${c.progress}%`, background: 'linear-gradient(90deg, #1E3A8A, #4F46E5)' }} />
+                    style={{ width:`${c.progress}%`, background:'linear-gradient(90deg,#1E3A8A,#4F46E5)' }} />
                 </div>
                 <div className="flex items-center justify-between mt-1">
-                  <span className="text-[10px]" style={{ color: 'var(--text-subtle)' }}>Budget: ${c.budget.toLocaleString()}</span>
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                    style={{ background: 'rgba(34,197,94,.10)', color: '#22C55E' }}>
-                    Active
+                  <span className="text-[10px]" style={{ color:'var(--text-subtle)' }}>
+                    Budget: ${c.budget.toLocaleString()} · Reach: {(c.reach/1000).toFixed(0)}K · Posts: {c.posts}
                   </span>
                 </div>
               </div>
             ))}
           </div>
         </motion.div>
+
+        {/* Recent Notifications */}
+        <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }}
+          transition={{ duration:0.3, delay:0.25 }}
+          className="card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", color:'var(--text)' }}>
+              Recent Notifications
+            </h2>
+            <button onClick={() => navigate('/dashboard/notifications')}
+              className="text-xs font-semibold hover:underline" style={{ color:'var(--primary)' }}>
+              View all →
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            {RECENT_NOTIFICATIONS.map(n => {
+              const Icon = n.icon
+              return (
+                <div key={n.id} className="flex items-start gap-3 p-2.5 rounded-[var(--r-md)]"
+                  style={{ background:'var(--bg-alt)', border:'1px solid var(--border)' }}>
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ background:n.iconBg }}>
+                    <Icon size={13} style={{ color:n.iconColor }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold truncate" style={{ color:'var(--text)' }}>{n.title}</p>
+                    <p className="text-[10px] leading-relaxed mt-0.5 line-clamp-2" style={{ color:'var(--text-muted)' }}>{n.message}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color:'var(--text-subtle)' }}>{n.time}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </motion.div>
       </div>
 
-      {/* ── Activity feed ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.3 }}
-      >
-        <ActivityFeed items={ACTIVITY} title="Recent Activity" />
+      {/* ── Scheduled Posts preview ── */}
+      <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }}
+        transition={{ duration:0.3, delay:0.3 }}
+        className="card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-bold" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", color:'var(--text)' }}>
+            Upcoming Scheduled Posts
+          </h2>
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+            style={{ background:'rgba(30,58,138,.10)', color:'#1E3A8A' }}>
+            {scheduledCount} scheduled
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {UPCOMING.map(post => {
+            const meta = PLATFORM_ICONS[post.platform]
+            const Icon = meta?.icon
+            const s    = STATUS_STYLE[post.status] ?? STATUS_STYLE.scheduled
+            const dt   = new Date(post.scheduledAt)
+            return (
+              <div key={post.id} className="flex flex-col gap-2 p-3 rounded-[var(--r-md)]"
+                style={{ background:'var(--bg-alt)', border:'1px solid var(--border)' }}>
+                <div className="flex items-center justify-between">
+                  {Icon && (
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background:`${meta.color}15` }}>
+                      <Icon size={13} style={{ color:meta.color }} />
+                    </div>
+                  )}
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                    style={{ background:s.bg, color:s.color }}>{s.label}</span>
+                </div>
+                <p className="text-xs font-semibold line-clamp-1" style={{ color:'var(--text)' }}>{post.title}</p>
+                <p className="text-[10px]" style={{ color:'var(--text-subtle)' }}>
+                  {dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · {dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}
+                </p>
+              </div>
+            )
+          })}
+        </div>
       </motion.div>
     </div>
   )

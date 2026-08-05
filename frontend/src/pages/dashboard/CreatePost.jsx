@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Hash, Smile, Send, Save, Clock,
@@ -129,15 +130,19 @@ function LivePreview({ title, caption, hashtags, mediaUrl, platforms }) {
 export default function CreatePost() {
   const { role } = useAuth()
   const wf = WORKFLOW[role] ?? WORKFLOW.business
+  const { state } = useLocation()
 
-  const [title,        setTitle]        = useState('')
-  const [caption,      setCaption]      = useState('')
-  const [hashtags,     setHashtags]     = useState('')
-  const [platforms,    setPlatforms]    = useState(['instagram'])
+  const draftPayload = state?.draft ?? null
+  const draftAction  = state?.action ?? null
+
+  const [title,        setTitle]        = useState(draftPayload?.title || '')
+  const [caption,      setCaption]      = useState(draftPayload?.caption || '')
+  const [hashtags,     setHashtags]     = useState(draftPayload?.tags?.map(t => `#${t}`).join(' ') || '')
+  const [platforms,    setPlatforms]    = useState(draftPayload?.platform ? [draftPayload.platform] : ['instagram'])
   const [visibility,   setVisibility]   = useState('public')
   const [audience,     setAudience]     = useState('All Followers')
-  const [scheduleDate, setScheduleDate] = useState('')
-  const [scheduleTime, setScheduleTime] = useState('')
+  const [scheduleDate, setScheduleDate] = useState(draftAction === 'schedule' ? new Date().toISOString().slice(0, 10) : '')
+  const [scheduleTime, setScheduleTime] = useState(draftAction === 'schedule' ? '09:00' : '')
   const [recurring,    setRecurring]    = useState(false)
   const [recurFreq,    setRecurFreq]    = useState('Weekly')
   const [mediaFiles,   setMediaFiles]   = useState([])

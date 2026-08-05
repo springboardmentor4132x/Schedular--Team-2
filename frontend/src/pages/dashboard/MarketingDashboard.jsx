@@ -1,15 +1,13 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
-  Users, Megaphone, FileText, CalendarCheck, Send,
-  PenSquare, BarChart2, Bell, Link2, ScrollText,
-  CheckCircle2, Clock, AlertCircle, TrendingUp,
-  ClipboardList,
+  Users, Megaphone, CalendarCheck, Send,
+  BarChart2, Bell, ScrollText,
+  CheckCircle2, AlertCircle, TrendingUp,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useClient } from '../../context/ClientContext'
 import StatCard from '../../components/dashboard/StatCard'
-import ActivityFeed from '../../components/dashboard/ActivityFeed'
 import PageHeader from '../../components/dashboard/PageHeader'
 import {
   MOCK_CLIENTS,
@@ -17,61 +15,37 @@ import {
   MOCK_CLIENT_POSTS,
 } from '../../services/mockData'
 
-function readReviewRequests() {
-  if (typeof window === 'undefined') return []
-  try {
-    return JSON.parse(localStorage.getItem('orbit-client-requests') ?? '[]')
-  } catch {
-    return []
-  }
-}
+/* ── Derived KPIs ──────────────────────────────────────────────── */
+const assignedClients = MOCK_CLIENTS.length
+const activeCampaigns = Object.values(MOCK_CLIENT_CAMPAIGNS).flat().filter(c => c.status === 'active').length
+const scheduledPosts  = Object.values(MOCK_CLIENT_POSTS).reduce((s, p) => s + p.scheduled.length, 0)
+const pendingPosts    = Object.values(MOCK_CLIENT_POSTS).reduce((s, p) => s + p.drafts.filter(d => d.status === 'review').length, 0)
+const publishedPosts  = Object.values(MOCK_CLIENT_POSTS).reduce((s, p) => s + p.published.length, 0)
 
-function readApprovedClients() {
-  if (typeof window === 'undefined') return []
-  try {
-    return JSON.parse(localStorage.getItem('orbit-approved-clients') ?? '[]')
-  } catch {
-    return []
-  }
-}
-
-/* ── Derived KPIs from mock data ─────────────────────────────────── */
-const assignedClients  = MOCK_CLIENTS.length
-const activeCampaigns  = Object.values(MOCK_CLIENT_CAMPAIGNS).flat().filter(c => c.status === 'active').length
-const draftPosts       = Object.values(MOCK_CLIENT_POSTS).reduce((s, p) => s + p.drafts.length, 0)
-const scheduledPosts   = Object.values(MOCK_CLIENT_POSTS).reduce((s, p) => s + p.scheduled.length, 0)
-const publishedPosts   = Object.values(MOCK_CLIENT_POSTS).reduce((s, p) => s + p.published.length, 0)
-
-/* ── Quick actions ───────────────────────────────────────────────── */
-const QUICK_ACTIONS = [
-  { label: 'Client Requests',     href: '/dashboard/mkt/requests',   color: '#1E3A8A', bg: 'rgba(30,58,138,.10)',  icon: ClipboardList },
-  { label: 'Clients',             href: '/dashboard/mkt/clients',    color: '#4F46E5', bg: 'rgba(79,70,229,.10)',  icon: Users        },
-  { label: 'Content',             href: '/dashboard/mkt/content',    color: '#22C55E', bg: 'rgba(34,197,94,.10)',  icon: PenSquare    },
-  { label: 'Campaigns',           href: '/dashboard/mkt/campaigns',  color: '#22C55E', bg: 'rgba(34,197,94,.10)',  icon: Megaphone    },
-  { label: 'Analytics',           href: '/dashboard/mkt/analytics',  color: '#E1306C', bg: 'rgba(225,48,108,.10)', icon: BarChart2    },
-  { label: 'Reports',             href: '/dashboard/mkt/reports',    color: '#0A66C2', bg: 'rgba(10,102,194,.10)', icon: ScrollText   },
+/* ── Recent notifications ────────────────────────────────────────── */
+const RECENT_NOTIFS = [
+  { id:1, type:'success', icon:CheckCircle2, iconColor:'#22C55E', iconBg:'rgba(34,197,94,.1)',  title:'Campaign Started',      message:'Summer Sale 2025 is now live.',            time:'5m ago'  },
+  { id:2, type:'success', icon:CheckCircle2, iconColor:'#22C55E', iconBg:'rgba(34,197,94,.1)',  title:'Publishing Successful', message:'Instagram post published.',                time:'18m ago' },
+  { id:3, type:'error',   icon:AlertCircle,  iconColor:'#EF4444', iconBg:'rgba(239,68,68,.1)',  title:'Publishing Failed',     message:'Facebook post failed. Retry needed.',       time:'1h ago'  },
+  { id:4, type:'info',    icon:TrendingUp,   iconColor:'#1E3A8A', iconBg:'rgba(30,58,138,.1)',  title:'Campaign Reminder',     message:'Product Launch Q3 ends in 5 days.',        time:'2h ago'  },
 ]
 
-/* ── Recent activity ─────────────────────────────────────────────── */
-const ACTIVITY = [
-  { id:1, icon:CheckCircle2, iconColor:'#22C55E', iconBg:'rgba(34,197,94,.1)',   title:'Post published — OrbitSocial Inc.', description:'Instagram · Summer Sale Announcement',      time:'2m ago',  badge:'Published', badgeColor:'#22C55E' },
-  { id:2, icon:Clock,        iconColor:'#1E3A8A', iconBg:'rgba(30,58,138,.1)',   title:'Post scheduled — BlueWave Retail',  description:'Facebook · Summer Collection Drop',         time:'18m ago', badge:'Scheduled', badgeColor:'#1E3A8A' },
-  { id:3, icon:AlertCircle,  iconColor:'#F59E0B', iconBg:'rgba(245,158,11,.1)',  title:'Draft submitted for review',        description:'OrbitSocial · Customer Success Story',      time:'1h ago',  badge:'Review',    badgeColor:'#F59E0B' },
-  { id:4, icon:TrendingUp,   iconColor:'#4F46E5', iconBg:'rgba(79,70,229,.1)',   title:'Campaign milestone reached',        description:'Summer Sale 2025 · 68% progress',           time:'2h ago'                                          },
-  { id:5, icon:Users,        iconColor:'#E1306C', iconBg:'rgba(225,48,108,.1)',  title:'New client workspace opened',       description:'Stellar SaaS · Product Hunt Launch',        time:'3h ago'                                          },
+/* ── Quick actions — spec-correct ────────────────────────────────── */
+const QUICK_ACTIONS = [
+  { label: 'Client Workspace', href: '/dashboard/mkt/workspace',  color: '#1E3A8A', bg: 'rgba(30,58,138,.10)',  icon: Users      },
+  { label: 'Campaigns',        href: '/dashboard/mkt/campaigns',  color: '#4F46E5', bg: 'rgba(79,70,229,.10)',  icon: Megaphone  },
+  { label: 'Scheduling',       href: '/dashboard/mkt/scheduling', color: '#22C55E', bg: 'rgba(34,197,94,.10)',  icon: CalendarCheck },
+  { label: 'Publishing Queue', href: '/dashboard/mkt/queue',      color: '#F59E0B', bg: 'rgba(245,158,11,.10)', icon: Send       },
+  { label: 'Analytics',        href: '/dashboard/analytics',      color: '#E1306C', bg: 'rgba(225,48,108,.10)', icon: BarChart2  },
+  { label: 'Reports',          href: '/dashboard/mkt/reports',    color: '#0A66C2', bg: 'rgba(10,102,194,.10)', icon: ScrollText },
 ]
 
 export default function MarketingDashboard() {
-  const { user }    = useAuth()
+  const { user }         = useAuth()
   const { selectClient } = useClient()
-  const navigate    = useNavigate()
-  const hour        = new Date().getHours()
-  const greeting    = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  const reviewRequests = readReviewRequests()
-  const approvedClients = readApprovedClients()
-
-  const pendingRequests = reviewRequests.filter(item => item.status === 'pending').length
-  const rejectedRequests = reviewRequests.filter(item => item.status === 'rejected').length
+  const navigate         = useNavigate()
+  const hour             = new Date().getHours()
+  const greeting         = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
   return (
     <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
@@ -98,15 +72,15 @@ export default function MarketingDashboard() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <button onClick={() => navigate('/dashboard/mkt/clients')}
+            <button onClick={() => navigate('/dashboard/mkt/workspace')}
               className="flex items-center gap-1.5 px-4 h-9 rounded-[var(--r-md)] text-sm font-semibold transition-all hover:brightness-95"
               style={{ background:'rgba(255,255,255,0.15)', color:'#fff' }}>
-              <Users size={14} /> View Clients
+              <Users size={14} /> Client Workspace
             </button>
-            <button onClick={() => navigate('/dashboard/mkt/content')}
+            <button onClick={() => navigate('/dashboard/mkt/campaigns')}
               className="flex items-center gap-1.5 px-4 h-9 rounded-[var(--r-md)] text-sm font-semibold transition-all hover:brightness-95"
               style={{ background:'rgba(255,255,255,0.15)', color:'#fff' }}>
-              <PenSquare size={14} /> Create Content
+              <Megaphone size={14} /> Campaigns
             </button>
           </div>
         </div>
@@ -114,11 +88,11 @@ export default function MarketingDashboard() {
 
       {/* ── KPI cards — spec-correct ── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <StatCard title="Pending Client Requests" value={pendingRequests} icon={ClipboardList} iconColor="#1E3A8A" iconBg="rgba(30,58,138,.12)" index={0} />
-        <StatCard title="Approved Clients" value={approvedClients.length} icon={Users} iconColor="#22C55E" iconBg="rgba(34,197,94,.12)" index={1} />
-        <StatCard title="Rejected Requests" value={rejectedRequests} icon={AlertCircle} iconColor="#EF4444" iconBg="rgba(239,68,68,.12)" index={2} />
-        <StatCard title="Active Campaigns" value={activeCampaigns} icon={Megaphone} iconColor="#4F46E5" iconBg="rgba(79,70,229,.10)" index={3} />
-        <StatCard title="Published Posts" value={publishedPosts} icon={Send} iconColor="#E1306C" iconBg="rgba(225,48,108,.10)" trend={8} index={4} />
+        <StatCard title="Assigned Clients"  value={assignedClients}  icon={Users}         iconColor="#1E3A8A" iconBg="rgba(30,58,138,.12)"  index={0} />
+        <StatCard title="Active Campaigns"  value={activeCampaigns}  icon={Megaphone}     iconColor="#4F46E5" iconBg="rgba(79,70,229,.10)"  index={1} />
+        <StatCard title="Scheduled Posts"   value={scheduledPosts}   icon={CalendarCheck} iconColor="#22C55E" iconBg="rgba(34,197,94,.12)"  trend={5} index={2} />
+        <StatCard title="Pending Posts"     value={pendingPosts}     icon={Bell}          iconColor="#F59E0B" iconBg="rgba(245,158,11,.12)" index={3} />
+        <StatCard title="Published Posts"   value={publishedPosts}   icon={Send}          iconColor="#E1306C" iconBg="rgba(225,48,108,.10)" trend={8} index={4} />
       </div>
 
       {/* ── Quick actions ── */}
@@ -147,7 +121,7 @@ export default function MarketingDashboard() {
         </div>
       </motion.div>
 
-      {/* ── Client overview + Activity ── */}
+      {/* ── Client overview + Recent Notifications ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* Client cards */}
@@ -193,12 +167,40 @@ export default function MarketingDashboard() {
           </div>
         </motion.div>
 
-        {/* Activity */}
+        {/* Recent Notifications */}
         <motion.div
           initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }}
           transition={{ duration:0.3, delay:0.15 }}
+          className="card p-5"
         >
-          <ActivityFeed items={ACTIVITY} title="Recent Activity" />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold" style={{ fontFamily:"'Plus Jakarta Sans', sans-serif", color:'var(--text)' }}>
+              Recent Notifications
+            </h2>
+            <button onClick={() => navigate('/dashboard/notifications')}
+              className="text-xs font-semibold hover:underline" style={{ color:'var(--primary)' }}>
+              View all →
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            {RECENT_NOTIFS.map(n => {
+              const Icon = n.icon
+              return (
+                <div key={n.id} className="flex items-start gap-3 p-2.5 rounded-[var(--r-md)]"
+                  style={{ background:'var(--bg-alt)', border:'1px solid var(--border)' }}>
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ background:n.iconBg }}>
+                    <Icon size={13} style={{ color:n.iconColor }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold truncate" style={{ color:'var(--text)' }}>{n.title}</p>
+                    <p className="text-[10px] mt-0.5 leading-relaxed line-clamp-2" style={{ color:'var(--text-muted)' }}>{n.message}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color:'var(--text-subtle)' }}>{n.time}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </motion.div>
       </div>
     </div>

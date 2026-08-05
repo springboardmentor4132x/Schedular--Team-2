@@ -81,7 +81,7 @@ export default function DashboardLayout({ isDark, onToggleTheme }) {
           onOpenMobileSidebar={() => setMobileOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto w-full min-h-0">
           {location.pathname.startsWith('/dashboard/mkt') && (
             <div className="p-4 sm:p-6 border-b" style={{ borderColor: 'var(--border)', background: 'var(--bg-alt)' }}>
               <MarketingClientSelector />
@@ -94,7 +94,7 @@ export default function DashboardLayout({ isDark, onToggleTheme }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="h-full"
+              className="h-full w-full min-h-0"
             >
               <Outlet />
             </motion.div>

@@ -5,18 +5,22 @@ import {
   XCircle, Clock, AlertTriangle, Plus,
   ArrowLeft, Users, Zap,
 } from 'lucide-react'
-import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter } from 'react-icons/fa6'
+import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import { useNavigate } from 'react-router-dom'
 import { useClient } from '../../../context/ClientContext'
+import { useAppState } from '../../../context/AppStateContext'
+import { useAuth } from '../../../context/AuthContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
-import { contentApi } from '../../../services/contentApi'
+import { MOCK_CLIENT_POSTS } from '../../../services/mockData'
 
 const PLATFORM_META = {
   instagram:{ icon:FaInstagram, color:'#E1306C' },
   facebook: { icon:FaFacebook,  color:'#1877F2' },
   linkedin: { icon:FaLinkedin,  color:'#0A66C2' },
   x:        { icon:FaXTwitter,  color:'#374151' },
+  youtube:  { icon:FaYoutube,   color:'#FF0000' },
+  pinterest:{ icon:FaPinterest, color:'#E60023' },
 }
 
 const STATUS_STYLES = {
@@ -33,28 +37,47 @@ const FILTERS=['all','scheduled','ready','published','failed','pending_approval'
 
 export function PublishingPanel() {
   const { activeClient } = useClient()
+  const { updateQueueStatus, removeFromQueue, retryQueueItem, getQueueItems } = useAppState()
+  const { role } = useAuth()
   const [queue,  setQueue]  = useState([])
   const [filter, setFilter] = useState('all')
   const [toast,  setToast]  = useState(null)
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!activeClient) return
-    let mounted = true
-    setLoading(true)
-    contentApi.getLibraryByClient(activeClient.id)
-      .then(items => { if (mounted) setQueue(items.filter(item => ['scheduled','ready','published','failed','pending_approval','cancelled'].includes(item.status))) })
-      .finally(() => { if (mounted) setLoading(false) })
-    return () => { mounted = false }
+    if (!activeClient) { setQueue([]); return }
+    const posts = MOCK_CLIENT_POSTS[activeClient.id] ?? { scheduled:[], published:[], drafts:[] }
+    const mockItems = [
+      ...posts.scheduled.map((p, i) => ({
+        ...p,
+        clientId: activeClient.id,
+        status: i === 1 ? 'failed' : i === 2 ? 'pending_approval' : i === 3 ? 'ready' : 'scheduled',
+        error: i === 1 ? 'Token expired. Reconnect account.' : null,
+      })),
+      ...posts.published.map(p => ({ ...p, clientId: activeClient.id, status: 'published' })),
+    ]
+    // Merge shared queue items from app state (if any) with mock items
+    const shared = getQueueItems ? (getQueueItems(activeClient.id) || []) : []
+    // Deduplicate by id, prefer shared items first
+    const mergedMap = new Map()
+    ;[...shared, ...mockItems].forEach(it => mergedMap.set(it.id, it))
+    setQueue(Array.from(mergedMap.values()))
   }, [activeClient])
 
   const filtered = filter === 'all' ? queue : queue.filter(q => q.status === filter)
 
   const showToast=(msg,type='success')=>{ setToast({msg,type}); setTimeout(()=>setToast(null),3000) }
-  const retryItem   = id => { setQueue(prev=>prev.map(q=>q.id===id?{...q,status:'scheduled',error:null}:q)); showToast('Retrying...') }
-  const publishNow  = id => { setQueue(prev=>prev.map(q=>q.id===id?{...q,status:'published'}:q)); showToast('Published!') }
-  const removeItem  = id => { setQueue(prev=>prev.filter(q=>q.id!==id)); showToast('Removed.') }
-  const approveItem = id => { setQueue(prev=>prev.map(q=>q.id===id?{...q,status:'ready'}:q)); showToast('Approved!') }
+  const retryItem   = id => { retryQueueItem(id); setQueue(prev=>prev.map(q=>q.id===id?{...q,status:'scheduled',error:null}:q)); showToast('Retrying...') }
+  const publishNow  = id => { updateQueueStatus(id,'published'); setQueue(prev=>prev.map(q=>q.id===id?{...q,status:'published'}:q)); showToast('Published!') }
+  const removeItem  = id => { removeFromQueue(id); setQueue(prev=>prev.filter(q=>q.id!==id)); showToast('Removed.') }
+  const approveItem = id => { updateQueueStatus(id,'ready'); setQueue(prev=>prev.map(q=>q.id===id?{...q,status:'ready'}:q)); showToast('Approved!') }
+
+  const summary=[
+    { label:'Total',           value:queue.length,                                          color:'var(--text)' },
+    { label:'Scheduled',       value:queue.filter(q=>q.status==='scheduled').length,        color:'#1E3A8A' },
+    { label:'Ready',           value:queue.filter(q=>q.status==='ready').length,            color:'#22C55E' },
+    { label:'Published',       value:queue.filter(q=>q.status==='published').length,        color:'#4F46E5' },
+    { label:'Failed',          value:queue.filter(q=>q.status==='failed').length,           color:'#EF4444' },
+  ]
 
   return (
     <>
@@ -65,6 +88,16 @@ export function PublishingPanel() {
           {toast.msg}
         </motion.div></AnimatePresence>
       )}
+
+      {/* Summary bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
+        {summary.map(s=>(
+          <div key={s.label} className="card p-3 text-center">
+            <p className="text-xl font-extrabold" style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", color:s.color }}>{s.value}</p>
+            <p className="text-[10px] mt-0.5" style={{ color:'var(--text-muted)' }}>{s.label}</p>
+          </div>
+        ))}
+      </div>
 
 
       {/* Filters */}
@@ -116,21 +149,21 @@ export function PublishingPanel() {
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {item.status==='ready'&&(
-                    <button onClick={()=>publishNow(item.id)}
+                    <button onClick={()=>role!=='business' && publishNow(item.id)}
                       className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
                       style={{ background:'rgba(34,197,94,.12)', color:'#22C55E', border:'1px solid rgba(34,197,94,.25)' }}>
                       <Send size={11}/> Publish Now
                     </button>
                   )}
                   {item.status==='pending_approval'&&(
-                    <button onClick={()=>approveItem(item.id)}
+                    <button onClick={()=>role!=='business' && approveItem(item.id)}
                       className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
                       style={{ background:'rgba(34,197,94,.12)', color:'#22C55E', border:'1px solid rgba(34,197,94,.25)' }}>
                       <CheckCircle2 size={11}/> Approve
                     </button>
                   )}
                   {item.status==='failed'&&(
-                    <button onClick={()=>retryItem(item.id)}
+                    <button onClick={()=>role!=='business' && retryItem(item.id)}
                       className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold"
                       style={{ background:'rgba(245,158,11,.12)', color:'#F59E0B', border:'1px solid rgba(245,158,11,.25)' }}>
                       <RefreshCw size={11}/> Retry

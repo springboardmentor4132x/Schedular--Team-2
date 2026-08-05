@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
-  ChevronLeft, ChevronRight, CalendarDays,
-  List, Clock, ArrowLeft, Users,
+  ChevronLeft, ChevronRight,
+  Clock, ArrowLeft, Users,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import { useNavigate } from 'react-router-dom'
 import { useClient } from '../../../context/ClientContext'
+import { useAppState } from '../../../context/AppStateContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
-import { contentApi } from '../../../services/contentApi'
+import { MOCK_CLIENT_POSTS } from '../../../services/mockData'
 
 const PLATFORM_META = {
   instagram:{ icon:FaInstagram, color:'#E1306C', label:'Instagram' },
@@ -38,6 +39,7 @@ export default function PublishingCalendar() {
   const [month,      setMonth]     = useState(now.getMonth())
   const [selected,   setSelected]  = useState(null)
   const [platform,   setPlatform]  = useState('all')
+  const [loading,    setLoading]   = useState(false)
 
   if (!activeClient) {
     return <div className="p-6"><div className="card">
@@ -47,17 +49,22 @@ export default function PublishingCalendar() {
   }
 
   const [libraryItems, setLibraryItems] = useState([])
-  const [loading, setLoading] = useState(false)
+  const { getQueueItems } = useAppState()
 
   useEffect(() => {
-    if (!activeClient) return
-    let mounted = true
-    setLoading(true)
-    contentApi.getLibraryByClient(activeClient.id)
-      .then(items => { if (mounted) setLibraryItems(items) })
-      .finally(() => { if (mounted) setLoading(false) })
-    return () => { mounted = false }
-  }, [activeClient])
+    if (!activeClient) { setLibraryItems([]); return }
+    // Get posts from shared queue + mock data
+    const sharedItems = getQueueItems(activeClient.id)
+    const posts = MOCK_CLIENT_POSTS[activeClient.id] ?? { scheduled:[], published:[] }
+    const mockItems = [
+      ...posts.scheduled.map(p => ({ ...p, status: p.status || 'scheduled' })),
+      ...posts.published.map(p => ({ ...p, status: 'published' })),
+    ]
+    // Merge, deduplicate by id
+    const merged = [...sharedItems]
+    mockItems.forEach(m => { if (!merged.find(q => q.id === m.id)) merged.push(m) })
+    setLibraryItems(merged)
+  }, [activeClient, getQueueItems])
 
   const allPosts = libraryItems
     .filter(item => ['scheduled','published'].includes(item.status))

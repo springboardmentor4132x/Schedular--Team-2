@@ -10,7 +10,8 @@ import { useNavigate } from 'react-router-dom'
 import { useClient } from '../../../context/ClientContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
-import { api, MOCK_CLIENT_CAMPAIGNS, MOCK_CLIENT_POSTS, MOCK_MARKETING_TEAMS } from '../../../services/mockData'
+import { MOCK_CLIENT_POSTS, MOCK_MARKETING_TEAMS } from '../../../services/mockData'
+import { useAppState } from '../../../context/AppStateContext'
 
 const PLATFORM_META = [
   { id:'instagram', label:'Instagram', color:'#E1306C' },
@@ -188,13 +189,6 @@ function ContentFormDrawer({ open, onClose, businessUser, campaign, platforms, a
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Assign team member</label>
-                  <input value={form.assignedTo} onChange={e => update('assignedTo', e.target.value)}
-                    className="w-full h-10 px-4 text-sm rounded-[var(--r-md)] border outline-none"
-                    style={{ background:'var(--bg-alt)', borderColor:'var(--border)', color:'var(--text)' }} />
-                </div>
-
-                <div>
                   <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Media preview</label>
                   <div className="h-40 rounded-[var(--r-md)] border border-dashed flex items-center justify-center text-sm"
                     style={{ borderColor:'var(--border)', color:'var(--text-muted)' }}>
@@ -346,6 +340,7 @@ function createInitialContentItems(clientPosts) {
 export default function CampaignManagement() {
   const navigate = useNavigate()
   const { activeClient } = useClient()
+  const { getClientCampaigns, createClientCampaign, updateClientCampaign, deleteClientCampaign, businessCampaigns } = useAppState()
   const assignedTeam = MOCK_MARKETING_TEAMS.find(team => team.isAssigned) ?? MOCK_MARKETING_TEAMS[0]
 
   const [campaigns, setCampaigns] = useState([])
@@ -385,9 +380,20 @@ export default function CampaignManagement() {
       setContentItems([])
       return
     }
-    setCampaigns(MOCK_CLIENT_CAMPAIGNS[activeClient.id] ?? [])
+    // Merge: shared business campaigns + client-specific campaigns from shared state
+    const clientCamps = getClientCampaigns(activeClient.id)
+    const bizCamps = businessCampaigns.filter(c =>
+      c.platforms?.some(p => activeClient.connectedPlatforms?.includes(p)) ||
+      businessCampaigns.length > 0
+    ).map(c => ({ ...c, id: `biz-${c.id}`, source: 'business' }))
+    const merged = [...clientCamps]
+    // Add business campaigns that aren't already present
+    bizCamps.forEach(bc => {
+      if (!merged.find(c => c.name === bc.name)) merged.push(bc)
+    })
+    setCampaigns(merged)
     setContentItems(createInitialContentItems(MOCK_CLIENT_POSTS[activeClient.id] ?? { drafts:[], scheduled:[], published:[] }))
-  }, [activeClient])
+  }, [activeClient, getClientCampaigns, businessCampaigns])
 
   const openCampaignDetails = campaign => {
     setSelectedCampaign(campaign)
@@ -419,17 +425,19 @@ export default function CampaignManagement() {
       progress: Number(updated.progress) || 0,
       posts: Number(updated.posts) || 0,
       reach: Number(updated.reach) || 0,
-      notes: updated.notes || updated.notes === '' ? updated.notes : updated.notes,
       createdAt: updated.createdAt || updated.start,
       updatedAt: updated.updatedAt || updated.end,
     }
-    // future integration: await api.post('/campaigns', campaignData)
 
     if (editCampaign) {
+      // Update in shared state
+      if (!String(editCampaign.id).startsWith('biz-')) {
+        updateClientCampaign(activeClient.id, editCampaign.id, campaignData)
+      }
       setCampaigns(prev => prev.map(c => c.id === editCampaign.id ? { ...c, ...campaignData, id: editCampaign.id } : c))
       showToastMsg('Campaign updated!')
     } else {
-      const newCampaign = { ...campaignData, id: Date.now() }
+      const newCampaign = createClientCampaign(activeClient.id, campaignData)
       setCampaigns(prev => [newCampaign, ...prev])
       showToastMsg('Campaign created!')
     }
@@ -437,6 +445,9 @@ export default function CampaignManagement() {
   }
 
   const handleDeleteCampaign = campaignId => {
+    if (!String(campaignId).startsWith('biz-')) {
+      deleteClientCampaign(activeClient.id, campaignId)
+    }
     setCampaigns(prev => prev.filter(c => c.id !== campaignId))
     if (selectedCampaign?.id === campaignId) closeCampaignDetails()
     setConfirmDelete(null)
@@ -853,11 +864,11 @@ function CampaignDrawer({ campaign, items, businessUser, assignedTeam, platforms
               <h3 className="text-sm font-bold" style={{ color:'var(--text)' }}>Content summary</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label:'Total content', value: campaignContent.length },
-                  { label:'Draft', value: campaignContent.filter(i => i.status === 'draft').length },
-                  { label:'Scheduled', value: campaignContent.filter(i => i.status === 'scheduled').length },
-                  { label:'Published', value: campaignContent.filter(i => i.status === 'published').length },
-                  { label:'Rejected', value: campaignContent.filter(i => i.status === 'rejected').length },
+                  { label:'Total content', value: items.length },
+                  { label:'Draft',         value: items.filter(i => i.status === 'draft').length },
+                  { label:'Scheduled',     value: items.filter(i => i.status === 'scheduled').length },
+                  { label:'Published',     value: items.filter(i => i.status === 'published').length },
+                  { label:'Rejected',      value: items.filter(i => i.status === 'rejected').length },
                 ].map(card => (
                   <div key={card.label} className="rounded-[var(--r-md)] p-4" style={{ background:'var(--bg-alt)' }}>
                     <p className="text-xs text-[var(--text-muted)]">{card.label}</p>
@@ -1052,6 +1063,7 @@ function CampaignForm({ campaign, onCancel, onSave, businessUser }) {
             </select>
           </div>
         </div>
+        
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Budget (USD) *</label>

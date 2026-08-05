@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Trash2, Edit3, Copy, Save, BookOpen,
+  Trash2, Edit3, Copy, Save,
   Send, Search, X, Hash, Smile, Upload,
-  ArrowLeft, Plus, Users,
+  ArrowLeft, Plus, Users, BookOpen,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import { useNavigate } from 'react-router-dom'

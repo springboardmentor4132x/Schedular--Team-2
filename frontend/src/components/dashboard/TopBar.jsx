@@ -1,6 +1,6 @@
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Bell, Menu, Search } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import ThemeToggle from '../ThemeToggle'
 import { useAuth } from '../../context/AuthContext'
 import { useClient } from '../../context/ClientContext'
@@ -17,7 +17,6 @@ const ROUTE_LABELS = {
   '/dashboard/admin':              'Dashboard',
   // Business routes
   '/dashboard/marketing-teams':    'Marketing Teams',
-  '/dashboard/brand-guidelines':   'Brand Guidelines',
   '/dashboard/marketing-activity': 'Marketing Activity',
   '/dashboard/connected-accounts': 'Connected Accounts',
   '/dashboard/campaigns':          'Campaigns',
@@ -27,6 +26,7 @@ const ROUTE_LABELS = {
   // Marketing Team routes
   '/dashboard/mkt/clients':        'Clients',
   '/dashboard/mkt/workspace':      'Client Workspace',
+  '/dashboard/mkt/queue':          'Publishing Queue',
   '/dashboard/mkt/connected-apps': 'Connected Apps',
   '/dashboard/mkt/content':        'Content Management',
   '/dashboard/mkt/scheduling':     'Content Scheduling',
@@ -44,7 +44,9 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
   const { user } = useAuth()
   const { activeClient } = useClient()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const [searchOpen, setSearchOpen] = useState(false)
+  const inlineSearchRef = useRef(null)
 
   const pageTitle = ROUTE_LABELS[pathname] ?? 'Dashboard'
 
@@ -75,11 +77,6 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
           >
             {pageTitle}
           </h1>
-          {pathname.startsWith('/dashboard/mkt') && activeClient && (
-            <p className="text-xs text-[var(--text-muted)] truncate mt-1">
-              Managing: {activeClient.name}
-            </p>
-          )}
         </div>
       </div>
 
@@ -87,7 +84,13 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
       <div className="flex items-center gap-2 flex-shrink-0">
         {/* Search toggle */}
         <button
-          onClick={() => setSearchOpen(v => !v)}
+          onClick={() => {
+            setSearchOpen(v => {
+              const next = !v
+              if (!v) setTimeout(() => inlineSearchRef.current?.focus(), 50)
+              return next
+            })
+          }}
           className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-alt)]"
           style={{ color: 'var(--text-muted)' }}
           aria-label="Search"
@@ -98,6 +101,7 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
         {/* Notifications */}
         <div className="relative">
           <button
+            onClick={() => navigate('/dashboard/notifications')}
             className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-alt)] relative"
             style={{ color: 'var(--text-muted)' }}
             aria-label="Notifications"
@@ -117,6 +121,7 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
         {/* Avatar */}
         {user && (
           <div
+            onClick={() => navigate('/dashboard/profile')}
             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold cursor-pointer flex-shrink-0 overflow-hidden border"
             style={{ background: 'linear-gradient(135deg, var(--primary), var(--secondary))', borderColor: 'var(--border)' }}
             title={user.name}
@@ -133,11 +138,11 @@ export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
       {/* Inline search bar */}
       {searchOpen && (
         <div
-          className="absolute top-16 left-0 right-0 px-4 py-3 border-b z-40"
+          className="absolute top-16 left-0 right-0 px-4 py-3 border-b z-40 topbar-inline-search"
           style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
         >
           <input
-            autoFocus
+            ref={inlineSearchRef}
             placeholder="Search posts, campaigns, drafts…"
             className="w-full h-10 px-4 text-sm rounded-[var(--r-md)] border outline-none transition-all"
             style={{

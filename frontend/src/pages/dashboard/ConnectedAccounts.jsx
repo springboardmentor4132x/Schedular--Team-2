@@ -247,8 +247,8 @@ export default function ConnectedAccounts() {
                       </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* Refresh/Sync button */}
                       <button
                         onClick={() => handleSync(p.id)}
                         disabled={isSyncing}
@@ -258,6 +258,19 @@ export default function ConnectedAccounts() {
                       >
                         <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
                       </button>
+
+                      {/* Reconnect — show when warning */}
+                      {p.syncStatus === 'warning' && (
+                        <button
+                          onClick={() => handleSync(p.id)}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all"
+                          style={{ background: 'rgba(245,158,11,.08)', borderColor: 'rgba(245,158,11,.30)', color: '#F59E0B' }}
+                        >
+                          <RefreshCw size={11} /> Reconnect
+                        </button>
+                      )}
+
+                      {/* Details */}
                       <button
                         onClick={() => setExpanded(isExpanded ? null : p.id)}
                         className="px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all"
@@ -265,12 +278,14 @@ export default function ConnectedAccounts() {
                       >
                         {isExpanded ? 'Hide' : 'Details'}
                       </button>
+
+                      {/* Remove Account */}
                       <button
                         onClick={() => handleDisconnect(p.id)}
                         className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all"
                         style={{ background: 'rgba(239,68,68,.06)', borderColor: 'rgba(239,68,68,.20)', color: '#EF4444' }}
                       >
-                        <Trash2 size={11} /> Disconnect
+                        <Trash2 size={11} /> Remove Account
                       </button>
                     </div>
                   </div>

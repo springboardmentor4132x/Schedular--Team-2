@@ -8,6 +8,7 @@ import {
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import { useNavigate } from 'react-router-dom'
 import { useClient } from '../../../context/ClientContext'
+import { useAppState } from '../../../context/AppStateContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
 import { MOCK_CLIENT_POSTS, MOCK_CLIENT_CAMPAIGNS } from '../../../services/mockData'
@@ -31,6 +32,7 @@ function isoDate(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).
 export function SchedulingPanel() {
   const navigate = useNavigate()
   const { activeClient } = useClient()
+  const { schedulePost } = useAppState()
   const [view,setView]=useState('list')
   const [search,setSearch]=useState('')
   const [platform,setPlatform]=useState('all')
@@ -72,7 +74,9 @@ export function SchedulingPanel() {
       caption:form.caption || '',
       media: form.mediaFile ? { type: form.mediaFile.type, name: form.mediaFile.name, preview: form.mediaPreview } : null,
     }
-    setQueue(prev=>[...prev,newPost])
+    // Add to shared queue so PublishingCalendar and PublishingCenter see it
+    schedulePost(newPost, activeClient?.id ?? 0)
+    setQueue(prev=>[...prev, newPost])
     setShowModal(false)
     setForm({ title:'', platform:'instagram', date:'', time:'', campaign:'', caption:'', mediaFile:null, mediaPreview:null })
     showToast('Post scheduled!')

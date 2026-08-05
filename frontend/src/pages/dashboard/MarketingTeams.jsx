@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Search, Star, Users, Megaphone, MapPin, Clock,
   CheckCircle2, X, ChevronDown, Phone, Mail,
-  Globe, ArrowRight, Trash2, Eye, BookOpen,
+  Globe, Trash2, Eye,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import PageHeader from '../../components/dashboard/PageHeader'
@@ -68,19 +68,19 @@ function AssignSuccessModal({ team, onConfirm, onDismiss }) {
             <span className="font-semibold" style={{ color:'var(--text)' }}>{team.name}</span> has been assigned successfully.
           </p>
           <p className="text-sm mt-2 px-2" style={{ color:'var(--text-muted)' }}>
-            Please configure your Brand Guidelines and Content Requirements so your marketing team knows exactly how to represent your brand.
+            Your marketing team has been notified and is ready to start working on your campaigns.
           </p>
         </div>
         <div className="flex flex-col gap-2">
           <button onClick={onConfirm}
             className="w-full flex items-center justify-center gap-2 h-11 rounded-[var(--r-md)] text-sm font-semibold text-white hover:brightness-105 transition-all"
             style={{ background:'linear-gradient(135deg,#1E3A8A,#4F46E5)' }}>
-            <BookOpen size={15} /> Configure Brand Guidelines <ArrowRight size={15} />
+            Go to Dashboard
           </button>
           <button onClick={onDismiss}
             className="w-full h-10 rounded-[var(--r-md)] border text-sm font-semibold transition-all"
             style={{ background:'var(--card)', borderColor:'var(--border)', color:'var(--text-muted)' }}>
-            I'll do it later
+            Stay on this page
           </button>
         </div>
       </motion.div>
@@ -268,7 +268,7 @@ function TeamDetailDrawer({ team, onClose, onAssign, onViewGuidelines, assignedT
                 <button onClick={onViewGuidelines}
                   className="w-full flex items-center justify-center gap-2 h-10 rounded-[var(--r-md)] text-sm font-semibold text-white hover:brightness-105"
                   style={{ background:'linear-gradient(135deg,#1E3A8A,#4F46E5)' }}>
-                  <BookOpen size={14} /> View Brand Guidelines
+                  View Team Details
                 </button>
                 <p className="text-xs text-center" style={{ color:'var(--text-subtle)' }}>Assigned since {team.assignedSince}</p>
               </>
@@ -312,11 +312,6 @@ export default function MarketingTeams() {
     setPendingTeam(null)
     setDetailTeam(null)
     setSuccessTeam(team)
-  }
-
-  const handleContinueToRequirements = team => {
-    doAssign(team)
-    navigate('/dashboard/client-requirements')
   }
 
   const doUnassign = () => {
@@ -378,11 +373,6 @@ export default function MarketingTeams() {
               className="flex items-center gap-1 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all"
               style={{ background:'var(--card)', borderColor:'var(--border)', color:'var(--text)' }}>
               <Eye size={11} /> Details
-            </button>
-            <button onClick={() => navigate('/dashboard/brand-guidelines')}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:brightness-105"
-              style={{ background:'linear-gradient(135deg,#1E3A8A,#4F46E5)' }}>
-              <BookOpen size={11} /> Brand Guidelines
             </button>
             <button onClick={() => setRemoveConfirm(true)}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold"
@@ -522,7 +512,7 @@ export default function MarketingTeams() {
         {successTeam && (
           <AssignSuccessModal
             team={successTeam}
-            onConfirm={() => { setSuccessTeam(null); navigate('/dashboard/client-requirements') }}
+            onConfirm={() => { setSuccessTeam(null); navigate('/dashboard/marketing-teams') }}
             onDismiss={() => setSuccessTeam(null)}
           />
         )}
@@ -549,7 +539,7 @@ export default function MarketingTeams() {
           team={detailTeam}
           onClose={() => setDetailTeam(null)}
           onAssign={handleSelectTeam}
-          onViewGuidelines={() => { setDetailTeam(null); navigate('/dashboard/brand-guidelines') }}
+          onViewGuidelines={() => { setDetailTeam(null); navigate('/dashboard/marketing-teams') }}
           assignedTeam={assignedTeam}
         />
       )}

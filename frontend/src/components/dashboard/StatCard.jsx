@@ -22,6 +22,7 @@ export default function StatCard({
   trend,
   trendLabel = 'vs last month',
   index = 0,
+  onClick,
 }) {
   const isPositive = trend > 0
   const isNeutral  = trend === 0 || trend === undefined
@@ -33,7 +34,8 @@ export default function StatCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.07, ease: 'easeOut' }}
-      className="card p-5 flex flex-col gap-3 cursor-default"
+      onClick={onClick}
+      className={`card p-5 flex flex-col gap-3 transition-shadow ${onClick ? 'cursor-pointer hover:shadow-[var(--shadow-md)]' : 'cursor-default'}`}
     >
       {/* Icon + title row */}
       <div className="flex items-start justify-between gap-3">

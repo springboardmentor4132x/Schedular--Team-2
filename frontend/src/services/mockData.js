@@ -48,27 +48,33 @@ export const MOCK_CAMPAIGNS = [
 ]
 
 export const MOCK_SCHEDULED_POSTS = [
-  { id: 1, title: 'Summer Sale Kick-off',       platform: 'instagram', scheduledAt: '2025-07-24T10:00', status: 'scheduled', campaign: 'Summer Sale 2025',   caption: 'Our biggest sale starts NOW! 🔥 Up to 50% off all products.', media: true  },
-  { id: 2, title: 'LinkedIn Thought Leadership', platform: 'linkedin',  scheduledAt: '2025-07-24T09:00', status: 'scheduled', campaign: null,                  caption: '5 lessons we learned scaling our social media strategy from 0 to 50K.', media: false },
-  { id: 3, title: 'Product Teaser Video',        platform: 'instagram', scheduledAt: '2025-07-25T14:00', status: 'scheduled', campaign: 'Product Launch Q3',   caption: 'Something big is coming. Stay tuned. 👀',                     media: true  },
-  { id: 4, title: 'Facebook Campaign Ad',        platform: 'facebook',  scheduledAt: '2025-07-25T11:30', status: 'scheduled', campaign: 'Brand Awareness',     caption: 'Connect with your audience using OrbitSocial.',               media: true  },
-  { id: 5, title: 'X Thread Recap',              platform: 'x',         scheduledAt: '2025-07-26T16:00', status: 'scheduled', campaign: null,                  caption: 'Thread: How we grew our Instagram by 300% in 6 months 🧵',   media: false },
-  { id: 6, title: 'Customer Spotlight',          platform: 'facebook',  scheduledAt: '2025-07-28T09:30', status: 'scheduled', campaign: null,                  caption: 'Meet @customerhandle — their results speak for themselves.',   media: true  },
-  { id: 7, title: 'Weekly Tips Carousel',        platform: 'instagram', scheduledAt: '2025-07-28T12:00', status: 'scheduled', campaign: 'Summer Sale 2025',   caption: '5 social media tips that will transform your engagement.',     media: true  },
-  { id: 8, title: 'Monday Motivation Post',      platform: 'x',         scheduledAt: '2025-07-28T08:00', status: 'pending',   campaign: null,                  caption: 'Start your week strong. You\'ve got this. 💪',                 media: false },
+  { id: 1, title: 'Summer Sale Kick-off',        platform: 'instagram', scheduledAt: '2025-07-24T10:00', status: 'scheduled', campaign: 'Summer Sale 2025',  contentType: 'Reel',     caption: 'Our biggest sale starts NOW! 🔥 Up to 50% off all products.',                         media: true,  createdBy: 'Digital Spark Agency', lastUpdated: '2025-07-22T08:30' },
+  { id: 2, title: 'LinkedIn Thought Leadership',  platform: 'linkedin',  scheduledAt: '2025-07-24T09:00', status: 'scheduled', campaign: null,               contentType: 'Text',     caption: '5 lessons we learned scaling our social media strategy from 0 to 50K.',             media: false, createdBy: 'Digital Spark Agency', lastUpdated: '2025-07-22T07:00' },
+  { id: 3, title: 'Product Teaser Video',         platform: 'instagram', scheduledAt: '2025-07-25T14:00', status: 'pending',   campaign: 'Product Launch Q3', contentType: 'Video',    caption: 'Something big is coming. Stay tuned. 👀',                                              media: true,  createdBy: 'Digital Spark Agency', lastUpdated: '2025-07-23T11:00' },
+  { id: 4, title: 'Facebook Campaign Ad',         platform: 'facebook',  scheduledAt: '2025-07-25T11:30', status: 'scheduled', campaign: 'Brand Awareness',   contentType: 'Image',    caption: 'Connect with your audience using OrbitSocial.',                                        media: true,  createdBy: 'Digital Spark Agency', lastUpdated: '2025-07-21T14:00' },
+  { id: 5, title: 'X Thread Recap',               platform: 'x',         scheduledAt: '2025-07-26T16:00', status: 'scheduled', campaign: null,               contentType: 'Text',     caption: 'Thread: How we grew our Instagram by 300% in 6 months 🧵',                           media: false, createdBy: 'Digital Spark Agency', lastUpdated: '2025-07-23T09:30' },
+  { id: 6, title: 'Customer Spotlight',           platform: 'facebook',  scheduledAt: '2025-07-28T09:30', status: 'scheduled', campaign: null,               contentType: 'Carousel', caption: 'Meet @customerhandle — their results speak for themselves.',                           media: true,  createdBy: 'Digital Spark Agency', lastUpdated: '2025-07-24T08:00' },
+  { id: 7, title: 'Weekly Tips Carousel',         platform: 'instagram', scheduledAt: '2025-07-28T12:00', status: 'scheduled', campaign: 'Summer Sale 2025',  contentType: 'Carousel', caption: '5 social media tips that will transform your engagement.',                             media: true,  createdBy: 'Digital Spark Agency', lastUpdated: '2025-07-24T10:00' },
+  { id: 8, title: 'Monday Motivation Post',       platform: 'x',         scheduledAt: '2025-07-28T08:00', status: 'pending',   campaign: null,               contentType: 'Text',     caption: "Start your week strong. You've got this. 💪",                                          media: false, createdBy: 'Digital Spark Agency', lastUpdated: '2025-07-24T06:00' },
+  { id: 9, title: 'Product Launch Reel',          platform: 'instagram', scheduledAt: '2025-07-29T10:00', status: 'failed',    campaign: 'Product Launch Q3', contentType: 'Reel',     caption: 'The wait is over. Launching today! 🚀',                                                media: true,  createdBy: 'Digital Spark Agency', lastUpdated: '2025-07-23T16:00' },
+  { id:10, title: 'Pinterest Style Board',        platform: 'pinterest', scheduledAt: '2025-07-30T11:00', status: 'cancelled', campaign: null,               contentType: 'Image',    caption: 'Curated looks for the season.',                                                         media: true,  createdBy: 'Digital Spark Agency', lastUpdated: '2025-07-20T12:00' },
+  { id:11, title: 'YouTube Brand Story',          platform: 'youtube',   scheduledAt: '2025-07-30T15:00', status: 'scheduled', campaign: 'Brand Awareness',   contentType: 'Video',    caption: 'Our story — from startup to industry leader.',                                          media: true,  createdBy: 'Digital Spark Agency', lastUpdated: '2025-07-22T14:00' },
+  { id:12, title: 'LinkedIn Product Demo',        platform: 'linkedin',  scheduledAt: '2025-07-31T09:00', status: 'scheduled', campaign: 'Product Launch Q3', contentType: 'Video',    caption: 'See our new features in action.',                                                       media: true,  createdBy: 'Digital Spark Agency', lastUpdated: '2025-07-23T08:00' },
 ]
 
 export const MOCK_PUBLISHED_POSTS = [
-  { id: 1,  title: 'Summer Sale Announcement',  platform: 'instagram', publishedAt: '2025-07-20T10:02', campaign: 'Summer Sale 2025',  reach: 6700, engagement: 520, likes: 312, shares: 48, comments: 160, clicks: 89  },
-  { id: 2,  title: 'LinkedIn Thought Post',     platform: 'linkedin',  publishedAt: '2025-07-20T09:05', campaign: null,                reach: 1800, engagement: 120, likes: 98,  shares: 22, comments: 0,   clicks: 45  },
-  { id: 3,  title: 'X Thread Recap',            platform: 'x',         publishedAt: '2025-07-19T16:00', campaign: null,                reach: 3100, engagement: 290, likes: 201, shares: 89, comments: 0,   clicks: 0   },
-  { id: 4,  title: 'Customer Spotlight',        platform: 'facebook',  publishedAt: '2025-07-17T09:30', campaign: 'Brand Awareness',  reach: 5600, engagement: 430, likes: 287, shares: 61, comments: 82,  clicks: 134 },
-  { id: 5,  title: 'Weekly Tips Carousel',      platform: 'instagram', publishedAt: '2025-07-14T12:00', campaign: 'Summer Sale 2025',  reach: 6200, engagement: 480, likes: 398, shares: 42, comments: 40,  clicks: 72  },
-  { id: 6,  title: 'Blog Post Promo',           platform: 'linkedin',  publishedAt: '2025-07-14T08:15', campaign: null,                reach: 1900, engagement: 145, likes: 103, shares: 42, comments: 0,   clicks: 67  },
-  { id: 7,  title: 'Weekend Contest Post',      platform: 'x',         publishedAt: '2025-07-13T10:00', campaign: 'Brand Awareness',  reach: 8900, engagement: 670, likes: 512, shares: 158, comments: 0,  clicks: 0   },
-  { id: 8,  title: 'Product Feature Post',      platform: 'linkedin',  publishedAt: '2025-07-18T08:00', campaign: 'Product Launch Q3', reach: 2400, engagement: 198, likes: 156, shares: 42, comments: 0,  clicks: 89  },
-  { id: 9,  title: 'Facebook Campaign Ad',      platform: 'facebook',  publishedAt: '2025-07-12T11:00', campaign: 'Brand Awareness',  reach: 4200, engagement: 340, likes: 198, shares: 72, comments: 70,  clicks: 210 },
-  { id: 10, title: 'Brand Story Reel',          platform: 'instagram', publishedAt: '2025-07-10T15:00', campaign: null,                reach: 9800, engagement: 820, likes: 641, shares: 103, comments: 76, clicks: 148 },
+  { id: 1,  title: 'Summer Sale Announcement',  platform: 'instagram', publishedAt: '2025-07-20T10:02', campaign: 'Summer Sale 2025',  contentType: 'Image',    publishedBy: 'Digital Spark Agency', reach: 6700,  impressions: 12400, engagement: 520, likes: 312, shares: 48,  comments: 160, clicks: 89  },
+  { id: 2,  title: 'LinkedIn Thought Post',     platform: 'linkedin',  publishedAt: '2025-07-20T09:05', campaign: null,               contentType: 'Text',     publishedBy: 'Digital Spark Agency', reach: 1800,  impressions: 3200,  engagement: 120, likes: 98,  shares: 22,  comments: 0,   clicks: 45  },
+  { id: 3,  title: 'X Thread Recap',            platform: 'x',         publishedAt: '2025-07-19T16:00', campaign: null,               contentType: 'Text',     publishedBy: 'Digital Spark Agency', reach: 3100,  impressions: 5800,  engagement: 290, likes: 201, shares: 89,  comments: 0,   clicks: 0   },
+  { id: 4,  title: 'Customer Spotlight',        platform: 'facebook',  publishedAt: '2025-07-17T09:30', campaign: 'Brand Awareness',  contentType: 'Carousel', publishedBy: 'Digital Spark Agency', reach: 5600,  impressions: 9200,  engagement: 430, likes: 287, shares: 61,  comments: 82,  clicks: 134 },
+  { id: 5,  title: 'Weekly Tips Carousel',      platform: 'instagram', publishedAt: '2025-07-14T12:00', campaign: 'Summer Sale 2025', contentType: 'Carousel', publishedBy: 'Digital Spark Agency', reach: 6200,  impressions: 11800, engagement: 480, likes: 398, shares: 42,  comments: 40,  clicks: 72  },
+  { id: 6,  title: 'Blog Post Promo',           platform: 'linkedin',  publishedAt: '2025-07-14T08:15', campaign: null,               contentType: 'Text',     publishedBy: 'Digital Spark Agency', reach: 1900,  impressions: 3400,  engagement: 145, likes: 103, shares: 42,  comments: 0,   clicks: 67  },
+  { id: 7,  title: 'Weekend Contest Post',      platform: 'x',         publishedAt: '2025-07-13T10:00', campaign: 'Brand Awareness',  contentType: 'Image',    publishedBy: 'Digital Spark Agency', reach: 8900,  impressions: 16200, engagement: 670, likes: 512, shares: 158, comments: 0,   clicks: 0   },
+  { id: 8,  title: 'Product Feature Post',      platform: 'linkedin',  publishedAt: '2025-07-18T08:00', campaign: 'Product Launch Q3',contentType: 'Video',    publishedBy: 'Digital Spark Agency', reach: 2400,  impressions: 4100,  engagement: 198, likes: 156, shares: 42,  comments: 0,   clicks: 89  },
+  { id: 9,  title: 'Facebook Campaign Ad',      platform: 'facebook',  publishedAt: '2025-07-12T11:00', campaign: 'Brand Awareness',  contentType: 'Image',    publishedBy: 'Digital Spark Agency', reach: 4200,  impressions: 7800,  engagement: 340, likes: 198, shares: 72,  comments: 70,  clicks: 210 },
+  { id: 10, title: 'Brand Story Reel',          platform: 'instagram', publishedAt: '2025-07-10T15:00', campaign: null,               contentType: 'Reel',     publishedBy: 'Digital Spark Agency', reach: 9800,  impressions: 18600, engagement: 820, likes: 641, shares: 103, comments: 76,  clicks: 148 },
+  { id: 11, title: 'YouTube Brand Video',       platform: 'youtube',   publishedAt: '2025-07-08T14:00', campaign: 'Brand Awareness',  contentType: 'Video',    publishedBy: 'Digital Spark Agency', reach: 3200,  impressions: 6100,  engagement: 280, likes: 198, shares: 55,  comments: 27,  clicks: 312 },
+  { id: 12, title: 'Pinterest Inspiration',     platform: 'pinterest', publishedAt: '2025-07-06T10:00', campaign: null,               contentType: 'Image',    publishedBy: 'Digital Spark Agency', reach: 1400,  impressions: 2800,  engagement: 98,  likes: 72,  shares: 26,  comments: 0,   clicks: 88  },
 ]
 
 export const MOCK_MARKETING_TEAMS = [
@@ -514,6 +520,77 @@ export const clientCampaignsApi = {
 export const clientPostsApi = {
   getByClient:  async (clientId) => { await delay(); return { ...(MOCK_CLIENT_POSTS[clientId] ?? { drafts: [], scheduled: [], published: [] }) } },
   // Real: return api.get(`/clients/${clientId}/posts`)
+}
+
+// Publishing mock state (in-memory)
+export const MOCK_PUBLISHING = {
+  // per-client publishing state
+}
+
+// initialize publishing state from MOCK_CLIENT_POSTS
+Object.keys(MOCK_CLIENT_POSTS).forEach(key => {
+  const clientId = Number(key)
+  const posts = MOCK_CLIENT_POSTS[clientId] || { scheduled: [], published: [], drafts: [] }
+  const queue = posts.scheduled.map((p, idx) => ({
+    ...p,
+    clientId,
+    status: 'scheduled',
+    retryCount: 0,
+    maxRetries: 3,
+    failureReason: null,
+    id: p.id,
+  }))
+  const published = posts.published.map(p => ({ ...p, clientId, status: 'published', id: p.id }))
+  const failed = []
+  const logs = published.map(p => ({
+    id: `${p.id}-log`, clientId, platform: p.platform, campaign: p.campaign || null,
+    publishedAt: p.publishedAt || new Date().toISOString(), status: 'published', retryCount: 0,
+    platformResponse: { ok: true }, platformPostId: `${p.id}-platform`, failureReason: null,
+  }))
+  MOCK_PUBLISHING[clientId] = { queue, published, failed, logs, platformHistory: published.slice() }
+})
+
+export const clientPublishingApi = {
+  getDashboard: async (clientId) => { await delay(); const s = MOCK_PUBLISHING[clientId] || { queue:[], published:[], failed:[], logs:[] }; return {
+      totalScheduled: s.queue.length,
+      pendingApproval: s.queue.filter(i=>i.status==='pending_approval').length,
+      publishingQueue: s.queue.filter(i=>['scheduled','ready','publishing'].includes(i.status)).length,
+      published: s.published.length,
+      failed: s.failed.length,
+      cancelled: s.queue.filter(i=>i.status==='cancelled').length,
+      recentActivity: s.logs.slice(-6).reverse(),
+      statusDistribution: Object.fromEntries(Object.entries(s.queue.concat(s.published)).reduce((acc,it)=>{ acc[it.status]=(acc[it.status]||0)+1; return acc },{})),
+  } },
+  getQueue: async (clientId) => { await delay(); return [...(MOCK_PUBLISHING[clientId]?.queue ?? [])] },
+  getPublished: async (clientId) => { await delay(); return [...(MOCK_PUBLISHING[clientId]?.published ?? [])] },
+  getFailed: async (clientId) => { await delay(); return [...(MOCK_PUBLISHING[clientId]?.failed ?? [])] },
+  getLogs: async (clientId, opts={}) => { await delay(); return [...(MOCK_PUBLISHING[clientId]?.logs ?? [])] },
+  getPlatformHistory: async (clientId, platform) => { await delay(); const hist = MOCK_PUBLISHING[clientId]?.platformHistory ?? []; return platform ? hist.filter(h=>h.platform===platform) : [...hist] },
+  // actions (simulate frontend-only)
+  reschedule: async (clientId, id, newDate) => { await delay(); const s = MOCK_PUBLISHING[clientId]; if(!s) return null; const idx = s.queue.findIndex(i=>i.id===id); if(idx===-1) return null; s.queue[idx].scheduledAt=newDate; return s.queue[idx] },
+  pause: async (clientId, id) => { await delay(); const s = MOCK_PUBLISHING[clientId]; const it=s?.queue.find(i=>i.id===id); if(it){ it.status='paused'; return it } return null },
+  resume: async (clientId, id) => { await delay(); const s = MOCK_PUBLISHING[clientId]; const it=s?.queue.find(i=>i.id===id); if(it){ it.status='scheduled'; return it } return null },
+  cancel: async (clientId, id) => { await delay(); const s = MOCK_PUBLISHING[clientId]; if(!s) return null; const idx=s.queue.findIndex(i=>i.id===id); if(idx!==-1){ const [it]=s.queue.splice(idx,1); it.status='cancelled'; s.failed.push(it); s.logs.push({ id:`${id}-log-${Date.now()}`, clientId, platform: it.platform, campaign: it.campaign||null, publishedAt: new Date().toISOString(), status:'cancelled', retryCount: it.retryCount||0, platformResponse:null, platformPostId:null, failureReason:'Cancelled by user' }); return it } return null },
+  retry: async (clientId, id) => { await delay(); const s = MOCK_PUBLISHING[clientId]; if(!s) return null; // find in failed
+    const fidx = s.failed.findIndex(i=>i.id===id)
+    if(fidx===-1) return null
+    const item = s.failed[fidx]
+    item.retryCount = (item.retryCount||0) + 1
+    // simulate success if retryCount >=1 for demo
+    const success = item.retryCount >= 1
+    if(success){
+      // move to published
+      item.status = 'published'
+      s.published.push(item)
+      s.failed.splice(fidx,1)
+      s.platformHistory.push(item)
+      s.logs.push({ id:`${id}-log-${Date.now()}`, clientId, platform: item.platform, campaign: item.campaign||null, publishedAt: new Date().toISOString(), status:'published', retryCount: item.retryCount, platformResponse:{ ok:true }, platformPostId:`${id}-pf` })
+      return { success:true, item }
+    } else {
+      s.logs.push({ id:`${id}-log-${Date.now()}`, clientId, platform: item.platform, campaign: item.campaign||null, publishedAt: new Date().toISOString(), status:'failed', retryCount: item.retryCount, platformResponse:{ ok:false }, platformPostId:null, failureReason: item.failureReason||'Unknown' })
+      return { success:false, item }
+    }
+  }
 }
 
 export const clientAnalyticsApi = {
