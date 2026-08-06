@@ -4,8 +4,8 @@ import {
   LayoutDashboard, CalendarDays, FileText,
   ScrollText, BarChart2, Bell,
   User, Settings, LogOut, ChevronLeft, ChevronRight,
-  Link2, Megaphone, ClipboardList, Users, Send, PenSquare,
-  BookOpen, Activity, Handshake,
+  Link2, Megaphone, Users, Send, PenSquare,
+  CheckCircle2, Activity,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { ROLE_LABELS } from '../../context/authRoles'
@@ -32,7 +32,6 @@ const BUSINESS_NAV = [
   { label: 'Dashboard',           icon: LayoutDashboard, href: null },
   { label: 'Marketing Teams',     icon: Users,           href: '/dashboard/marketing-teams' },
   { label: 'Marketing Activity',  icon: Activity,        href: '/dashboard/marketing-activity' },
-  { label: 'Business Guidelines', icon: BookOpen,        href: '/dashboard/brand-guidelines' },
   { label: 'Connected Accounts',  icon: Link2,           href: '/dashboard/connected-accounts' },
   { label: 'Campaigns',           icon: Megaphone,       href: '/dashboard/campaigns' },
   { label: 'Scheduled Posts',     icon: CalendarDays,    href: '/dashboard/scheduled-posts' },
@@ -44,16 +43,14 @@ const BUSINESS_NAV = [
 
 const MARKETING_NAV = [
   { label: 'Dashboard',           icon: LayoutDashboard, href: null },
-  { label: 'Client Requests',     icon: ClipboardList,   href: '/dashboard/mkt/requests' },
-  { label: 'Connection Requests', icon: Handshake,       href: '/dashboard/mkt/connections' },
   { label: 'Clients',             icon: Users,           href: '/dashboard/mkt/clients' },
-  { label: 'Brand Guidelines',    icon: BookOpen,        href: '/dashboard/mkt/brand-guidelines' },
   { label: 'Connected Apps',      icon: Link2,           href: '/dashboard/mkt/connected-apps' },
   { label: 'Content Management',  icon: PenSquare,       href: '/dashboard/mkt/content' },
+  { label: 'Content Library',     icon: FileText,        href: '/dashboard/mkt/content-library' },
+  { label: 'Content Review',      icon: CheckCircle2,    href: '/dashboard/mkt/content-review' },
   { label: 'Content Scheduling',  icon: CalendarDays,    href: '/dashboard/mkt/scheduling' },
   { label: 'Publishing Calendar', icon: CalendarDays,    href: '/dashboard/mkt/calendar' },
   { label: 'Campaigns',           icon: Megaphone,       href: '/dashboard/mkt/campaigns' },
-  { label: 'Analytics',           icon: BarChart2,       href: '/dashboard/mkt/analytics' },
   { label: 'Reports',             icon: ScrollText,      href: '/dashboard/mkt/reports' },
   { label: 'Notifications',       icon: Bell,            href: '/dashboard/notifications' },
 ]

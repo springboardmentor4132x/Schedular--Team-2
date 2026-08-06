@@ -11,6 +11,12 @@ import {
   Settings,
   Link,
   Megaphone,
+  Send,
+  ListOrdered,
+  ScrollText,
+  AlertCircle,
+  History,
+  BarChart3,
 } from 'lucide-react'
 
 const navItems = [
@@ -18,6 +24,18 @@ const navItems = [
   { label: 'My Posts', to: '/dashboard/creator/my-posts', Icon: FileText },
   { label: 'Content Scheduling', to: '/dashboard/creator/content-scheduling', Icon: CalendarClock },
   { label: 'Publishing Calendar', to: '/dashboard/creator/publishing-calendar', Icon: Calendar },
+  {
+    label: 'Publishing',
+    Icon: Send,
+    children: [
+      { label: 'Overview', to: '/dashboard/creator/publishing', Icon: LayoutDashboard },
+      { label: 'Queue', to: '/dashboard/creator/publishing/queue', Icon: ListOrdered },
+      { label: 'Logs', to: '/dashboard/creator/publishing/logs', Icon: ScrollText },
+      { label: 'Failed Posts', to: '/dashboard/creator/publishing/failed', Icon: AlertCircle },
+      { label: 'Platform History', to: '/dashboard/creator/publishing/history', Icon: History },
+    ],
+  },
+  { label: 'Analytics', to: '/dashboard/creator/analytics', Icon: BarChart3 },
   { label: 'Campaigns', to: '/dashboard/creator/campaigns', Icon: Megaphone },
   { label: 'Social Accounts', to: '/dashboard/creator/social-accounts', Icon: Link },
   { label: 'Notifications', to: '/dashboard/creator/notifications', Icon: Bell },

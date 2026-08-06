@@ -4,7 +4,7 @@ from app.database.database import get_db
 from app.models.user import User
 from app.models.user_settings import UserSettings
 from app.schemas.user_settings import UserSettingsResponse, UserSettingsUpdate
-from app.routers.auth import get_current_user
+from app.auth.dependencies import get_current_user
 
 router = APIRouter(
     prefix="/settings",

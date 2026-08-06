@@ -104,7 +104,7 @@ def connect_facebook(request: Request):
 @router.get("/facebook/callback")
 def facebook_callback(
     request: Request,
-    code: str,
+    code: str = "",
     db: Session = Depends(get_db),
     ):
     """
@@ -113,6 +113,9 @@ def facebook_callback(
     retrieve user information, and store it in the database.
     """
     try:
+        if not code or request.query_params.get("error"):
+            err = request.query_params.get("error") or "Authorization failed"
+            return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={err}")
         # Get the user from session (OAuth state)
         # In production, use proper state parameter to identify user
         user_id = request.session.get("user_id")
@@ -245,8 +248,11 @@ def connect_linkedin(request: Request):
 
 
 @router.get("/linkedin/callback")
-def linkedin_callback(request: Request, code: str, db: Session = Depends(get_db)):
+def linkedin_callback(request: Request, code: str = "", db: Session = Depends(get_db)):
     try:
+        if not code or request.query_params.get("error"):
+            err = request.query_params.get("error") or "Authorization failed"
+            return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={err}")
         user_id = request.session.get("user_id") or request.query_params.get("user_id")
         if not user_id:
             return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")
@@ -337,10 +343,13 @@ def connect_youtube(request: Request):
 @router.get("/youtube/callback")
 def youtube_callback(
     request: Request,
-    code: str,
+    code: str = "",
     db: Session = Depends(get_db),
     ):
     try:
+        if not code or request.query_params.get("error"):
+            err = request.query_params.get("error") or "Authorization failed"
+            return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={err}")
         user_id = request.session.get("user_id") or request.query_params.get("user_id")
         if not user_id:
             return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")
@@ -434,8 +443,11 @@ def connect_instagram(request: Request):
 
 
 @router.get("/instagram/callback")
-def instagram_callback(request: Request, code: str, db: Session = Depends(get_db)):
+def instagram_callback(request: Request, code: str = "", db: Session = Depends(get_db)):
     try:
+        if not code or request.query_params.get("error"):
+            err = request.query_params.get("error") or "Authorization failed"
+            return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={err}")
         user_id = request.session.get("user_id") or request.query_params.get("user_id")
         if not user_id:
             return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")
@@ -569,10 +581,13 @@ def connect_twitter(request: Request):
 @router.get("/twitter/callback")
 def twitter_callback(
     request: Request,
-    code: str,
+    code: str = "",
     db: Session = Depends(get_db),
 ):
     try:
+        if not code or request.query_params.get("error"):
+            err = request.query_params.get("error") or "Authorization failed"
+            return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={err}")
         user_id = (
             request.session.get("user_id")
             or request.query_params.get("state")
@@ -668,7 +683,7 @@ def twitter_callback(
         db.commit()
 
         return RedirectResponse(
-            url="http://localhost:5173/social-accounts"
+            url="http://localhost:5173/social-accounts?success=true&platform=x"
         )
 
     except Exception as e:
@@ -707,8 +722,11 @@ def connect_pinterest(request: Request):
 
 
 @router.get("/pinterest/callback")
-def pinterest_callback(request: Request, code: str, db: Session = Depends(get_db)):
+def pinterest_callback(request: Request, code: str = "", db: Session = Depends(get_db)):
     try:
+        if not code or request.query_params.get("error"):
+            err = request.query_params.get("error") or "Authorization failed"
+            return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={err}")
         user_id = request.session.get("user_id") or request.query_params.get("user_id")
         if not user_id:
             return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")

@@ -1,22 +1,25 @@
 from datetime import datetime, timezone as dt_timezone
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.auth.dependencies import get_current_user
 from app.models.user import User
 from app.models.post import Post
+from app.models.workspace import Workspace
+from app.models.workspace_member import WorkspaceMember
 from app.models.publishing_queue import PublishingQueue
 from app.models.publishing_log import PublishingLog
 
 from app.schemas.publishing_queue import (
     PublishingQueueResponse,
+    PublishingQueueItemResponse,
     QueueRescheduleRequest,
     QueueActionResponse,
 )
-from app.schemas.publishing_log import PublishingLogResponse
+from app.schemas.publishing_log import PublishingLogResponse, PublishingLogItemResponse
 from app.schemas.publishing_dashboard import (
     PublishingDashboardResponse,
     PublishingDashboardSummary,
@@ -35,16 +38,54 @@ def _post_platforms(post: Post) -> List[str]:
     return [acc.platform for acc in post.social_accounts]
 
 
+def _verify_workspace_access(db: Session, workspace_id: int, user: User):
+    """Business owners and active marketing members may scope publishing data
+    to a workspace (used by the marketing client publishing pages)."""
+    if user.role == "business":
+        allowed = (
+            db.query(Workspace)
+            .filter(Workspace.id == workspace_id, Workspace.owner_id == user.id)
+            .first()
+        )
+    elif user.role == "marketing":
+        allowed = (
+            db.query(Workspace)
+            .join(WorkspaceMember, WorkspaceMember.workspace_id == Workspace.id)
+            .filter(
+                Workspace.id == workspace_id,
+                WorkspaceMember.user_id == user.id,
+                WorkspaceMember.status == "Active",
+            )
+            .first()
+        )
+    else:
+        allowed = None
+    if not allowed:
+        raise HTTPException(status_code=403, detail="Workspace access denied.")
+
+
+def _posts_in_scope(query, user_id: int, workspace_id: Optional[int]):
+    query = query.filter(Post.user_id == user_id)
+    if workspace_id is not None:
+        query = query.filter(Post.workspace_id == workspace_id)
+    return query
+
+
 # ---------------------------------------------------------
 # 1. Publishing Dashboard
 # ---------------------------------------------------------
 
 @router.get("/dashboard", response_model=PublishingDashboardResponse)
 def get_dashboard(
+    workspace_id: Optional[int] = Query(None, description="Scope to a workspace (business/marketing)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    posts = db.query(Post).filter(Post.user_id == current_user.id).all()
+    if workspace_id is not None:
+        _verify_workspace_access(db, workspace_id, current_user)
+    query = db.query(Post)
+    query = _posts_in_scope(query, current_user.id, workspace_id)
+    posts = query.all()
 
     summary = PublishingDashboardSummary(
         total_scheduled=sum(1 for p in posts if p.status == "Scheduled"),
@@ -70,21 +111,47 @@ def get_dashboard(
 # 2. Publishing Queue
 # ---------------------------------------------------------
 
-@router.get("/queue", response_model=List[PublishingQueueResponse])
+@router.get("/queue", response_model=List[PublishingQueueItemResponse])
 def get_queue(
+    workspace_id: Optional[int] = Query(None, description="Scope to a workspace (business/marketing)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return (
+    if workspace_id is not None:
+        _verify_workspace_access(db, workspace_id, current_user)
+    query = (
         db.query(PublishingQueue)
         .join(Post, Post.id == PublishingQueue.post_id)
         .filter(Post.user_id == current_user.id)
-        .order_by(
-            PublishingQueue.execution_priority.desc(),
-            PublishingQueue.scheduled_time.asc(),
-        )
-        .all()
     )
+    if workspace_id is not None:
+        query = query.filter(Post.workspace_id == workspace_id)
+    entries = query.order_by(
+        PublishingQueue.execution_priority.desc(),
+        PublishingQueue.scheduled_time.asc(),
+    ).all()
+
+    items = []
+    for entry in entries:
+        post = entry.post
+        items.append(
+            PublishingQueueItemResponse(
+                id=entry.id,
+                post_id=entry.post_id,
+                title=post.title,
+                caption=post.caption,
+                platforms=_post_platforms(post),
+                campaign_name=post.campaign.name if post.campaign else None,
+                scheduled_time=entry.scheduled_time,
+                execution_priority=entry.execution_priority,
+                processing_status=entry.processing_status,
+                retry_count=entry.retry_count,
+                max_retries=entry.max_retries,
+                created_at=entry.created_at,
+                updated_at=entry.updated_at,
+            )
+        )
+    return items
 
 
 @router.patch("/queue/{queue_id}/reschedule", response_model=QueueActionResponse)
@@ -118,6 +185,40 @@ def cancel_queue_entry(
     )
 
 
+@router.patch("/queue/{queue_id}/pause", response_model=QueueActionResponse)
+def pause_queue_entry(
+    queue_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    entry = _get_owned_queue_entry(db, queue_id, current_user.id)
+    updated = publishing_service.pause_entry(db, entry.id)
+    if not updated:
+        raise HTTPException(status_code=400, detail="Only pending entries can be paused.")
+    return QueueActionResponse(
+        message="Scheduled publishing paused.",
+        queue_id=updated.id,
+        processing_status=updated.processing_status,
+    )
+
+
+@router.patch("/queue/{queue_id}/resume", response_model=QueueActionResponse)
+def resume_queue_entry(
+    queue_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    entry = _get_owned_queue_entry(db, queue_id, current_user.id)
+    updated = publishing_service.resume_entry(db, entry.id)
+    if not updated:
+        raise HTTPException(status_code=400, detail="Only paused entries can be resumed.")
+    return QueueActionResponse(
+        message="Scheduled publishing resumed.",
+        queue_id=updated.id,
+        processing_status=updated.processing_status,
+    )
+
+
 def _get_owned_queue_entry(db: Session, queue_id: int, user_id: int) -> PublishingQueue:
     entry = (
         db.query(PublishingQueue)
@@ -134,24 +235,49 @@ def _get_owned_queue_entry(db: Session, queue_id: int, user_id: int) -> Publishi
 # 3. Publishing Logs
 # ---------------------------------------------------------
 
-@router.get("/logs", response_model=List[PublishingLogResponse])
+@router.get("/logs", response_model=List[PublishingLogItemResponse])
 def get_logs(
     platform: str | None = None,
     status: str | None = None,
+    workspace_id: Optional[int] = Query(None, description="Scope to a workspace (business/marketing)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if workspace_id is not None:
+        _verify_workspace_access(db, workspace_id, current_user)
     query = (
         db.query(PublishingLog)
         .join(Post, Post.id == PublishingLog.post_id)
         .filter(Post.user_id == current_user.id)
     )
+    if workspace_id is not None:
+        query = query.filter(Post.workspace_id == workspace_id)
     if platform:
         query = query.filter(PublishingLog.platform == platform)
     if status:
         query = query.filter(PublishingLog.status == status)
 
-    return query.order_by(PublishingLog.created_at.desc()).all()
+    rows = query.order_by(PublishingLog.created_at.desc()).all()
+
+    items = []
+    for log in rows:
+        post = log.post
+        items.append(
+            PublishingLogItemResponse(
+                id=log.id,
+                post_id=log.post_id,
+                title=post.title,
+                platforms=_post_platforms(post),
+                campaign_name=post.campaign.name if post.campaign else None,
+                platform=log.platform,
+                status=log.status,
+                response=log.response,
+                retry_count=log.retry_count,
+                created_at=log.created_at,
+                published_by=(post.user.first_name + " " + post.user.last_name).strip() or post.user.username,
+            )
+        )
+    return items
 
 
 # ---------------------------------------------------------
@@ -160,14 +286,16 @@ def get_logs(
 
 @router.get("/failed", response_model=List[FailedPostOut])
 def get_failed_posts(
+    workspace_id: Optional[int] = Query(None, description="Scope to a workspace (business/marketing)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    posts = (
-        db.query(Post)
-        .filter(Post.user_id == current_user.id, Post.status == "Failed")
-        .all()
-    )
+    if workspace_id is not None:
+        _verify_workspace_access(db, workspace_id, current_user)
+    query = db.query(Post).filter(Post.user_id == current_user.id, Post.status == "Failed")
+    if workspace_id is not None:
+        query = query.filter(Post.workspace_id == workspace_id)
+    posts = query.all()
     return [
         FailedPostOut(
             **FailedPostOut.model_validate(p, from_attributes=True).model_dump(
@@ -202,14 +330,16 @@ def retry_failed_post(
 @router.get("/history/{platform}", response_model=List[PlatformHistoryItem])
 def get_platform_history(
     platform: str,
+    workspace_id: Optional[int] = Query(None, description="Scope to a workspace (business/marketing)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    posts = (
-        db.query(Post)
-        .filter(Post.user_id == current_user.id, Post.status == "Published")
-        .all()
-    )
+    if workspace_id is not None:
+        _verify_workspace_access(db, workspace_id, current_user)
+    query = db.query(Post).filter(Post.user_id == current_user.id, Post.status == "Published")
+    if workspace_id is not None:
+        query = query.filter(Post.workspace_id == workspace_id)
+    posts = query.all()
 
     items = []
     for post in posts:

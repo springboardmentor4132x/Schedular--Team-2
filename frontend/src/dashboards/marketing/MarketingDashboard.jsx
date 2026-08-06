@@ -5,7 +5,6 @@ import {
   Users, Megaphone, FileText, CalendarCheck, Send,
   PenSquare, BarChart2, ScrollText,
   CheckCircle2, Clock,
-  ClipboardList, Handshake,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useClient } from '../../context/ClientContext'
@@ -15,13 +14,12 @@ import { marketingService } from '../../services/marketingService'
 
 /* ── Quick actions ───────────────────────────────────────────────── */
 const QUICK_ACTIONS = [
-  { label: 'Connection Requests', href: '/dashboard/mkt/connections', color: '#7C3AED', bg: 'rgba(124,58,237,.10)', icon: Handshake    },
-  { label: 'Client Requests',     href: '/dashboard/mkt/requests',   color: '#1E3A8A', bg: 'rgba(30,58,138,.10)',  icon: ClipboardList },
-  { label: 'Clients',             href: '/dashboard/mkt/clients',    color: '#4F46E5', bg: 'rgba(79,70,229,.10)',  icon: Users        },
-  { label: 'Content',             href: '/dashboard/mkt/content',    color: '#22C55E', bg: 'rgba(34,197,94,.10)',  icon: PenSquare    },
-  { label: 'Campaigns',           href: '/dashboard/mkt/campaigns',  color: '#22C55E', bg: 'rgba(34,197,94,.10)',  icon: Megaphone    },
-  { label: 'Analytics',           href: '/dashboard/mkt/analytics',  color: '#E1306C', bg: 'rgba(225,48,108,.10)', icon: BarChart2    },
-  { label: 'Reports',             href: '/dashboard/mkt/reports',    color: '#0A66C2', bg: 'rgba(10,102,194,.10)', icon: ScrollText   },
+  { label: 'Client Workspace', href: '/dashboard/mkt/workspace',  color: '#1E3A8A', bg: 'rgba(30,58,138,.10)',  icon: Users      },
+  { label: 'Campaigns',        href: '/dashboard/mkt/campaigns',  color: '#4F46E5', bg: 'rgba(79,70,229,.10)',  icon: Megaphone  },
+  { label: 'Scheduling',       href: '/dashboard/mkt/scheduling', color: '#22C55E', bg: 'rgba(34,197,94,.10)',  icon: CalendarCheck },
+  { label: 'Publishing Queue', href: '/dashboard/mkt/publishing', color: '#F59E0B', bg: 'rgba(245,158,11,.10)', icon: Send       },
+  { label: 'Analytics',        href: '/dashboard/analytics',      color: '#E1306C', bg: 'rgba(225,48,108,.10)', icon: BarChart2  },
+  { label: 'Reports',          href: '/dashboard/mkt/reports',    color: '#0A66C2', bg: 'rgba(10,102,194,.10)', icon: ScrollText },
 ]
 
 /* ── Recent activity ─────────────────────────────────────────────── */

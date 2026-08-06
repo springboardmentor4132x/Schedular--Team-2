@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useSidebar } from '../hooks/useSidebar'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../../context/AuthContext'
@@ -15,6 +16,36 @@ export default function BaseSidebar({
   const { theme } = useTheme()
   const { user: authUser } = useAuth()
   const isDark = theme === 'dark'
+  const location = useLocation()
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    const expanded = {}
+    navItems.forEach((item) => {
+      if (item.children) {
+        const isChildActive = item.children.some(
+          (child) => location.pathname === child.to || location.pathname.startsWith(child.to + '/')
+        )
+        if (isChildActive) expanded[item.label] = true
+      }
+    })
+    return expanded
+  })
+
+  useEffect(() => {
+    navItems.forEach((item) => {
+      if (item.children) {
+        const isChildActive = item.children.some(
+          (child) => location.pathname === child.to || location.pathname.startsWith(child.to + '/')
+        )
+        if (isChildActive) {
+          setExpandedGroups((prev) => ({ ...prev, [item.label]: true }))
+        }
+      }
+    })
+  }, [location.pathname, navItems])
+
+  const toggleGroup = (label) => {
+    setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }))
+  }
 
   const user = userProp ?? authUser
   const displayName = user?.name || 'User'
@@ -29,6 +60,139 @@ export default function BaseSidebar({
       .slice(0, 2)
       .join('')
       .toUpperCase() || 'U'
+
+  const renderNavItem = ({ label, to, Icon, children }) => {
+    if (children) {
+      const isExpanded = expandedGroups[label]
+      const isAnyChildActive = children.some(
+        (child) => location.pathname === child.to || location.pathname.startsWith(child.to + '/')
+      )
+
+      return (
+        <div key={label} className="relative group">
+          <button
+            type="button"
+            onClick={() => toggleGroup(label)}
+            id={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
+            className={`
+              w-full sidebar-link flex items-center transition-all duration-200 rounded-xl font-semibold text-sm
+              ${isCollapsed ? 'justify-center px-0 py-3' : 'gap-3.5 px-3.5 py-2.5'}
+              ${
+                isAnyChildActive
+                  ? isDark
+                    ? 'text-white bg-indigo-600/20'
+                    : 'text-indigo-700 bg-indigo-50'
+                  : isDark
+                    ? 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+              }
+            `}
+          >
+            <div className="flex items-center justify-center flex-shrink-0">
+              <Icon size={20} className="sidebar-link-icon" />
+            </div>
+
+            {!isCollapsed && (
+              <>
+                <span className="truncate transition-opacity duration-300 flex-1 text-left">
+                  {label}
+                </span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </>
+            )}
+          </button>
+
+          {isCollapsed && (
+            <div className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50 transform -translate-x-1 group-hover:translate-x-0 ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 border border-slate-200'}`}>
+              {label}
+            </div>
+          )}
+
+          {!isCollapsed && (
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+              <div className={`ml-4 pl-4 border-l space-y-0.5 ${isDark ? 'border-slate-700/50' : 'border-slate-200'}`}>
+                {children.map((child) => (
+                  <NavLink
+                    key={child.to}
+                    to={child.to}
+                    onClick={closeMobile}
+                    id={`nav-${child.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    className={({ isActive }) => `
+                      sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-[13px] transition-all duration-200
+                      ${
+                        isActive
+                          ? isDark
+                            ? 'text-white bg-indigo-600/20'
+                            : 'text-indigo-700 bg-indigo-50'
+                          : isDark
+                            ? 'text-slate-500 hover:text-slate-200 hover:bg-white/[0.03]'
+                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                      }
+                    `}
+                  >
+                    <child.Icon size={16} className="sidebar-link-icon flex-shrink-0" />
+                    <span className="truncate">{child.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    return (
+      <div key={to} className="relative group">
+        <NavLink
+          to={to}
+          onClick={closeMobile}
+          id={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
+          className={({ isActive }) => `
+            sidebar-link flex items-center transition-all duration-200 rounded-xl font-semibold text-sm
+            ${isCollapsed ? 'justify-center px-0 py-3' : 'gap-3.5 px-3.5 py-2.5'}
+            ${
+              isActive
+                ? isDark
+                  ? 'text-white bg-indigo-600/20 border-l-4 border-indigo-500 pl-3 shadow-sm'
+                  : 'text-indigo-700 bg-indigo-50 border-l-4 border-indigo-500 pl-3 shadow-sm'
+                : isDark
+                  ? 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+            }
+          `}
+        >
+          <div className="flex items-center justify-center flex-shrink-0">
+            <Icon size={20} className="sidebar-link-icon" />
+          </div>
+
+          {!isCollapsed && (
+            <span className="truncate transition-opacity duration-300">
+              {label}
+            </span>
+          )}
+        </NavLink>
+
+        {isCollapsed && (
+          <div className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50 transform -translate-x-1 group-hover:translate-x-0 ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 border border-slate-200'}`}>
+            {label}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -87,44 +251,7 @@ export default function BaseSidebar({
             </p>
           )}
 
-          {navItems.map(({ label, to, Icon }) => (
-            <div key={to} className="relative group">
-              <NavLink
-                to={to}
-                onClick={closeMobile}
-                id={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
-                className={({ isActive }) => `
-                  sidebar-link flex items-center transition-all duration-200 rounded-xl font-semibold text-sm
-                  ${isCollapsed ? 'justify-center px-0 py-3' : 'gap-3.5 px-3.5 py-2.5'}
-                  ${
-                    isActive
-                      ? isDark
-                        ? 'text-white bg-indigo-600/20 border-l-4 border-indigo-500 pl-3 shadow-sm'
-                        : 'text-indigo-700 bg-indigo-50 border-l-4 border-indigo-500 pl-3 shadow-sm'
-                      : isDark
-                        ? 'text-slate-400 hover:text-white hover:bg-white/[0.03]'
-                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-                  }
-                `}
-              >
-                <div className="flex items-center justify-center flex-shrink-0">
-                  <Icon size={20} className="sidebar-link-icon" />
-                </div>
-
-                {!isCollapsed && (
-                  <span className="truncate transition-opacity duration-300">
-                    {label}
-                  </span>
-                )}
-              </NavLink>
-
-              {isCollapsed && (
-                <div className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50 transform -translate-x-1 group-hover:translate-x-0 ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 border border-slate-200'}`}>
-                  {label}
-                </div>
-              )}
-            </div>
-          ))}
+          {navItems.map(renderNavItem)}
         </nav>
 
         {/* Profile Footer Section */}

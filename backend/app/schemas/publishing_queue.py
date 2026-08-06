@@ -1,5 +1,7 @@
 from datetime import datetime
-from pydantic import BaseModel
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class PublishingQueueBase(BaseModel):
@@ -22,6 +24,14 @@ class PublishingQueueResponse(PublishingQueueBase):
 
     class Config:
         from_attributes = True
+
+
+class PublishingQueueItemResponse(PublishingQueueResponse):
+    """Queue entry enriched with post context for the publishing queue page."""
+    title: Optional[str] = None
+    caption: Optional[str] = None
+    platforms: List[str] = Field(default_factory=list)
+    campaign_name: Optional[str] = None
 
 
 class QueueRescheduleRequest(BaseModel):

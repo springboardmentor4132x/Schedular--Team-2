@@ -23,18 +23,28 @@ Safe to run repeatedly: it only seeds when the users table is empty.
 """
 
 from datetime import date, datetime, timedelta
+import json
 
 from sqlalchemy.orm import Session
 
 from app.database.database import SessionLocal
 from app.models.user import User
 from app.models.campaign import Campaign
-from app.models.post import Post
+from app.models.post import Post, post_social_accounts
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
+from app.models.social_account import SocialAccount
+from app.models.audience_analytics import AudienceAnalytics
+from app.models.platform_analytics import PlatformAnalytics
+from app.models.post_analytics import PostAnalytics
+from app.models.campaign_analytics import CampaignAnalytics
+from app.models.publishing_log import PublishingLog
+from app.models.publishing_queue import PublishingQueue
 from app.auth.security import hash_password
 
 MOCK_PASSWORD = "password123"
+
+PLATFORMS = ["instagram", "facebook", "linkedin", "x", "youtube", "pinterest"]
 
 BUSINESS_USERS = [
     {
@@ -131,6 +141,17 @@ CREATOR_USERS = [
     },
 ]
 
+ADMIN_USER = {
+    "username": "admin1",
+    "email": "admin1@test.com",
+    "company": "SocialPilot Admin",
+    "first_name": "Platform",
+    "last_name": "Admin",
+    "bio": "Platform administrator for analytics and oversight.",
+    "location": "Bengaluru",
+    "website": "",
+}
+
 
 def _user_payload(user):
     payload = dict(user)
@@ -181,17 +202,261 @@ def _make_test_campaign(db: Session, user_id: int, workspace_id, index: int) -> 
     return campaign
 
 
+def _user_platforms(user: User) -> list:
+    """Deterministic 2-platform set per user so seeded analytics spread across providers."""
+    start = user.id % len(PLATFORMS)
+    return [PLATFORMS[start], PLATFORMS[(start + 1) % len(PLATFORMS)]]
+
+
+def _is_demo_user(user: User) -> bool:
+    """True only for the demo users defined in this module.
+
+    Accounts registered after seeding must never receive mock social accounts
+    (or appear connected), so the "Connected Accounts" state starts empty for
+    real users. Demo analytics still work because they hang off the demo users.
+    """
+    demo_names = {
+        u["username"]
+        for u in BUSINESS_USERS + MARKETING_TEAMS + CREATOR_USERS
+    }
+    return user.username in demo_names
+
+
+def _seed_social_accounts(db: Session) -> dict:
+    accounts_by_user: dict = {}
+    if db.query(SocialAccount).count() > 0:
+        for acc in db.query(SocialAccount).all():
+            accounts_by_user.setdefault(acc.user_id, []).append(acc)
+        return accounts_by_user
+
+    for user in db.query(User).order_by(User.id).all():
+        if not _is_demo_user(user):
+            continue
+        for platform in _user_platforms(user):
+            acc = SocialAccount(
+                user_id=user.id,
+                platform=platform,
+                username=f"{user.username}_{platform}",
+                platform_user_id=f"{platform}_{user.id}",
+                followers_count=1200 + user.id * 431,
+                access_token="seed_token",
+                refresh_token="seed_refresh",
+                status="Connected",
+                health="Healthy",
+                connected_since=datetime.utcnow() - timedelta(days=120),
+                last_sync=datetime.utcnow(),
+            )
+            db.add(acc)
+            db.flush()
+            accounts_by_user.setdefault(user.id, []).append(acc)
+    db.commit()
+    return accounts_by_user
+
+
+def _seed_audience_analytics(db: Session):
+    if db.query(AudienceAnalytics).count() > 0:
+        return
+    accounts = db.query(SocialAccount).all()
+    for acc in accounts:
+        followers = acc.followers_count or 1000
+        db.add(AudienceAnalytics(
+            social_account_id=acc.id,
+            platform=acc.platform,
+            followers=followers,
+            new_followers=int(followers * 0.06),
+            lost_followers=int(followers * 0.02),
+            gender_distribution=json.dumps([
+                {"label": "Female", "percentage": 54, "count": int(followers * 0.54)},
+                {"label": "Male", "percentage": 43, "count": int(followers * 0.43)},
+                {"label": "Other", "percentage": 3, "count": int(followers * 0.03)},
+            ]),
+            age_distribution=json.dumps([
+                {"group": "18-24", "percentage": 32, "color": "#6366F1"},
+                {"group": "25-34", "percentage": 41, "color": "#8B5CF6"},
+                {"group": "35-44", "percentage": 17, "color": "#EC4899"},
+                {"group": "45+", "percentage": 10, "color": "#F59E0B"},
+            ]),
+            country_distribution=json.dumps([
+                {"country": "India", "percentage": 38, "count": int(followers * 0.38), "flag": "IN"},
+                {"country": "USA", "percentage": 22, "count": int(followers * 0.22), "flag": "US"},
+                {"country": "UK", "percentage": 12, "count": int(followers * 0.12), "flag": "GB"},
+                {"country": "UAE", "percentage": 9, "count": int(followers * 0.09), "flag": "AE"},
+                {"country": "Germany", "percentage": 6, "count": int(followers * 0.06), "flag": "DE"},
+            ]),
+            city_distribution=json.dumps([
+                {"city": "Mumbai", "percentage": 21, "count": int(followers * 0.21)},
+                {"city": "Bengaluru", "percentage": 15, "count": int(followers * 0.15)},
+                {"city": "New York", "percentage": 12, "count": int(followers * 0.12)},
+                {"city": "London", "percentage": 10, "count": int(followers * 0.10)},
+            ]),
+            language_distribution=json.dumps([
+                {"language": "English", "percentage": 58},
+                {"language": "Hindi", "percentage": 24},
+                {"language": "Spanish", "percentage": 8},
+                {"language": "German", "percentage": 5},
+            ]),
+            most_active_hours=json.dumps([
+                {"hour": "00:00", "activity": 18}, {"hour": "04:00", "activity": 8},
+                {"hour": "08:00", "activity": 34}, {"hour": "12:00", "activity": 62},
+                {"hour": "16:00", "activity": 78}, {"hour": "18:00", "activity": 92},
+                {"hour": "20:00", "activity": 88}, {"hour": "22:00", "activity": 55},
+            ]),
+            most_active_days=json.dumps([
+                {"day": "Mon", "score": 55}, {"day": "Tue", "score": 60},
+                {"day": "Wed", "score": 58}, {"day": "Thu", "score": 66},
+                {"day": "Fri", "score": 74}, {"day": "Sat", "score": 92},
+                {"day": "Sun", "score": 85},
+            ]),
+        ))
+    db.commit()
+
+
+def _seed_platform_analytics(db: Session):
+    if db.query(PlatformAnalytics).count() > 0:
+        return
+    accounts = db.query(SocialAccount).all()
+    for acc in accounts:
+        base_followers = acc.followers_count or 1000
+        for i in range(30):
+            day = date.today() - timedelta(days=29 - i)
+            followers = base_followers + i * 9
+            impressions = int(followers * 1.8)
+            db.add(PlatformAnalytics(
+                social_account_id=acc.id,
+                platform_name=acc.platform,
+                followers=followers,
+                reach=int(followers * 0.42),
+                impressions=impressions,
+                engagement=int(impressions * 0.046),
+                clicks=int(impressions * 0.02),
+                snapshot_date=day,
+            ))
+    db.commit()
+
+
+def _seed_post_analytics(db: Session, accounts_by_user: dict):
+    if db.query(PostAnalytics).count() > 0:
+        return
+    posts = db.query(Post).order_by(Post.id).all()
+    for post in posts:
+        if post.status == "Published" and post.published_at is None:
+            post.published_at = post.scheduled_for or datetime.utcnow()
+            if not post.platform_post_id:
+                post.platform_post_id = f"SIM-{post.id}"
+        accs = accounts_by_user.get(post.user_id, [])
+        if not accs:
+            continue
+        acc = accs[0]
+        linked = db.query(post_social_accounts.c.social_account_id).filter(
+            post_social_accounts.c.post_id == post.id
+        ).first()
+        if not linked:
+            db.execute(post_social_accounts.insert().values(
+                post_id=post.id, social_account_id=acc.id
+            ))
+        impressions = 2500 + post.id * 311
+        likes = int(impressions * 0.052)
+        comments = int(impressions * 0.009)
+        shares = int(impressions * 0.005)
+        saves = int(impressions * 0.012)
+        db.add(PostAnalytics(
+            post_id=post.id,
+            platform=acc.platform,
+            likes=likes,
+            comments=comments,
+            shares=shares,
+            saves=saves,
+            reach=int(impressions * 0.63),
+            impressions=impressions,
+            clicks=int(impressions * 0.019),
+            engagement_rate=round(((likes + comments + shares + saves) / impressions) * 100, 2),
+        ))
+    db.commit()
+
+
+def _seed_campaign_analytics(db: Session):
+    if db.query(CampaignAnalytics).count() > 0:
+        return
+    campaigns = db.query(Campaign).all()
+    for campaign in campaigns:
+        posts = db.query(Post).filter(Post.campaign_id == campaign.id).all()
+        pa_rows = (
+            db.query(PostAnalytics)
+            .filter(PostAnalytics.post_id.in_([p.id for p in posts]))
+            .all()
+        ) if posts else []
+        impressions = sum(p.impressions for p in pa_rows)
+        engagement = sum(p.likes + p.comments + p.shares for p in pa_rows)
+        db.add(CampaignAnalytics(
+            campaign_id=campaign.id,
+            total_posts=len(posts),
+            reach=sum(p.reach for p in pa_rows),
+            impressions=impressions,
+            engagement=engagement,
+            clicks=sum(p.clicks for p in pa_rows),
+            roi=round((engagement / (impressions or 1)) * 140, 2),
+            completion_percentage=100.0 if campaign.status == "Completed" else 65.0,
+        ))
+    db.commit()
+
+
+def _seed_publishing_rows(db: Session, accounts_by_user: dict):
+    if db.query(PublishingLog).count() == 0:
+        published = db.query(Post).filter(Post.status == "Published").all()
+        for post in published:
+            accs = accounts_by_user.get(post.user_id, [])
+            for acc in accs[:2]:
+                db.add(PublishingLog(
+                    post_id=post.id,
+                    platform=acc.platform,
+                    status="Success",
+                    response=json.dumps({
+                        "platform_post_id": post.platform_post_id or f"SIM-{post.id}",
+                        "message": "Published successfully",
+                    }),
+                    retry_count=0,
+                    created_at=post.published_at or datetime.utcnow(),
+                ))
+        db.commit()
+
+    if db.query(PublishingQueue).count() == 0:
+        scheduled = db.query(Post).filter(Post.status == "Scheduled").all()
+        for post in scheduled:
+            db.add(PublishingQueue(
+                post_id=post.id,
+                scheduled_time=post.scheduled_for or (datetime.utcnow() + timedelta(hours=2)),
+                processing_status="Pending",
+                execution_priority=0,
+                retry_count=0,
+                max_retries=3,
+            ))
+        db.commit()
+
+
+def seed_analytics_and_publishing(db: Session):
+    """Fill analytics + publishing tables when empty (idempotent, preserves users)."""
+    accounts_by_user = _seed_social_accounts(db)
+    _seed_audience_analytics(db)
+    _seed_platform_analytics(db)
+    _seed_post_analytics(db, accounts_by_user)
+    _seed_campaign_analytics(db)
+    _seed_publishing_rows(db, accounts_by_user)
+
+
 def seed_initial_data():
     """Insert the demo data if the users table is empty."""
     db: Session = SessionLocal()
     try:
         user_count = db.query(User).count()
         if user_count > 0:
+            seed_analytics_and_publishing(db)
+            print("[seed] Users already present; analytics + publishing tables synced (filled if empty).")
             return
 
         business_users = [_make_user(db, data, "business") for data in BUSINESS_USERS]
         marketing_teams = [_make_user(db, data, "marketing") for data in MARKETING_TEAMS]
         creators = [_make_user(db, data, "creator") for data in CREATOR_USERS]
+        admin = _make_user(db, ADMIN_USER, "administrator")
         db.flush()
 
         campaign_index = 0
@@ -225,11 +490,12 @@ def seed_initial_data():
             _make_post(db, creator.id, None, campaign, "Creator scheduled post", "Scheduled content for the campaign.", "Scheduled", 2)
 
         db.commit()
-        total_users = len(business_users) + len(marketing_teams) + len(creators)
+        seed_analytics_and_publishing(db)
+        total_users = len(business_users) + len(marketing_teams) + len(creators) + 1
         print(
             f"[seed] Inserted {total_users} demo users "
-            f"({len(business_users)} business, {len(marketing_teams)} marketing, {len(creators)} creators), "
-            f"{campaign_index} test campaigns and posts. No social accounts connected. "
+            f"({len(business_users)} business, {len(marketing_teams)} marketing, {len(creators)} creators, 1 admin), "
+            f"{campaign_index} test campaigns, posts, connected social accounts, analytics and publishing data. "
             f"Login password for all: {MOCK_PASSWORD}"
         )
     except Exception as exc:

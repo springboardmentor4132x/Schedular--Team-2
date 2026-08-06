@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users, MapPin, Clock, CheckCircle2,
   Mail, X, Loader2, Send, RefreshCw, Clock3,
@@ -19,6 +19,72 @@ const STATUS_META = {
   none: { label: 'Available', color: '#64748B', bg: 'rgba(100,116,139,.12)' },
 }
 
+function AssignSuccessModal({ team, onConfirm }) {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <motion.div initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92 }}
+        className="w-full max-w-md rounded-[var(--r-xl)] p-6 shadow-[var(--shadow-lg)]"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        <div className="flex flex-col items-center text-center mb-5">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mb-3" style={{ background: 'rgba(34,197,94,.12)' }}>
+            <CheckCircle2 size={28} style={{ color: '#22C55E' }} />
+          </div>
+          <h2 className="text-lg font-bold mb-2" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: 'var(--text)' }}>
+            Connection Request Sent!
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            <span className="font-semibold" style={{ color: 'var(--text)' }}>{team}</span> has received your request.
+          </p>
+          <p className="text-sm mt-2 px-2" style={{ color: 'var(--text-muted)' }}>
+            They will review and approve it before they start managing your social media.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <button onClick={onConfirm}
+            className="w-full flex items-center justify-center gap-2 h-11 rounded-[var(--r-md)] text-sm font-semibold text-white hover:brightness-105 transition-all"
+            style={{ background: 'linear-gradient(135deg,#1E3A8A,#4F46E5)' }}>
+            Got it
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function ConfirmRemoveModal({ teamName, onConfirm, onCancel, submitting }) {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <motion.div initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }}
+        className="w-full max-w-md rounded-[var(--r-xl)] p-6 shadow-[var(--shadow-lg)]"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        <div className="flex items-start justify-between mb-4">
+          <h2 className="text-base font-bold" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: 'var(--text)' }}>
+            Remove Marketing Team?
+          </h2>
+          <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-[var(--bg-alt)]" style={{ color: 'var(--text-muted)' }}><X size={16} /></button>
+        </div>
+        <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>
+          Removing <span className="font-semibold" style={{ color: 'var(--text)' }}>{teamName}</span> will unassign your marketing team. Active campaigns will not be affected, but no new content will be created until you assign a new team.
+        </p>
+        <div className="flex flex-col gap-2">
+          <button onClick={onConfirm} disabled={submitting}
+            className="w-full flex items-center justify-center gap-2 h-11 rounded-[var(--r-md)] text-sm font-semibold text-white hover:brightness-105 transition-all"
+            style={{ background: 'linear-gradient(135deg,#DC2626,#EF4444)' }}>
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />} Remove team
+          </button>
+          <button onClick={onCancel}
+            className="w-full h-10 rounded-[var(--r-md)] border text-sm font-semibold transition-all"
+            style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+            Keep team
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 export default function MarketingTeams() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -26,6 +92,8 @@ export default function MarketingTeams() {
   const [teams, setTeams] = useState([])
   const [requests, setRequests] = useState([])
   const [notice, setNotice] = useState(null)
+  const [successTeam, setSuccessTeam] = useState(null)
+  const [confirmRemove, setConfirmRemove] = useState(false)
 
   const refresh = async () => {
     setLoading(true)
@@ -75,7 +143,8 @@ export default function MarketingTeams() {
     setNotice(null)
     try {
       await requestMarketingTeam(teamId)
-      setNotice({ type: 'success', text: 'Connection request sent. The marketing team will review and approve it.' })
+      const requestedTeam = teams.find(item => item.id === teamId)
+      setSuccessTeam(requestedTeam?.name ?? 'The marketing team')
       refresh()
     } catch (error) {
       setNotice({ type: 'error', text: error?.response?.data?.detail ?? 'Could not send the request.' })
@@ -105,6 +174,7 @@ export default function MarketingTeams() {
     setNotice(null)
     try {
       await removeMarketingTeam()
+      setConfirmRemove(false)
       setNotice({ type: 'success', text: 'Marketing team removed. You can now request a different team.' })
       refresh()
     } catch (error) {
@@ -157,7 +227,7 @@ export default function MarketingTeams() {
                       <p className="text-xs mt-3" style={{ color: 'var(--text-subtle)' }}>{item.client_count} business client{item.client_count === 1 ? '' : 's'} · {item.bio || 'No team description provided.'}</p>
                       <div className="flex items-center gap-2 mt-4">
                         {item.request_status === 'approved' ? (
-                          <button type="button" onClick={handleRemove} disabled={submitting} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--r-sm)] text-xs font-semibold transition" style={{ background: 'rgba(239,68,68,.10)', color: '#EF4444' }}>
+                          <button type="button" onClick={() => setConfirmRemove(true)} disabled={submitting} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--r-sm)] text-xs font-semibold transition" style={{ background: 'rgba(239,68,68,.10)', color: '#EF4444' }}>
                             {submitting ? <Loader2 size={13} className="animate-spin" /> : <X size={13} />} Remove team
                           </button>
                         ) : item.request_status === 'pending' ? (
@@ -231,6 +301,11 @@ export default function MarketingTeams() {
           </div> : <div className="card"><EmptyState icon={Users} title="No team assigned" message="Request a team from the directory above. Once the team approves, they will appear here." /></div>}
         </>
       )}
+
+      <AnimatePresence>
+        {successTeam && <AssignSuccessModal team={successTeam} onConfirm={() => setSuccessTeam(null)} />}
+        {confirmRemove && <ConfirmRemoveModal teamName={team?.workspace_name ?? 'Marketing team'} onConfirm={handleRemove} onCancel={() => setConfirmRemove(false)} submitting={submitting} />}
+      </AnimatePresence>
     </div>
   )
 }

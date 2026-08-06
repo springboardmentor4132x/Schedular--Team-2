@@ -2,9 +2,6 @@ from urllib.parse import urlencode
 import requests
 
 from app.core.config import settings
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.oauth2.credentials import Credentials
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -114,6 +111,10 @@ def upload_video(
     title: str,
     description: str,
 ):
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaFileUpload
+    from google.oauth2.credentials import Credentials
+
     credentials = Credentials(token=access_token)
 
     youtube = build(

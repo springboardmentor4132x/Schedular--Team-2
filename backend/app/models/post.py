@@ -54,6 +54,7 @@ class Post(Base):
     status = Column(
         String(50),
         default="Draft",
+        index=True,
     )
 
     scheduled_for = Column(
@@ -85,6 +86,7 @@ class Post(Base):
     published_at = Column(
          DateTime(timezone=True),
         nullable=True,
+        index=True,
     )
 
     failure_reason = Column(
@@ -119,6 +121,13 @@ class Post(Base):
         "PublishingQueue",
         back_populates="post",
         cascade="all, delete-orphan",
+    )
+
+    publishing_logs = relationship(
+        "PublishingLog",
+        back_populates="post",
+        primaryjoin="Post.id == PublishingLog.post_id",
+        foreign_keys="PublishingLog.post_id",
     )
 
     api_response = Column(

@@ -176,6 +176,23 @@ export default function PublishingCenter() {
         }
       />
 
+      <div className="flex flex-wrap gap-2 mb-5">
+        {[
+          { label: 'Publishing Logs', to: '/dashboard/mkt/publishing-logs', icon: Clock },
+          { label: 'Failed Posts', to: '/dashboard/mkt/publishing-failed', icon: XCircle },
+          { label: 'Platform History', to: '/dashboard/mkt/publishing-history', icon: Send },
+        ].map((link) => {
+          const LIcon = link.icon
+          return (
+            <button key={link.to} onClick={() => navigate(link.to)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all hover:brightness-95"
+              style={{ background:'var(--card)', borderColor:'var(--border)', color:'var(--text-muted)' }}>
+              <LIcon size={13}/> {link.label}
+            </button>
+          )
+        })}
+      </div>
+
       <PublishingPanel />
     </div>
   )

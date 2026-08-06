@@ -20,6 +20,7 @@ class AudienceAnalytics(Base):
     age_distribution = Column(Text, nullable=True)
     country_distribution = Column(Text, nullable=True)
     city_distribution = Column(Text, nullable=True)
+    language_distribution = Column(Text, nullable=True)
     most_active_hours = Column(Text, nullable=True)
     most_active_days = Column(Text, nullable=True)
 

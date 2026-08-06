@@ -19,7 +19,6 @@ const ROUTE_LABELS = {
   '/dashboard/admin':              'Dashboard',
   // Business routes
   '/dashboard/marketing-teams':    'Marketing Teams',
-  '/dashboard/brand-guidelines':   'Brand Guidelines',
   '/dashboard/marketing-activity': 'Marketing Activity',
   '/dashboard/connected-accounts': 'Connected Accounts',
   '/dashboard/campaigns':          'Campaigns',
@@ -31,6 +30,8 @@ const ROUTE_LABELS = {
   '/dashboard/mkt/workspace':      'Client Workspace',
   '/dashboard/mkt/connected-apps': 'Connected Apps',
   '/dashboard/mkt/content':        'Content Management',
+  '/dashboard/mkt/content-library': 'Content Library',
+  '/dashboard/mkt/content-review': 'Content Review',
   '/dashboard/mkt/scheduling':     'Content Scheduling',
   '/dashboard/mkt/calendar':       'Publishing Calendar',
   '/dashboard/mkt/campaigns':      'Campaign Management',

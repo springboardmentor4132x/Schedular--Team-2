@@ -39,6 +39,7 @@ class AudienceAnalyticsResponse(BaseModel):
     age_distribution: Optional[str] = None
     country_distribution: Optional[str] = None
     city_distribution: Optional[str] = None
+    language_distribution: Optional[str] = None
     most_active_hours: Optional[str] = None
     most_active_days: Optional[str] = None
 

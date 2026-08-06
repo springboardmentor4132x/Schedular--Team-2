@@ -5,7 +5,7 @@ from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
 from app.schemas.workspace import WorkspaceCreate, WorkspaceResponse, WorkspaceMemberCreate, WorkspaceMemberResponse
-from app.routers.auth import get_current_user
+from app.auth.dependencies import get_current_user
 from typing import List
 
 router = APIRouter(

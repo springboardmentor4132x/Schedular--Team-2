@@ -139,9 +139,6 @@ def assign_post_to_campaign(db: Session, user_id: int, campaign_id: int, post_id
     db.commit()
     db.refresh(post)
 
-
-def assign_post_to_campaign(campaign_id: int, post_id: int):
-    """Assign a post to a campaign."""
     return {
         "message": "Post assigned to campaign successfully",
         "campaign_id": campaign_id,

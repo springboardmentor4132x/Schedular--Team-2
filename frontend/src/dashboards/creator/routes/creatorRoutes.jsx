@@ -14,6 +14,18 @@ import CampaignDetails from '../pages/CampaignDetails'
 import CampaignAssignPosts from '../pages/CampaignAssignPosts'
 import CampaignTimeline from '../pages/CampaignTimeline'
 import CampaignAnalytics from '../pages/CampaignAnalytics'
+import PublishingDashboard from '../pages/Publishing/PublishingDashboard'
+import PublishingQueue from '../pages/Publishing/PublishingQueue'
+import PublishingLogs from '../pages/Publishing/PublishingLogs'
+import FailedPosts from '../pages/Publishing/FailedPosts'
+import PlatformHistory from '../pages/Publishing/PlatformHistory'
+import AnalyticsLayout from '../pages/Analytics/AnalyticsLayout'
+import AnalyticsDashboard from '../pages/Analytics/AnalyticsDashboard'
+import ContentAnalytics from '../pages/Analytics/ContentAnalytics'
+import AudienceAnalytics from '../pages/Analytics/AudienceAnalytics'
+import AnalyticsCampaignPage from '../pages/Analytics/CampaignAnalytics'
+import PlatformComparison from '../pages/Analytics/PlatformComparison'
+import PerformanceTrends from '../pages/Analytics/PerformanceTrends'
 import Notifications from '../../shared/pages/Notifications'
 
 export const creatorRoutes = (
@@ -63,6 +75,43 @@ export const creatorRoutes = (
       path="/dashboard/creator/calendar"
       element={<Navigate to="/dashboard/creator/publishing-calendar" replace />}
     />
+
+    <Route
+      path="/dashboard/creator/publishing"
+      element={<PublishingDashboard />}
+    />
+
+    <Route
+      path="/dashboard/creator/publishing/queue"
+      element={<PublishingQueue />}
+    />
+
+    <Route
+      path="/dashboard/creator/publishing/logs"
+      element={<PublishingLogs />}
+    />
+
+    <Route
+      path="/dashboard/creator/publishing/failed"
+      element={<FailedPosts />}
+    />
+
+    <Route
+      path="/dashboard/creator/publishing/history"
+      element={<PlatformHistory />}
+    />
+
+    <Route
+      path="/dashboard/creator/analytics"
+      element={<AnalyticsLayout />}
+    >
+      <Route index element={<AnalyticsDashboard />} />
+      <Route path="content" element={<ContentAnalytics />} />
+      <Route path="audience" element={<AudienceAnalytics />} />
+      <Route path="campaigns" element={<AnalyticsCampaignPage />} />
+      <Route path="platforms" element={<PlatformComparison />} />
+      <Route path="performance" element={<PerformanceTrends />} />
+    </Route>
 
     <Route
       path="/dashboard/creator/campaigns/new"

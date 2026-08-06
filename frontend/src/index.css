@@ -6,6 +6,11 @@
    mode. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --shadow-card: 0 4px 24px rgba(30, 58, 138, 0.09);
+  --shadow-card-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.06);
+}
+
 /* =============================================
    OrbitSocial — Global Design System
    Deep Navy · Muted Navy · Soft Blue-Gray
@@ -495,4 +500,214 @@
   .btn-md { padding: 0.625rem 1.25rem; }
   .btn-lg { padding: 0.75rem 1.5rem; font-size: 0.9375rem; }
   .btn-xl { padding: 0.875rem 2rem; font-size: 1rem; }
+}
+
+/* =============================================
+   Analytics & Publishing — Surface / Type Tokens
+   (used by creator + admin analytics modules)
+   ============================================= */
+@layer utilities {
+
+  .bg-background { background-color: #f8fafc; }
+  .dark .bg-background { background-color: #0f172a; }
+
+  .bg-surface { background-color: #f1f5f9; }
+  .dark .bg-surface { background-color: #0f172a; }
+
+  .bg-card { background-color: #ffffff; }
+  .dark .bg-card { background-color: #1e293b; }
+
+  .bg-elevated { background-color: #ffffff; }
+  .dark .bg-elevated { background-color: #1e293b; }
+
+  .bg-hover,
+  .hover\:bg-hover:hover { background-color: #e2e8f0; }
+  .dark .bg-hover,
+  .dark .hover\:bg-hover:hover { background-color: #334155; }
+
+  .text-primary { color: #0f172a; }
+  .dark .text-primary { color: #f8fafc; }
+
+  .text-secondary { color: #64748b; }
+  .dark .text-secondary { color: #94a3b8; }
+
+  .border-default { border-color: rgba(226, 232, 240, 0.9); }
+  .dark .border-default { border-color: rgba(51, 65, 85, 0.7); }
+
+  .card-hover:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+  }
+  .dark .card-hover:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  /* Animations */
+  .animate-fade-in {
+    animation: analyticsFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-slide-right {
+    animation: analyticsSlideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-slide-left {
+    animation: analyticsSlideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-slide-up {
+    animation: analyticsSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-scale-in {
+    animation: analyticsScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-pulse-dot {
+    animation: analyticsPulseDot 2s ease-in-out infinite;
+  }
+  .animate-slide-in {
+    animation: analyticsSlideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger > *:nth-child(2) { animation-delay: 50ms; }
+  .stagger > *:nth-child(3) { animation-delay: 100ms; }
+  .stagger > *:nth-child(4) { animation-delay: 150ms; }
+  .stagger > *:nth-child(5) { animation-delay: 200ms; }
+  .stagger > *:nth-child(6) { animation-delay: 250ms; }
+  .stagger > *:nth-child(7) { animation-delay: 300ms; }
+  .stagger > *:nth-child(8) { animation-delay: 350ms; }
+
+  @keyframes analyticsFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes analyticsSlideInRight {
+    from { opacity: 0; transform: translateX(16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes analyticsSlideInLeft {
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes analyticsSlideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes analyticsScaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes analyticsPulseDot {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+  }
+}
+
+/* =============================================
+   Badges & Tables — Analytics / Publishing module
+   ============================================= */
+@layer components {
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .badge-default  { background: #f1f5f9; color: #475569; }
+  .badge-primary  { background: #eef2ff; color: #4338ca; }
+  .badge-secondary{ background: #faf5ff; color: #7e22ce; }
+  .badge-success  { background: #ecfdf5; color: #065f46; }
+  .badge-warning  { background: #fffbeb; color: #92400e; }
+  .badge-danger   { background: #fff1f2; color: #be123c; }
+  .badge-info     { background: #f0f9ff; color: #0369a1; }
+
+  .dark .badge-default  { background: #1e293b; color: #94a3b8; }
+  .dark .badge-primary  { background: #1e1b4b; color: #a5b4fc; }
+  .dark .badge-secondary{ background: #3b0764; color: #d8b4fe; }
+  .dark .badge-success  { background: #022c22; color: #6ee7b7; }
+  .dark .badge-warning  { background: #451a03; color: #fcd34d; }
+  .dark .badge-danger   { background: #4c0519; color: #fda4af; }
+  .dark .badge-info     { background: #0c2a4a; color: #7dd3fc; }
+
+  .badge-draft    { background: #f1f5f9; color: #475569; }
+  .badge-scheduled{ background: #eef2ff; color: #4338ca; }
+  .badge-published{ background: #ecfdf5; color: #065f46; }
+  .badge-pending  { background: #fffbeb; color: #92400e; }
+  .badge-review   { background: #faf5ff; color: #7e22ce; }
+  .badge-cancelled{ background: #fff1f2; color: #be123c; }
+  .badge-failed   { background: #fff1f2; color: #be123c; }
+  .badge-live     { background: #ecfdf5; color: #065f46; }
+  .badge-queued   { background: #f0f9ff; color: #0369a1; }
+
+  .dark .badge-draft    { background: #1e293b; color: #94a3b8; }
+  .dark .badge-scheduled{ background: #1e1b4b; color: #a5b4fc; }
+  .dark .badge-published{ background: #022c22; color: #6ee7b7; }
+  .dark .badge-pending  { background: #451a03; color: #fcd34d; }
+  .dark .badge-review   { background: #3b0764; color: #d8b4fe; }
+  .dark .badge-cancelled{ background: #4c0519; color: #fda4af; }
+  .dark .badge-failed   { background: #4c0519; color: #fda4af; }
+  .dark .badge-live     { background: #022c22; color: #6ee7b7; }
+  .dark .badge-queued   { background: #0c2a4a; color: #7dd3fc; }
+
+  .table-container {
+    width: 100%;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid #f1f5f9;
+    background: #ffffff;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.07);
+  }
+  .dark .table-container {
+    border-color: rgba(51, 65, 85, 0.6);
+    background: rgba(30, 41, 59, 0.9);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .table-inner { width: 100%; border-collapse: collapse; }
+
+  .table-head {
+    background: #f8fafc;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .dark .table-head {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .table-th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .dark .table-th { color: #64748b; }
+
+  .table-row {
+    border-bottom: 1px solid #f8fafc;
+    transition: background-color 0.15s ease;
+  }
+  .table-row:hover { background: rgba(248, 250, 252, 0.8); }
+  .dark .table-row { border-color: rgba(51, 65, 85, 0.5); }
+  .dark .table-row:hover { background: rgba(51, 65, 85, 0.3); }
+
+  .table-td {
+    padding: 0.875rem 1rem;
+    font-size: 0.875rem;
+    color: #334155;
+  }
+  .dark .table-td { color: #94a3b8; }
 }

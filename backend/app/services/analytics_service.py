@@ -297,7 +297,7 @@ def get_performance_trends(db: Session, user_id: int, granularity: str = "daily"
     rows = (
         db.query(PlatformAnalytics)
         .filter(
-            PlatformAnalytics.social_account_id.in_(accounts),
+            PlatformAnalytics.social_account_id.in_(db.query(accounts.c.id)),
             PlatformAnalytics.snapshot_date >= since.date(),
         )
         .order_by(PlatformAnalytics.snapshot_date.asc())

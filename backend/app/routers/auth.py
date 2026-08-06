@@ -9,11 +9,20 @@ from app.database.database import get_db
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
-from app.schemas.user import UserCreate, UserResponse, TokenResponse
+from app.schemas.user import (
+    UserCreate,
+    UserResponse,
+    Token,
+    RefreshTokenRequest,
+)
 from app.schemas.auth import ChangePasswordRequest
 from app.auth.dependencies import get_current_user
 from app.auth.security import hash_password, verify_password
-from app.auth.jwt import create_access_token
+from app.auth.jwt import (
+    create_access_token,
+    create_refresh_token,
+    verify_access_token,
+)
 
 from fastapi import Request
 from fastapi.responses import RedirectResponse
@@ -92,7 +101,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     
     return new_user
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=Token)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
@@ -111,14 +120,40 @@ def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = create_access_token({
+    token_payload = {
         "sub": user.email,
         "id": user.id,
         "role": user.role
-    })
+    }
+
+    access_token = create_access_token(token_payload)
+    refresh_token = create_refresh_token(token_payload)
 
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+
+@router.post("/refresh")
+def refresh_access_token(token_data: RefreshTokenRequest):
+    payload = verify_access_token(token_data.refresh_token)
+
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token"
+        )
+
+    new_access_token = create_access_token({
+        "sub": payload["sub"],
+        "id": payload["id"],
+        "role": payload.get("role")
+    })
+
+    return {
+        "access_token": new_access_token,
         "token_type": "bearer"
     }
 

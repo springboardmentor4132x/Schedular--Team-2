@@ -27,24 +27,24 @@ import {
   ScheduledPosts,
   PublishedPosts,
   Reports,
-  ClientRequirements,
   MarketingActivity,
-  BrandGuidelines,
 } from './dashboards/business'
 import {
   MarketingDashboard,
   MktClients,
-  MktClientRequests,
-  MktConnectionRequests,
   MktClientWorkspace,
   MktConnectedApps,
   MktContentManagement,
+  MktContentLibrary,
+  MktContentReview,
   MktContentScheduling,
   MktPublishingCalendar,
   MktCampaigns,
-  MktBrandGuidelines,
-  MktAnalytics,
   MktReports,
+  MktPublishingCenter,
+  MktPublishingLogs,
+  MktFailedPosts,
+  MktPlatformHistory,
 } from './dashboards/marketing'
 import { adminRoutes } from './dashboards/admin'
 import { creatorRoutes } from './dashboards/creator'
@@ -97,9 +97,6 @@ export default function App() {
         <Route path="campaigns"           element={<RoleGuard allowed={['business']}><Campaigns         /></RoleGuard>} />
         <Route path="connected-accounts"  element={<RoleGuard allowed={['business']}><ConnectedAccounts /></RoleGuard>} />
         <Route path="marketing-teams"     element={<RoleGuard allowed={['business']}><MarketingTeams    /></RoleGuard>} />
-        {/* Brand Guidelines page moved to marketing area only (not in imp.txt for Business) */}
-        <Route path="client-requirements" element={<RoleGuard allowed={['business']}><ClientRequirements /></RoleGuard>} />
-        <Route path="brand-guidelines"     element={<RoleGuard allowed={['business']}><BrandGuidelines    /></RoleGuard>} />
         <Route path="marketing-activity"  element={<RoleGuard allowed={['business']}><MarketingActivity /></RoleGuard>} />
         <Route path="scheduled-posts"     element={<RoleGuard allowed={['business']}><ScheduledPosts    /></RoleGuard>} />
         <Route path="published-posts"     element={<RoleGuard allowed={['business']}><PublishedPosts    /></RoleGuard>} />
@@ -107,17 +104,19 @@ export default function App() {
 
         {/* ── Marketing Team routes (all under /dashboard/mkt/*) ── */}
         <Route path="mkt/clients"    element={<RoleGuard allowed={['marketing']}><MktClients           /></RoleGuard>} />
-        <Route path="mkt/requests"   element={<RoleGuard allowed={['marketing']}><MktClientRequests    /></RoleGuard>} />
-        <Route path="mkt/connections" element={<RoleGuard allowed={['marketing']}><MktConnectionRequests /></RoleGuard>} />
         <Route path="mkt/workspace"  element={<RoleGuard allowed={['marketing']}><MktClientWorkspace   /></RoleGuard>} />
         <Route path="mkt/connected-apps" element={<RoleGuard allowed={['marketing']}><MktConnectedApps /></RoleGuard>} />
         <Route path="mkt/content"    element={<RoleGuard allowed={['marketing']}><MktContentManagement /></RoleGuard>} />
+        <Route path="mkt/content-library" element={<RoleGuard allowed={['marketing']}><MktContentLibrary /></RoleGuard>} />
+        <Route path="mkt/content-review" element={<RoleGuard allowed={['marketing']}><MktContentReview /></RoleGuard>} />
         <Route path="mkt/scheduling" element={<RoleGuard allowed={['marketing']}><MktContentScheduling /></RoleGuard>} />
         <Route path="mkt/calendar"   element={<RoleGuard allowed={['marketing']}><MktPublishingCalendar /></RoleGuard>} />
         <Route path="mkt/campaigns"  element={<RoleGuard allowed={['marketing']}><MktCampaigns         /></RoleGuard>} />
-        <Route path="mkt/brand-guidelines" element={<RoleGuard allowed={['marketing']}><MktBrandGuidelines /></RoleGuard>} />
-        <Route path="mkt/analytics" element={<RoleGuard allowed={['marketing']}><MktAnalytics         /></RoleGuard>} />
         <Route path="mkt/reports"    element={<RoleGuard allowed={['marketing']}><MktReports           /></RoleGuard>} />
+        <Route path="mkt/publishing" element={<RoleGuard allowed={['marketing']}><MktPublishingCenter /></RoleGuard>} />
+        <Route path="mkt/publishing-logs" element={<RoleGuard allowed={['marketing']}><MktPublishingLogs /></RoleGuard>} />
+        <Route path="mkt/publishing-failed" element={<RoleGuard allowed={['marketing']}><MktFailedPosts /></RoleGuard>} />
+        <Route path="mkt/publishing-history" element={<RoleGuard allowed={['marketing']}><MktPlatformHistory /></RoleGuard>} />
 
         {/* ── Shared (both roles) ── */}
         <Route path="analytics"     element={<RoleGuard allowed={['business','marketing']}><AnalyticsPage    /></RoleGuard>} />

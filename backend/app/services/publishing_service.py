@@ -231,6 +231,26 @@ def cancel_entry(db: Session, queue_id: int):
     return entry
 
 
+def pause_entry(db: Session, queue_id: int):
+    entry = db.query(PublishingQueue).filter(PublishingQueue.id == queue_id).first()
+    if not entry or entry.processing_status not in ("Pending", "Processing"):
+        return None
+    entry.processing_status = "Paused"
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+def resume_entry(db: Session, queue_id: int):
+    entry = db.query(PublishingQueue).filter(PublishingQueue.id == queue_id).first()
+    if not entry or entry.processing_status != "Paused":
+        return None
+    entry.processing_status = "Pending"
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
 def retry_failed_post(db: Session, post_id: int):
     post = db.query(Post).filter(Post.id == post_id).first()
     if not post or post.status != "Failed":

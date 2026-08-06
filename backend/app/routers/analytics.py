@@ -97,6 +97,7 @@ def audience_analytics(
             age_distribution=r.age_distribution,
             country_distribution=r.country_distribution,
             city_distribution=r.city_distribution,
+            language_distribution=r.language_distribution,
             most_active_hours=r.most_active_hours,
             most_active_days=r.most_active_days,
         )

@@ -2,11 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   FileText, Download, RefreshCw, CheckCircle2,
-  Calendar, Megaphone, Eye, Filter,
+  Calendar, Megaphone, Filter, TrendingUp,
 } from 'lucide-react'
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, CartesianGrid,
+} from 'recharts'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import StatCard from '../../../components/dashboard/StatCard'
-import { fetchReports } from '../services/businessService'
+import { fetchBusinessAnalytics, fetchReports } from '../services/businessService'
 
 const TYPE_STYLES = {
   monthly: { label: 'Monthly', color: '#1E3A8A', bg: 'rgba(30,58,138,.12)', icon: Calendar },
@@ -16,6 +20,21 @@ const TYPE_STYLES = {
 const STATUS_STYLES = {
   ready: { label: 'Ready', color: '#22C55E', bg: 'rgba(34,197,94,.12)', icon: CheckCircle2 },
   in_progress: { label: 'Generating', color: '#F59E0B', bg: 'rgba(245,158,11,.12)', icon: RefreshCw },
+}
+
+function ChartTip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="rounded-[var(--r-md)] px-3 py-2 text-xs shadow-[var(--shadow-md)]"
+      style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+      <p className="font-semibold mb-1">{label}</p>
+      {payload.map(p => (
+        <p key={p.name} style={{ color: p.color ?? p.stroke }}>
+          {p.name}: <span className="font-bold">{p.value.toLocaleString()}</span>
+        </p>
+      ))}
+    </div>
+  )
 }
 
 const downloadCSV = (report) => {
@@ -32,6 +51,7 @@ const downloadCSV = (report) => {
 
 export default function Reports() {
   const [reports, setReports] = useState([])
+  const [analytics, setAnalytics] = useState({ monthly: [], platformSplit: [] })
   const [typeFilter, setTypeFilter] = useState('all')
   const [loading, setLoading] = useState(true)
 
@@ -39,9 +59,13 @@ export default function Reports() {
     let active = true
     const load = async () => {
       try {
-        const data = await fetchReports()
+        const [reportsData, analyticsData] = await Promise.all([
+          fetchReports(),
+          fetchBusinessAnalytics({ days: 30 }),
+        ])
         if (active) {
-          setReports(data ?? [])
+          setReports(reportsData ?? [])
+          setAnalytics(analyticsData ?? {})
           setLoading(false)
         }
       } catch {
@@ -52,10 +76,14 @@ export default function Reports() {
     return () => { active = false }
   }, [])
 
+  const monthly = useMemo(() => (analytics.monthly ?? []).map(item => ({ month: item.label, posts: item.posts ?? 0 })), [analytics.monthly])
+  const totalMonthlyPosts = monthly.reduce((sum, item) => sum + item.posts, 0)
+
   const filtered = useMemo(() => typeFilter === 'all' ? reports : reports.filter(report => report.type === typeFilter), [reports, typeFilter])
   const readyCount = reports.filter(report => report.status === 'ready').length
   const campaignCount = reports.filter(report => report.type === 'campaign').length
-  const totalPosts = reports.find(report => report.type === 'monthly')?.posts ?? 0
+  const monthlyCount = reports.filter(report => report.type === 'monthly').length
+  const inProgressCount = reports.filter(report => report.status === 'in_progress').length
 
   return (
     <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
@@ -63,9 +91,65 @@ export default function Reports() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard title="Total Reports" value={reports.length} icon={FileText} iconColor="#1E3A8A" iconBg="rgba(30,58,138,.12)" index={0} />
-        <StatCard title="Total Posts" value={totalPosts} icon={Eye} iconColor="#4F46E5" iconBg="rgba(79,70,229,.10)" index={1} />
+        <StatCard title="6-Month Posts" value={totalMonthlyPosts} icon={TrendingUp} iconColor="#4F46E5" iconBg="rgba(79,70,229,.10)" index={1} />
         <StatCard title="Ready to Export" value={readyCount} icon={CheckCircle2} iconColor="#22C55E" iconBg="rgba(34,197,94,.12)" index={2} />
         <StatCard title="Campaign Reports" value={campaignCount} icon={Megaphone} iconColor="#F59E0B" iconBg="rgba(245,158,11,.12)" index={3} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card p-5 lg:col-span-2">
+          <h2 className="text-sm font-bold mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--text)' }}>
+            Monthly Publishing Trend
+          </h2>
+          {monthly.length === 0 ? (
+            <div className="flex items-center justify-center h-[200px] text-xs" style={{ color: 'var(--text-subtle)' }}>
+              No publishing data in the last 6 months yet.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={monthly} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-subtle)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--text-subtle)' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip content={<ChartTip />} />
+                <Line type="monotone" dataKey="posts" name="Posts" stroke="#1E3A8A" strokeWidth={2.5} dot={{ r: 3, fill: '#1E3A8A' }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="card p-5">
+          <h2 className="text-sm font-bold mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--text)' }}>
+            Report Summary
+          </h2>
+          <div className="flex flex-col gap-4">
+            {[
+              { label: 'Monthly Reports', count: monthlyCount, color: '#1E3A8A', icon: Calendar },
+              { label: 'Campaign Reports', count: campaignCount, color: '#4F46E5', icon: Megaphone },
+              { label: 'Ready to Export', count: readyCount, color: '#22C55E', icon: CheckCircle2 },
+              { label: 'In Progress', count: inProgressCount, color: '#F59E0B', icon: RefreshCw },
+            ].map(s => {
+              const Icon = s.icon
+              return (
+                <div key={s.label} className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${s.color}15` }}>
+                    <Icon size={15} style={{ color: s.color }} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>{s.label}</span>
+                      <span className="text-sm font-bold" style={{ color: s.color }}>{s.count}</span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--bg-alt)' }}>
+                      <div className="h-1.5 rounded-full" style={{ width: `${reports.length ? Math.min((s.count / reports.length) * 100, 100) : 0}%`, background: s.color }} />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </motion.div>
       </div>
 
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">

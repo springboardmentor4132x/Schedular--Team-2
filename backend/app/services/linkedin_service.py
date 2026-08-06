@@ -16,6 +16,8 @@ def get_linkedin_login_url():
         "state": "socialpilot",
     }
 
+    print("CLIENT ID:", settings.LINKEDIN_CLIENT_ID)
+    print("REDIRECT URI:", settings.LINKEDIN_REDIRECT_URI)
 
     url = LINKEDIN_AUTH_URL + "?" + urlencode(params)
 
@@ -39,6 +41,11 @@ def exchange_code_for_access_token(code: str):
         },
         timeout=30,
     )
+
+    print("CLIENT ID:", settings.LINKEDIN_CLIENT_ID)
+    print("REDIRECT URI:", settings.LINKEDIN_REDIRECT_URI)
+    print("TOKEN STATUS:", response.status_code)
+    print("TOKEN RESPONSE:", response.text)
 
     if response.status_code not in [200, 201]:
         raise Exception(response.json())

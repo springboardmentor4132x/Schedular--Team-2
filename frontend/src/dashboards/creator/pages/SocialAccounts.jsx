@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import Card from '../../../shared/components/ui/Card'
 import Button from '../../../shared/components/Button'
 import StatusBadge from '../../../shared/components/ui/StatusBadge'
@@ -33,6 +34,7 @@ function formatLastSync(iso) {
 }
 
 export default function SocialAccounts() {
+  const location = useLocation()
   const [accounts, setAccounts] = useState([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState(null)
@@ -44,6 +46,14 @@ export default function SocialAccounts() {
       return () => clearTimeout(timer)
     }
   }, [toast])
+
+  useEffect(() => {
+    const result = location.state?.socialConnect
+    if (!result) return
+    window.history.replaceState({}, document.title)
+    setToast(result.success ? 'Account connected successfully!' : 'Failed to connect account.')
+    loadAccounts()
+  }, [location.state])
 
   const getAccounts = useCallback(async () => {
     try {
@@ -79,8 +89,6 @@ export default function SocialAccounts() {
     setBusyId(`connect:${platform}`)
     try {
       await connectSocialAccount(platform)
-      setToast(`${getPlatformLabel(platform)} connected successfully!`)
-      await loadAccounts()
     } catch (err) {
       setToast(err?.response?.data?.detail || 'Failed to connect account.')
     } finally {

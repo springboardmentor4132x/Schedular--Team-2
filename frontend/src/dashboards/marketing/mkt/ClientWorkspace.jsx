@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Megaphone, CalendarCheck, Send, FileText,
-  BarChart2, PenSquare, ArrowLeft,
+  BarChart2, ArrowLeft,
   MapPin, Globe, TrendingUp, Eye, Heart,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
@@ -30,11 +30,12 @@ const STATUS_STYLE = {
 }
 
 const QUICK_NAV = [
-  { label:'Content',    icon:PenSquare,    href:'/dashboard/mkt/content',    color:'#4F46E5', bg:'rgba(79,70,229,.10)'  },
   { label:'Scheduling', icon:CalendarCheck,href:'/dashboard/mkt/scheduling', color:'#1E3A8A', bg:'rgba(30,58,138,.10)'  },
   { label:'Calendar',   icon:CalendarCheck,href:'/dashboard/mkt/calendar',   color:'#F59E0B', bg:'rgba(245,158,11,.10)' },
+  { label:'Pub. Queue', icon:Send,         href:'/dashboard/mkt/publishing', color:'#22C55E', bg:'rgba(34,197,94,.10)'  },
   { label:'Campaigns',  icon:Megaphone,    href:'/dashboard/mkt/campaigns',  color:'#E1306C', bg:'rgba(225,48,108,.10)' },
-  { label:'Analytics',  icon:BarChart2,    href:'/dashboard/mkt/analytics',  color:'#0A66C2', bg:'rgba(10,102,194,.10)' },
+  { label:'Analytics',  icon:BarChart2,    href:'/dashboard/analytics',      color:'#0A66C2', bg:'rgba(10,102,194,.10)' },
+  { label:'Reports',    icon:FileText,     href:'/dashboard/mkt/reports',    color:'#4F46E5', bg:'rgba(79,70,229,.10)'  },
 ]
 
 export default function ClientWorkspace() {
