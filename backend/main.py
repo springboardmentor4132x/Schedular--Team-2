@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.database.database import engine, Base
 import app.models  # Import all models to register with Base
 from starlette.middleware.sessions import SessionMiddleware
+from app.routers import publishing, analytics
 
 # Auto-generate database tables if they don't exist
 Base.metadata.create_all(bind=engine)
@@ -41,14 +42,6 @@ origins = [
     "http://127.0.0.1:5173",
 ]
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=origins,
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -71,9 +64,11 @@ app.include_router(settings_router.router, prefix="/api/v1", tags=["Settings"])
 app.include_router(social_accounts.router, prefix="/api/v1", tags=["Social Accounts"])
 
 app.include_router(admin.router, prefix="/api/v1", tags=["Admin"])
-# app.include_router(notifications.router, prefix="/api/v1", tags=["Notifications"])
+app.include_router(notifications.router, prefix="/api/v1", tags=["Notifications"])
 app.include_router(business.router, prefix="/api/v1", tags=["Business"])
 app.include_router(marketing.router, prefix="/api/v1", tags=["Marketing"])
+app.include_router(publishing.router, prefix="/api/v1", tags=["Publishing"])
+app.include_router(analytics.router, prefix="/api/v1", tags=["Analytics"])
 
 # Serve uploaded media files
 os.makedirs(settings.MEDIA_DIR, exist_ok=True)
@@ -87,3 +82,7 @@ def root():
         "Version": settings.VERSION,
         "Status": "Running",
     }
+
+@app.on_event("startup")
+async def launch_background_worker():
+    asyncio.create_task(start_publishing_worker())

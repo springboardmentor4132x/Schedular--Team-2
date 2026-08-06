@@ -1,3 +1,5 @@
+from urllib import response
+
 import requests
 from urllib.parse import urlencode
 
@@ -94,13 +96,20 @@ def publish_tweet(access_token: str, message: str):
     }
 
     response = requests.post(
-        "https://api.x.com/2/tweets",
+    "   https://api.twitter.com/2/tweets",
         headers=headers,
         json=payload,
     )
-
-    print("STATUS CODE:", response.status_code)
-    print("RESPONSE:", response.text)
+    
+    print("*" * 50)
+    print(access_token)
+    print("=" * 50)
+    print(len(access_token))
+    print("=" * 50)
+    print("STATUS:", response.status_code)
+    print("HEADERS:", response.headers)
+    print("BODY:", response.text)
+    print("=" * 50)
 
     return {
         "status_code": response.status_code,

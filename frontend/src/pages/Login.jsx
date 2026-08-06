@@ -46,10 +46,15 @@ export default function Login({ isDark, onToggleTheme }) {
     setTouched(prev => ({ ...prev, [field]: true }))
 
   const handleGoogleLogin = () => {
-    const redirectUri = encodeURIComponent(`${window.location.origin}/oauth/callback`);
+    const role = "creator";
+
+    const redirectUri = encodeURIComponent(
+    "http://localhost:8000/api/v1/auth/google/callback"
+  );
+
     window.location.href =
-      `${import.meta.env.VITE_API_BASE_URL}/auth/google/login?redirect_uri=${redirectUri}`;
-  };
+        `${import.meta.env.VITE_API_BASE_URL}/auth/google/login?role=${role}&redirect_uri=${redirectUri}`;
+};
   const handleSubmit = async e => {
     e.preventDefault()
     setTouched({ email: true, password: true })

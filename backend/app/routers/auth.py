@@ -2,7 +2,7 @@ import email
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import  OAuth2PasswordRequestForm
-from httpx import request
+from starlette.requests import Request
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -167,6 +167,9 @@ async def google_login(request: Request, role: str = "business", redirect_uri: s
     request.session["role"] = role
     request.session["redirect_uri"] = redirect_uri or settings.GOOGLE_REDIRECT_URI
 
+    print(request.session["redirect_uri"])
+    print(settings.GOOGLE_REDIRECT_URI)
+    
     return await oauth.google.authorize_redirect(
         request,
         request.session["redirect_uri"],

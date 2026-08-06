@@ -115,6 +115,12 @@ class Post(Base):
         back_populates="posts",
     )
 
+    publishing_queue_entries = relationship(       
+        "PublishingQueue",
+        back_populates="post",
+        cascade="all, delete-orphan",
+    )
+
     api_response = Column(
     Text,
     nullable=True,

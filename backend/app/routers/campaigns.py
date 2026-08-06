@@ -18,12 +18,17 @@ from app.services.campaign_service import (
 )
 
 from sqlalchemy.orm import Session
-
 from app.auth.dependencies import get_current_user
 from app.database.database import get_db
 from app.models.user import User
 from app.schemas.campaign import CampaignCreate, CampaignResponse, CampaignUpdate
 from app.services import campaign_service
+from app.auth.rbac import RoleChecker
+
+business_only = RoleChecker([
+    "administrator",
+    "business"
+])
 
 router = APIRouter(prefix="/campaigns", tags=["Campaigns"])
 

@@ -15,7 +15,7 @@ class PublishingLog(Base):
 
     id = Column(Integer, primary_key=True)
 
-    post_id = Column(Integer)
+    post_id = Column(Integer,index=True)
 
     platform = Column(String(50))
 

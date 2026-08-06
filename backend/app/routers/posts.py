@@ -4,6 +4,18 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
+from app.auth.rbac import RoleChecker
+
+creator_only = RoleChecker([
+    "administrator",
+    "creator"
+])
+
+marketing_only = RoleChecker([
+    "administrator",
+    "marketing"
+])
+
 from app.database.database import get_db
 from app.models.user import User
 
@@ -63,7 +75,7 @@ def get_posts(
 @router.post("/", response_model=PostResponse)
 def create_new_post(
     post: PostCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(creator_only),
     db: Session = Depends(get_db),
 ):
     return post_service.create_post(
