@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.auth.dependencies import get_current_user
+from app.auth.rbac import RoleChecker
 from app.models.user import User
 
 from app.schemas.campaign import CampaignCreate, CampaignUpdate
@@ -19,6 +20,8 @@ from app.services.campaign_service import (
     get_campaign_summary
 )
 
+creator_only = RoleChecker(["creator"])
+admin_only = RoleChecker(["admin"])
 router = APIRouter(
     prefix="/campaigns",
     tags=["Campaigns"]
@@ -29,7 +32,7 @@ router = APIRouter(
 def create_new_campaign(
     campaign: CampaignCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(creator_only)
 ):
     return create_campaign(campaign, db, current_user)
 
@@ -45,7 +48,7 @@ def get_campaigns(
 def assign_post(
     campaign_id: int,
     post_id: int,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(creator_only) 
 ):
     return assign_post_to_campaign(campaign_id, post_id)
 
@@ -54,7 +57,7 @@ def assign_post(
 def remove_post(
     campaign_id: int,
     post_id: int,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(creator_only)
 ):
    return remove_post_from_campaign(campaign_id, post_id)
 
@@ -97,7 +100,7 @@ def update_existing_campaign(
     campaign_id: int,
     campaign: CampaignUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(creator_only)
 ):
     return update_campaign(campaign_id, campaign, db, current_user)
 
@@ -106,6 +109,6 @@ def update_existing_campaign(
 def delete_existing_campaign(
     campaign_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(creator_only)
 ):
     return delete_campaign(campaign_id, db, current_user)

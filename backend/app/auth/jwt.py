@@ -9,7 +9,8 @@ ALGORITHM = "HS256"
 
 # Token Expiry Time (30 Minutes)
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
+# Refresh Token Expiry Time (7 Days)
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 # Create JWT Access Token
 def create_access_token(data: dict):
@@ -17,6 +18,23 @@ def create_access_token(data: dict):
 
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+
+    to_encode.update({"exp": expire})
+
+    encoded_jwt = jwt.encode(
+        to_encode,
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+
+    return encoded_jwt
+
+def create_refresh_token(data: dict):
+    to_encode = data.copy()
+
+    expire = datetime.now(timezone.utc) + timedelta(
+        days=REFRESH_TOKEN_EXPIRE_DAYS
     )
 
     to_encode.update({"exp": expire})

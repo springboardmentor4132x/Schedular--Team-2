@@ -4,6 +4,7 @@ from app.database.database import get_db
 from app.auth.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.post import CreatePostRequest
+from app.auth.rbac import RoleChecker
 from app.services.post_service import (
     create_post,
     get_all_posts,
@@ -18,6 +19,8 @@ from app.services.post_service import (
     get_publishing_queue
 )
 
+creator_only = RoleChecker(["creator"])
+admin_only = RoleChecker(["admin"]) 
 router = APIRouter(
     prefix="/posts", 
     tags=["Posts"]
@@ -42,14 +45,14 @@ def get_posts(
 def create_new_post(
     post: CreatePostRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(creator_only)
 ):
     return create_post(post, db, current_user)
 
 @router.post("/upload-media")
 def upload_post_media(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(creator_only)
 ):
     return upload_media(file)
 
@@ -96,7 +99,7 @@ def update_existing_post(
     post_id: int,
     post: CreatePostRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(creator_only)
 ):
     return update_post(post_id, post, db, current_user)
 
@@ -104,6 +107,6 @@ def update_existing_post(
 def delete_existing_post(
     post_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(creator_only)
 ):
     return delete_post(post_id, db, current_user)

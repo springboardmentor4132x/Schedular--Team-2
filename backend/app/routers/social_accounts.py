@@ -5,12 +5,16 @@ from app.database.database import get_db
 from app.models.user import User
 from app.models.social_account import SocialAccount
 from app.schemas.social_account import SocialAccountConnect, SocialAccountResponse
-from app.routers.auth import get_current_user
+from app.auth.dependencies import get_current_user
+from app.auth.rbac import RoleChecker
 from typing import List
 from datetime import datetime, timezone
 import uuid
 import random
 import os
+
+creator_only = RoleChecker(["creator"])
+admin_only = RoleChecker(["admin"])
 
 router = APIRouter(
     prefix="/social",
@@ -46,7 +50,7 @@ def connect_social_account_redirect(platform: str):
     return RedirectResponse(url=auth_url)
 
 @router.post("/connect", response_model=SocialAccountResponse)
-def mock_connect_social_account(payload: SocialAccountConnect, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def mock_connect_social_account(payload: SocialAccountConnect, current_user: User = Depends(creator_only), db: Session = Depends(get_db)):
     """
     Mock endpoint to simulate a connection without requiring actual OAuth callback.
     """
@@ -146,7 +150,7 @@ def oauth_callback(platform: str, request: Request, db: Session = Depends(get_db
 
 
 @router.delete("/{account_id}")
-def disconnect_social_account(account_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def disconnect_social_account(account_id: int, current_user: User = Depends(creator_only), db: Session = Depends(get_db)):
     account = db.query(SocialAccount).filter(SocialAccount.id == account_id).first()
     if not account:
         raise HTTPException(status_code=404, detail="Social account not found")
@@ -160,7 +164,7 @@ def disconnect_social_account(account_id: int, current_user: User = Depends(get_
     return {"message": "Account disconnected successfully"}
 
 @router.post("/{account_id}/sync", response_model=SocialAccountResponse)
-def sync_social_account(account_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def sync_social_account(account_id: int, current_user: User = Depends(creator_only), db: Session = Depends(get_db)):
     account = db.query(SocialAccount).filter(SocialAccount.id == account_id).first()
     if not account:
         raise HTTPException(status_code=404, detail="Social account not found")

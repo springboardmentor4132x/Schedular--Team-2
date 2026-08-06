@@ -5,8 +5,12 @@ from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
 from app.schemas.workspace import WorkspaceCreate, WorkspaceResponse, WorkspaceMemberCreate, WorkspaceMemberResponse
-from app.routers.auth import get_current_user
+from app.auth.dependencies import get_current_user
+from app.auth.rbac import RoleChecker
 from typing import List
+
+creator_only = RoleChecker(["creator"])
+admin_only = RoleChecker(["admin"])
 
 router = APIRouter(
     prefix="/workspaces",
@@ -24,7 +28,7 @@ def get_workspaces(current_user: User = Depends(get_current_user), db: Session =
     return workspaces_set
 
 @router.post("/", response_model=WorkspaceResponse)
-def create_workspace(workspace_in: WorkspaceCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_workspace(workspace_in: WorkspaceCreate, current_user: User = Depends(creator_only), db: Session = Depends(get_db)):
     workspace = Workspace(name=workspace_in.name, owner_id=current_user.id)
     db.add(workspace)
     db.commit()
@@ -39,7 +43,7 @@ def create_workspace(workspace_in: WorkspaceCreate, current_user: User = Depends
     return workspace
 
 @router.post("/{workspace_id}/members", response_model=WorkspaceMemberResponse)
-def add_workspace_member(workspace_id: int, member_in: WorkspaceMemberCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def add_workspace_member(workspace_id: int, member_in: WorkspaceMemberCreate, current_user: User = Depends(creator_only), db: Session = Depends(get_db)):
     workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
