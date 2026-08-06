@@ -34,7 +34,7 @@ def exchange_code_for_access_token(code: str):
         "code": code,
         "state": "socialpilot",
     }
-
+ 
     response = requests.get(url, params=params, timeout=30)
 
     if response.status_code != 200:

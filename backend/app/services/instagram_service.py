@@ -12,6 +12,9 @@ SCOPES = [
     "business_management",
     "pages_show_list",
     "pages_read_engagement",
+    "instagram_basic",
+    "instagram_content_publish",
+    "instagram_manage_insights",
 ]
 
 
@@ -19,13 +22,18 @@ def get_instagram_login_url():
     params = {
     "client_id": settings.INSTAGRAM_CLIENT_ID,
     "redirect_uri": settings.INSTAGRAM_REDIRECT_URI,
+    "scope": ",".join(SCOPES),
     "response_type": "code",
     "state": "socialpilot",
     "config_id": settings.INSTAGRAM_CONFIGURATION_ID,
     }
-
+    print("CLIENT ID:", settings.INSTAGRAM_CLIENT_ID)
+    print("CONFIG ID:", settings.INSTAGRAM_CONFIGURATION_ID)
+    print("REDIRECT URI:", settings.INSTAGRAM_REDIRECT_URI)
+  
     url = f"{AUTH_URL}?{urlencode(params)}"
     print(url)
+
     return url
 
 def exchange_code_for_access_token(code):

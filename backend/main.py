@@ -1,5 +1,5 @@
 import os
-
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -8,7 +8,7 @@ from app.database.database import engine, Base
 import app.models  # Import all models to register with Base
 from starlette.middleware.sessions import SessionMiddleware
 from app.routers import publishing, analytics
-
+from app.services.background_worker import start_publishing_worker
 # Auto-generate database tables if they don't exist
 Base.metadata.create_all(bind=engine)
 

@@ -100,24 +100,6 @@ def connect_facebook(request: Request):
     return RedirectResponse(url=url)
 
 
-# @router.get("/facebook/callback")
-# def facebook_callback(code: str):
-#     """
-#     Facebook redirects here after login.
-#     Exchange authorization code for access token.
-#     """
-#     try:
-#         token_data = exchange_code_for_access_token(code)
-
-#         return {
-#             "message": "Facebook connected successfully",
-#             "access_token": token_data["access_token"],
-#             "token_type": token_data["token_type"],
-#             "expires_in": token_data["expires_in"]
-#         }
-
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/facebook/callback")
 def facebook_callback(
@@ -133,8 +115,7 @@ def facebook_callback(
     try:
         # Get the user from session (OAuth state)
         # In production, use proper state parameter to identify user
-        # user_id = request.session.get("user_id")
-        user_id = 3
+        user_id = request.session.get("user_id")
         if not user_id:
             # Try to get from query param or cookie
             user_id = request.query_params.get("user_id")
@@ -528,6 +509,7 @@ def instagram_callback(request: Request, code: str, db: Session = Depends(get_db
         return RedirectResponse(
             url=f"http://localhost:5173/social-accounts?error={str(e)}"
         )
+    
 
 
 @router.post("/instagram/post")
