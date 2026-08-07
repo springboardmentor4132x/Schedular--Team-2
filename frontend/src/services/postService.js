@@ -15,6 +15,7 @@ export const createPost = async (payload) => {
   return response.data
 }
 
+
 export const schedulePost = async (payload) => {
   const response = await API.post('/posts/schedule', payload)
   return response.data
@@ -60,3 +61,8 @@ export const deletePost = async (id) => {
   const response = await API.delete(`/posts/${id}`)
   return response.data
 }
+
+export const publishPost = async (id) => {
+  const response = await API.post(`/posts/publish/${id}`);
+  return response.data;
+};

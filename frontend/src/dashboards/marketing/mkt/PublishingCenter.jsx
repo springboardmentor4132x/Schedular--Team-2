@@ -8,9 +8,11 @@ import {
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter } from 'react-icons/fa6'
 import { useNavigate } from 'react-router-dom'
 import { useClient } from '../../../context/ClientContext'
+import { publishPost } from '../../../services/postService'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
 import { contentApi } from '../../../services/contentApi'
+
 
 const PLATFORM_META = {
   instagram:{ icon:FaInstagram, color:'#E1306C' },
@@ -49,7 +51,24 @@ export function PublishingPanel() {
 
   const showToast=(msg,type='success')=>{ setToast({msg,type}); setTimeout(()=>setToast(null),3000) }
   const retryItem   = id => { setQueue(prev=>prev.map(q=>q.id===id?{...q,status:'scheduled',error:null}:q)); showToast('Retrying...') }
-  const publishNow  = id => { setQueue(prev=>prev.map(q=>q.id===id?{...q,status:'published'}:q)); showToast('Published!') }
+  const publishNow = async (id) => {
+    try {
+      await publishPost(id);
+
+      setQueue(prev =>
+        prev.map(q =>
+          q.id === id
+            ? { ...q, status: 'Published' }
+            : q
+        )
+      );
+
+      showToast('Published!');
+    } catch (error) {
+      console.error(error);
+      showToast('Publish failed!');
+    }
+  };
   const removeItem  = id => { setQueue(prev=>prev.filter(q=>q.id!==id)); showToast('Removed.') }
   const approveItem = id => { setQueue(prev=>prev.map(q=>q.id===id?{...q,status:'ready'}:q)); showToast('Approved!') }
 
@@ -118,6 +137,7 @@ export function PublishingPanel() {
                       style={{ background:'rgba(34,197,94,.12)', color:'#22C55E', border:'1px solid rgba(34,197,94,.25)' }}>
                       <Send size={11}/> Publish Now
                     </button>
+                    
                   )}
                   {item.status==='pending_approval'&&(
                     <button onClick={()=>approveItem(item.id)}

@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "SocialPilot API"
     VERSION: str = "1.0.0"
 
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "socialpilot-secret_key_11")
     # PostgreSQL
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "root")

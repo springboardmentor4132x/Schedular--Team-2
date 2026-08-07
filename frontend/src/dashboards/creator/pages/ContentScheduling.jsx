@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../../shared/components/Button'
 import { useAuth } from '../../../context/AuthContext'
-import { uploadMedia, schedulePost, saveDraft } from '../../../services/postService'
+import { uploadMedia, schedulePost, saveDraft, publishPost } from '../../../services/postService'
 import { getPlatformIcon, fetchSocialAccounts } from '../../../services/postAdapter'
 import { getCampaigns } from '../../../services/campaignService'
 import { PLATFORM_OPTIONS } from '../constants/campaigns'
@@ -63,7 +63,7 @@ export default function ContentScheduling() {
   const fileInputRef = useRef(null)
 
   const [scheduleDate, setScheduleDate] = useState(todayLocalStr())
-  const [scheduleTime, setScheduleTime] = useState('16:30')
+  const [scheduleTime, setScheduleTime] = useState('')
   const [recurrence, setRecurrence] = useState('Never')
   const [previewTab, setPreviewTab] = useState('instagram')
 
@@ -223,12 +223,38 @@ export default function ContentScheduling() {
     }
   }
 
+  // const handlePublishNow = async () => {
+  //   if (submitting) return
+  //   setSubmitting(true)
+  //   try {
+  //     await schedulePost(await buildPayload('Queued'))
+  //     setToast('Post queued for publishing across selected platforms...')
+  //     setTimeout(() => navigate('/dashboard/creator/my-posts'), 1000)
+  //   } catch {
+  //     setToast('Failed to publish post.')
+  //   } finally {
+  //     setSubmitting(false)
+  //   }
+  // }
+  // import { uploadMedia, schedulePost, saveDraft, publishPost } from '../../../services/postService'
+
+// ...
+
   const handlePublishNow = async () => {
+    if (selectedPlatforms.length === 0) {
+      setToast('Please select at least one platform.')
+      return
+    }
+    if (!caption.trim()) {
+      setToast('Caption cannot be empty.')
+      return
+    }
     if (submitting) return
     setSubmitting(true)
     try {
-      await schedulePost(await buildPayload('Queued'))
-      setToast('Post queued for publishing across selected platforms...')
+      const created = await schedulePost(await buildPayload('Scheduled'))
+      await publishPost(created.id)
+      setToast('Post published successfully!')
       setTimeout(() => navigate('/dashboard/creator/my-posts'), 1000)
     } catch {
       setToast('Failed to publish post.')

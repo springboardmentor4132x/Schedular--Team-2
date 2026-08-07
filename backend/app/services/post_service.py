@@ -384,12 +384,6 @@ def publish_post(
 
     try:
         post.status = "Publishing"
-
-        # Platform publishing logic
-        # publish_to_twitter()
-        # publish_to_instagram()
-        # publish_to_linkedin()
-
         post.status = "Published"
         post.published_at = _now()
         post.platform_post_id = f"POST-{post.id}"
