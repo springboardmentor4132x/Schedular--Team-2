@@ -61,7 +61,6 @@ def connect_facebook():
     url = get_facebook_login_url()
     return RedirectResponse(url=url)
 
-
 # @router.get("/facebook/callback")
 # def facebook_callback(code: str):
 #     """
@@ -70,14 +69,12 @@ def connect_facebook():
 #     """
 #     try:
 #         token_data = exchange_code_for_access_token(code)
-
 #         return {
 #             "message": "Facebook connected successfully",
 #             "access_token": token_data["access_token"],
 #             "token_type": token_data["token_type"],
 #             "expires_in": token_data["expires_in"]
 #         }
-
 #     except Exception as e:
 #         raise HTTPException(status_code=400, detail=str(e))
 
