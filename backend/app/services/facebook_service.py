@@ -61,9 +61,10 @@ def get_facebook_user_info(access_token: str):
     """Get user's Facebook pages and profile info"""
     # Get user's pages
     url = "https://graph.facebook.com/v23.0/me/accounts"
+
     params = {
         "access_token": access_token,
-        "fields": "id,name,username,fan_count,picture{url}",
+        "fields": "id,name,username,fan_count,picture{url},access_token",
     }
     response = requests.get(url, params=params, timeout=30)
     if response.status_code != 200:
@@ -71,7 +72,8 @@ def get_facebook_user_info(access_token: str):
     
     data = response.json()
 
-    print("\n========== FACEBOOK RESPONSE ==========")
+
+    print("\n========= Facebook User Info =========")
     print(data)
     print("=======================================\n")
 
@@ -87,6 +89,7 @@ def get_facebook_user_info(access_token: str):
         "username": page.get("username", page["name"]),
         "followers_count": page.get("fan_count", 0),
         "profile_image": page.get("picture", {}).get("data", {}).get("url"),
+        "page_access_token": page.get("access_token"),
     }
 
 def get_user_pages(access_token: str):
@@ -99,11 +102,6 @@ def get_user_pages(access_token: str):
     response = requests.get(url, params=params)
 
     data = response.json()
-
-    print("\n========== FACEBOOK RESPONSE ==========")
-    print(data)
-    print("ACCESS TOKEN =", access_token)
-    print("=======================================\n")
 
     return data
 
