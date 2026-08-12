@@ -1,6 +1,6 @@
 # Social Media Scheduler & Campaign Management Platform
 
-A full-stack social media management platform for scheduling, publishing, and monitoring content across multiple platforms — built for an MCA internship project.
+A full-stack social media management platform for scheduling, publishing, and monitoring content across multiple platforms.
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green)
@@ -181,4 +181,4 @@ npm run lint     # ESLint
 
 ## License
 
-Developed for educational purposes (MCA internship).
+Developed for educational purposes.
