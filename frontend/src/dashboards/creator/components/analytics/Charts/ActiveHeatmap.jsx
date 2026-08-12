@@ -1,10 +1,8 @@
-import React from 'react'
-
 export default function ActiveHeatmap({ hoursData = [], daysData = [] }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Active Hours Matrix */}
-      <div className="card space-y-4">
+      <div className="card p-5 space-y-4">
         <div className="border-b border-default pb-3">
           <h3 className="text-base font-bold text-primary">Most Active Hours</h3>
           <p className="text-xs text-secondary mt-0.5">Peak engagement times for your followers (Local Time)</p>
@@ -31,7 +29,7 @@ export default function ActiveHeatmap({ hoursData = [], daysData = [] }) {
       </div>
 
       {/* Active Days Matrix */}
-      <div className="card space-y-4">
+      <div className="card p-5 space-y-4">
         <div className="border-b border-default pb-3">
           <h3 className="text-base font-bold text-primary">Most Active Days</h3>
           <p className="text-xs text-secondary mt-0.5">Audience presence throughout the week</p>

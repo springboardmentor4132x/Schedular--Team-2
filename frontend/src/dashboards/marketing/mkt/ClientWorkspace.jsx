@@ -12,6 +12,7 @@ import PageHeader from '../../../components/dashboard/PageHeader'
 import StatCard from '../../../components/dashboard/StatCard'
 import EmptyState from '../../../components/dashboard/EmptyState'
 import { marketingService } from '../../../services/marketingService'
+import { getAnalyticsTotals } from '../../../services/analyticsService'
 
 const PLATFORM_META = {
   instagram: { icon: FaInstagram, color: '#E1306C', label: 'Instagram' },
@@ -32,7 +33,7 @@ const STATUS_STYLE = {
 const QUICK_NAV = [
   { label:'Scheduling', icon:CalendarCheck,href:'/dashboard/mkt/scheduling', color:'#1E3A8A', bg:'rgba(30,58,138,.10)'  },
   { label:'Calendar',   icon:CalendarCheck,href:'/dashboard/mkt/calendar',   color:'#F59E0B', bg:'rgba(245,158,11,.10)' },
-  { label:'Pub. Queue', icon:Send,         href:'/dashboard/mkt/publishing', color:'#22C55E', bg:'rgba(34,197,94,.10)'  },
+  { label:'Pub. Queue', icon:Send,         href:'/dashboard/mkt/queue', color:'#22C55E', bg:'rgba(34,197,94,.10)'  },
   { label:'Campaigns',  icon:Megaphone,    href:'/dashboard/mkt/campaigns',  color:'#E1306C', bg:'rgba(225,48,108,.10)' },
   { label:'Analytics',  icon:BarChart2,    href:'/dashboard/analytics',      color:'#0A66C2', bg:'rgba(10,102,194,.10)' },
   { label:'Reports',    icon:FileText,     href:'/dashboard/mkt/reports',    color:'#4F46E5', bg:'rgba(79,70,229,.10)'  },
@@ -42,7 +43,20 @@ export default function ClientWorkspace() {
   const navigate = useNavigate()
   const { activeClient } = useClient()
   const [workspaceData, setWorkspaceData] = useState({ campaigns: [], posts: [] })
-  useEffect(() => { if (activeClient) marketingService.workspace(activeClient.id).then(setWorkspaceData).catch(() => setWorkspaceData({ campaigns: [], posts: [] })) }, [activeClient])
+  const [analytics, setAnalytics] = useState({})
+  useEffect(() => {
+    if (!activeClient) return
+    marketingService.workspace(activeClient.id).then(setWorkspaceData).catch(() => setWorkspaceData({ campaigns: [], posts: [] }))
+    getAnalyticsTotals(activeClient.workspaceId)
+      .then((s) => setAnalytics({
+        reach: s.total_reach,
+        engagement: s.total_engagement,
+        impressions: s.total_impressions,
+        clicks: s.total_clicks,
+        followers: s.total_followers,
+      }))
+      .catch(() => setAnalytics({}))
+  }, [activeClient])
 
   if (!activeClient) {
     return (
@@ -63,7 +77,6 @@ export default function ClientWorkspace() {
   const campaigns = workspaceData.campaigns ?? []
   const allPosts = workspaceData.posts ?? []
   const posts = { drafts: allPosts.filter(p => p.status === 'draft'), scheduled: allPosts.filter(p => p.status === 'scheduled'), published: allPosts.filter(p => p.status === 'published') }
-  const analytics = {}
 
   const activeCampaigns = campaigns.filter(x => x.status?.toLowerCase() === 'active')
   const recentScheduled = posts.scheduled.slice(0, 3)

@@ -1,5 +1,6 @@
 import json
 import importlib
+import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -12,16 +13,62 @@ from app.models.publishing_queue import PublishingQueue
 
 RETRY_INTERVAL_MINUTES = 5
 
+# Entries left in "Processing" longer than this (e.g. by a crashed or
+# restarted worker) are reset to "Pending" so they get processed again.
+STALE_PROCESSING_MINUTES = 10
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------
 # Queue entry point (called by the background worker)
 # ---------------------------------------------------------
 
 def process_publishing_queue(db: Session):
-    """Main entry point — polls due queue entries and processes each."""
+    """Main entry point — polls due queue entries and processes each.
+
+    First recovers entries stuck in "Processing" by a crashed/restarted
+    worker, then processes every due entry. An unexpected exception while
+    processing a single entry marks it (and its post) Failed instead of
+    leaving them wedged forever.
+    """
+    _recover_stale_processing(db)
     entries = get_due_queue_entries(db)
     for entry in entries:
-        process_queue_entry(db, entry)
+        try:
+            process_queue_entry(db, entry)
+        except Exception:
+            logger.exception("Error processing queue entry %s — marking as failed", entry.id)
+            db.rollback()
+            post = db.query(Post).filter(Post.id == entry.post_id).first()
+            entry = db.query(PublishingQueue).filter(PublishingQueue.id == entry.id).first()
+            if post and entry:
+                _mark_failed(db, post, entry, "Unexpected error while publishing.")
+            elif entry:
+                entry.processing_status = "Failed"
+                db.commit()
+
+
+def _recover_stale_processing(db: Session):
+    """Reset queue entries stuck in "Processing" past a safety timeout so the
+    worker picks them up again instead of leaving their posts stuck in
+    "Publishing" forever."""
+    threshold = datetime.now(timezone.utc) - timedelta(minutes=STALE_PROCESSING_MINUTES)
+    stale = (
+        db.query(PublishingQueue)
+        .filter(
+            PublishingQueue.processing_status == "Processing",
+            PublishingQueue.updated_at < threshold,
+        )
+        .all()
+    )
+    for entry in stale:
+        entry.processing_status = "Pending"
+        post = db.query(Post).filter(Post.id == entry.post_id).first()
+        if post and post.status == "Publishing":
+            post.status = "Scheduled"
+    if stale:
+        db.commit()
 
 
 def get_due_queue_entries(db: Session):
@@ -41,7 +88,24 @@ def get_due_queue_entries(db: Session):
 
 
 def enqueue_post(db: Session, post: Post, priority: int = 0) -> PublishingQueue:
-    """Called when a post is scheduled (Module 3) — registers it in the queue."""
+    """Called when a post is scheduled (Module 3) — registers it in the queue.
+    Idempotent: re-scheduling an already-pending post just updates the time."""
+    existing = (
+        db.query(PublishingQueue)
+        .filter(
+            PublishingQueue.post_id == post.id,
+            PublishingQueue.processing_status.in_(["Pending", "Processing"]),
+        )
+        .order_by(PublishingQueue.id.desc())
+        .first()
+    )
+    if existing:
+        existing.scheduled_time = post.scheduled_for
+        post.status = "Scheduled"
+        db.commit()
+        db.refresh(existing)
+        return existing
+
     entry = PublishingQueue(
         post_id=post.id,
         scheduled_time=post.scheduled_for,
@@ -62,6 +126,14 @@ def process_queue_entry(db: Session, entry: PublishingQueue):
     post = db.query(Post).filter(Post.id == entry.post_id).first()
     if not post:
         entry.processing_status = "Failed"
+        db.commit()
+        return
+
+    # Idempotency guard: if a crashed worker published this post but never
+    # committed the queue entry to Completed, recovering the stale entry must
+    # NOT publish it a second time.
+    if post.status == "Published":
+        entry.processing_status = "Completed"
         db.commit()
         return
 
@@ -88,7 +160,18 @@ def process_queue_entry(db: Session, entry: PublishingQueue):
             )
             continue
 
-        result = dispatch_publish(account.platform, post, account)
+        try:
+            result = dispatch_publish(account.platform, post, account)
+        except Exception as exc:  # a failing platform must not wedge the entry
+            logger.exception("Dispatch to %s raised for post %s", account.platform, post.id)
+            all_succeeded = False
+            reason = str(exc) or "Unknown error"
+            failure_reasons.append(f"{account.platform}: {reason}")
+            log_publishing_attempt(
+                db, post.id, account.platform, "Failed",
+                {"failure_reason": reason}, entry.retry_count,
+            )
+            continue
 
         if result.get("success"):
             post.platform_post_id = result.get("platform_post_id")
@@ -192,8 +275,11 @@ def log_publishing_attempt(
         post_id=post_id,
         platform=platform,
         status=status,
-        response=json.dumps(payload),
+        response=json.dumps(payload, default=str),
         retry_count=retry_count,
+        failure_reason=result.get("failure_reason") if status == "Failed" else None,
+        platform_post_id=result.get("platform_post_id"),
+        api_response=json.dumps(result.get("raw_response"), default=str) if result.get("raw_response") is not None else None,
     )
     db.add(log)
     db.commit()
@@ -274,3 +360,66 @@ def retry_failed_post(db: Session, post_id: int):
     db.commit()
     db.refresh(post)
     return post
+
+
+def publish_post_immediately(db: Session, post_id: int):
+    """Publish a single post right now — enqueues and processes it inline
+    through the shared pipeline (token validation, dispatch, logging).
+
+    A manual "Publish Now" must not silently re-queue on failure: the entry
+    is created with retries exhausted so a failed attempt immediately marks
+    the post Failed (and the caller sees the real status).
+
+    Any other pending/processing queue entries for the same post are cancelled
+    first so the background worker doesn't re-publish it at a later time."""
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post or post.status not in ("Scheduled", "Queued", "Failed", "Draft"):
+        return None
+
+    # Cancel other queued attempts for this post (e.g. the original scheduled entry).
+    for other in (
+        db.query(PublishingQueue)
+        .filter(
+            PublishingQueue.post_id == post_id,
+            PublishingQueue.processing_status.in_(["Pending", "Processing"]),
+        )
+        .all()
+    ):
+        other.processing_status = "Cancelled"
+
+    entry = PublishingQueue(
+        post_id=post_id,
+        scheduled_time=datetime.now(timezone.utc),
+        max_retries=0,  # no auto-retry for a manual publish
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    process_queue_entry(db, entry)
+    db.refresh(post)
+    return post
+
+
+def cancel_post(db: Session, post_id: int):
+    """Cancel a scheduled/queued post by its post id (cancels its queue entries)."""
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post:
+        return None
+    entries = (
+        db.query(PublishingQueue)
+        .filter(
+            PublishingQueue.post_id == post_id,
+            PublishingQueue.processing_status.in_(["Pending", "Processing"]),
+        )
+        .all()
+    )
+    for entry in entries:
+        entry.processing_status = "Cancelled"
+    post.status = "Cancelled"
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+def verify_account_token(account: SocialAccount) -> Optional[str]:
+    return validate_account_token(account)

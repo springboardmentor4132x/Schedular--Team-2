@@ -700,6 +700,8 @@ export default function CampaignManagement() {
           onScheduleContent={handleScheduleContent}
           onOpenAnalytics={() => showToastMsg('Analytics panel is available in the campaign workspace.')}
           onGenerateReport={() => showToastMsg('Report generation is pending backend integration.')}
+          onEditCampaign={() => { handleOpenCampaignForm(selectedCampaign); closeCampaignDetails() }}
+          onDeleteCampaign={() => { setConfirmDelete(selectedCampaign); closeCampaignDetails() }}
           onClose={closeCampaignDetails}
         />
       )}
@@ -759,7 +761,7 @@ export default function CampaignManagement() {
   )
 }
 
-function CampaignDrawer({ campaign, items, businessUser, assignedTeam, platforms, viewMode, onChangeViewMode, onAddContent, onViewContent, onEditContent, onDeleteContent, onDuplicateContent, onScheduleContent, onOpenAnalytics, onGenerateReport, onClose }) {
+function CampaignDrawer({ campaign, items, businessUser, assignedTeam, platforms, viewMode, onChangeViewMode, onAddContent, onViewContent, onEditContent, onDeleteContent, onDuplicateContent, onScheduleContent, onOpenAnalytics, onGenerateReport, onEditCampaign, onDeleteCampaign, onClose }) {
   const timeline = [...items]
     .sort((a, b) => new Date(a.scheduledAt || a.createdAt) - new Date(b.scheduledAt || b.createdAt))
     .map(item => ({
@@ -827,9 +829,9 @@ function CampaignDrawer({ campaign, items, businessUser, assignedTeam, platforms
               <div className="grid grid-cols-1 gap-3">
                 <button onClick={onAddContent} className="flex items-center gap-2 px-4 h-11 rounded-[var(--r-md)] text-sm font-semibold text-white"
                   style={{ background:'linear-gradient(135deg,#1E3A8A,#4F46E5)' }}><Plus size={15} /> Add Content</button>
-                <button onClick={onOpenAnalytics} className="flex items-center gap-2 px-4 h-11 rounded-[var(--r-md)] border text-sm font-semibold"
+                <button onClick={onEditCampaign} className="flex items-center gap-2 px-4 h-11 rounded-[var(--r-md)] border text-sm font-semibold"
                   style={{ borderColor:'var(--border)', color:'var(--text)' }}><Edit3 size={15} /> Edit Campaign</button>
-                <button onClick={onGenerateReport} className="flex items-center gap-2 px-4 h-11 rounded-[var(--r-md)] border text-sm font-semibold"
+                <button onClick={onDeleteCampaign} className="flex items-center gap-2 px-4 h-11 rounded-[var(--r-md)] border text-sm font-semibold"
                   style={{ borderColor:'var(--border)', color:'#EF4444' }}><Trash2 size={15} /> Delete Campaign</button>
                 <button onClick={onOpenAnalytics} className="flex items-center gap-2 px-4 h-11 rounded-[var(--r-md)] border text-sm font-semibold"
                   style={{ borderColor:'var(--border)', color:'var(--text)' }}><TrendingUp size={15} /> View Analytics</button>

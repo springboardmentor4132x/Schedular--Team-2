@@ -2,14 +2,13 @@ from datetime import datetime, timezone as dt_timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, verify_workspace_access
 from app.models.user import User
 from app.models.post import Post
-from app.models.workspace import Workspace
-from app.models.workspace_member import WorkspaceMember
 from app.models.publishing_queue import PublishingQueue
 from app.models.publishing_log import PublishingLog
 
@@ -38,32 +37,6 @@ def _post_platforms(post: Post) -> List[str]:
     return [acc.platform for acc in post.social_accounts]
 
 
-def _verify_workspace_access(db: Session, workspace_id: int, user: User):
-    """Business owners and active marketing members may scope publishing data
-    to a workspace (used by the marketing client publishing pages)."""
-    if user.role == "business":
-        allowed = (
-            db.query(Workspace)
-            .filter(Workspace.id == workspace_id, Workspace.owner_id == user.id)
-            .first()
-        )
-    elif user.role == "marketing":
-        allowed = (
-            db.query(Workspace)
-            .join(WorkspaceMember, WorkspaceMember.workspace_id == Workspace.id)
-            .filter(
-                Workspace.id == workspace_id,
-                WorkspaceMember.user_id == user.id,
-                WorkspaceMember.status == "Active",
-            )
-            .first()
-        )
-    else:
-        allowed = None
-    if not allowed:
-        raise HTTPException(status_code=403, detail="Workspace access denied.")
-
-
 def _posts_in_scope(query, user_id: int, workspace_id: Optional[int]):
     query = query.filter(Post.user_id == user_id)
     if workspace_id is not None:
@@ -82,7 +55,7 @@ def get_dashboard(
     current_user: User = Depends(get_current_user),
 ):
     if workspace_id is not None:
-        _verify_workspace_access(db, workspace_id, current_user)
+        verify_workspace_access(db, workspace_id, current_user)
     query = db.query(Post)
     query = _posts_in_scope(query, current_user.id, workspace_id)
     posts = query.all()
@@ -118,7 +91,7 @@ def get_queue(
     current_user: User = Depends(get_current_user),
 ):
     if workspace_id is not None:
-        _verify_workspace_access(db, workspace_id, current_user)
+        verify_workspace_access(db, workspace_id, current_user)
     query = (
         db.query(PublishingQueue)
         .join(Post, Post.id == PublishingQueue.post_id)
@@ -126,8 +99,16 @@ def get_queue(
     )
     if workspace_id is not None:
         query = query.filter(Post.workspace_id == workspace_id)
+    # Queue display order: active entries (Pending / Processing / Paused) first
+    # by soonest scheduled time, then historical entries (Failed / Completed /
+    # Cancelled) — everything time-sorted rather than priority-first.
+    status_order = case(
+        {"Pending": 0, "Processing": 1, "Paused": 2, "Failed": 3, "Completed": 4, "Cancelled": 5},
+        value=PublishingQueue.processing_status,
+        else_=5,
+    )
     entries = query.order_by(
-        PublishingQueue.execution_priority.desc(),
+        status_order,
         PublishingQueue.scheduled_time.asc(),
     ).all()
 
@@ -244,7 +225,7 @@ def get_logs(
     current_user: User = Depends(get_current_user),
 ):
     if workspace_id is not None:
-        _verify_workspace_access(db, workspace_id, current_user)
+        verify_workspace_access(db, workspace_id, current_user)
     query = (
         db.query(PublishingLog)
         .join(Post, Post.id == PublishingLog.post_id)
@@ -267,6 +248,7 @@ def get_logs(
                 id=log.id,
                 post_id=log.post_id,
                 title=post.title,
+                caption=post.caption,
                 platforms=_post_platforms(post),
                 campaign_name=post.campaign.name if post.campaign else None,
                 platform=log.platform,
@@ -291,7 +273,7 @@ def get_failed_posts(
     current_user: User = Depends(get_current_user),
 ):
     if workspace_id is not None:
-        _verify_workspace_access(db, workspace_id, current_user)
+        verify_workspace_access(db, workspace_id, current_user)
     query = db.query(Post).filter(Post.user_id == current_user.id, Post.status == "Failed")
     if workspace_id is not None:
         query = query.filter(Post.workspace_id == workspace_id)
@@ -335,8 +317,11 @@ def get_platform_history(
     current_user: User = Depends(get_current_user),
 ):
     if workspace_id is not None:
-        _verify_workspace_access(db, workspace_id, current_user)
-    query = db.query(Post).filter(Post.user_id == current_user.id, Post.status == "Published")
+        verify_workspace_access(db, workspace_id, current_user)
+    query = db.query(Post).filter(
+        Post.user_id == current_user.id,
+        Post.status.in_(["Published", "Failed"]),
+    )
     if workspace_id is not None:
         query = query.filter(Post.workspace_id == workspace_id)
     posts = query.all()

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../../shared/components/Button'
 import { useAuth } from '../../../context/AuthContext'
@@ -29,6 +30,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Play,
+  AlertTriangle,
 } from 'lucide-react'
 
 const platformList = PLATFORM_OPTIONS.map((p) => ({
@@ -52,11 +54,20 @@ function daysFromToday(days) {
   return d.toLocaleDateString('sv-SE')
 }
 
+// Backend stores X/Twitter as 'x'; the creator platform list uses 'twitter'.
+function normalizePlatform(platform = '') {
+  const key = String(platform).toLowerCase()
+  if (key === 'x' || key === 'twitter') return 'twitter'
+  return key
+}
+
 export default function ContentScheduling() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  const [selectedPlatforms, setSelectedPlatforms] = useState(['instagram'])
+  const [selectedPlatforms, setSelectedPlatforms] = useState([])
+  const [connectedPlatforms, setConnectedPlatforms] = useState([])
+  const [platformsLoading, setPlatformsLoading] = useState(true)
   const [caption, setCaption] = useState('Kickstart your brand campaign with a fresh perspective! 🚀 We are matching clean assets with premium SaaS design guidelines.')
   const [mediaList, setMediaList] = useState([])
   const [uploadProgress, setUploadProgress] = useState(null)
@@ -76,11 +87,14 @@ export default function ContentScheduling() {
   const [campaigns, setCampaigns] = useState([])
   const [selectedCampaign, setSelectedCampaign] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [toast, setToast] = useState('')
+  const [toast, setToast] = useState(null)
+  const [confirmAction, setConfirmAction] = useState(null)
+
+  const showToast = (msg, type = 'success') => setToast({ msg, type })
 
   useEffect(() => {
     if (toast) {
-      const timer = setTimeout(() => setToast(''), 3500)
+      const timer = setTimeout(() => setToast(null), 3500)
       return () => clearTimeout(timer)
     }
   }, [toast])
@@ -97,6 +111,30 @@ export default function ContentScheduling() {
     return () => {
       mounted = false
     }
+  }, [])
+
+  // Load the creator's connected social accounts so only connected
+  // platforms are selectable (parity with the marketing scheduling page).
+  useEffect(() => {
+    let mounted = true
+    fetchSocialAccounts()
+      .then((accounts) => {
+        if (!mounted) return
+        const connected = [...new Set((accounts || []).map(acc => normalizePlatform(acc.platform)))]
+        setConnectedPlatforms(connected)
+        // Auto-select connected platforms (default to first connected if any).
+        setSelectedPlatforms(prev => {
+          const stillConnected = prev.filter(p => connected.includes(p))
+          return stillConnected.length ? stillConnected : connected.slice(0, 1)
+        })
+      })
+      .catch(() => {
+        if (mounted) setConnectedPlatforms([])
+      })
+      .finally(() => {
+        if (mounted) setPlatformsLoading(false)
+      })
+    return () => { mounted = false }
   }, [])
 
   const recurrencePreviewText = useMemo(() => {
@@ -120,6 +158,9 @@ export default function ContentScheduling() {
     .toUpperCase() || 'CR'
   const previewMedia = mediaList[0]?.url || ''
 
+  const hasConnectedPlatforms = !platformsLoading && connectedPlatforms.length > 0
+  const effectivePlatforms = selectedPlatforms.filter(p => connectedPlatforms.includes(p))
+
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -127,9 +168,9 @@ export default function ContentScheduling() {
     try {
       const result = await uploadMedia(file)
       setMediaList([{ id: Date.now(), url: result.media_url, name: file.name, type: file.type }])
-      setToast(`${file.name} uploaded successfully!`)
+      showToast(`${file.name} uploaded successfully!`)
     } catch {
-      setToast('Media upload failed.')
+      showToast('Media upload failed.', 'error')
     } finally {
       setUploadProgress(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -160,9 +201,9 @@ export default function ContentScheduling() {
 
   const resolveSocialAccountIds = async () => {
     const accounts = await fetchSocialAccounts()
-    const platformSet = selectedPlatforms
+    const platformSet = effectivePlatforms
     return accounts
-      .filter((acc) => platformSet.includes(acc.platform?.toLowerCase()))
+      .filter((acc) => platformSet.includes(normalizePlatform(acc.platform)))
       .map((acc) => acc.id)
   }
 
@@ -177,7 +218,7 @@ export default function ContentScheduling() {
       content_type: media ? (media.type?.startsWith('video') ? 'video' : 'image') : 'text',
       media_url: media?.url || null,
       scheduled_for:
-          status === 'Queued'
+          status === 'Queued' || !scheduleDate || !scheduleTime
               ? null
               : new Date(`${scheduleDate}T${scheduleTime}`).toISOString(),      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       social_account_ids: accountIds,
@@ -192,74 +233,75 @@ export default function ContentScheduling() {
     setSubmitting(true)
     try {
       await saveDraft(await buildPayload('Draft'))
-      setToast('Draft saved successfully!')
+      showToast('Draft saved successfully!')
       setTimeout(() => navigate('/dashboard/creator/my-posts'), 1000)
-    } catch {
-      setToast('Failed to save draft.')
+    } catch (err) {
+      showToast(err?.response?.data?.detail || 'Failed to save draft.', 'error')
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleSchedulePost = async () => {
-    if (selectedPlatforms.length === 0) {
-      setToast('Please select at least one platform.')
+  const handleScheduleClick = () => {
+    if (effectivePlatforms.length === 0) {
+      showToast('Please select at least one connected platform.', 'error')
       return
     }
-
     if (!caption.trim()) {
-      setToast('Caption cannot be empty.')
+      showToast('Caption cannot be empty.', 'error')
       return
     }
+    if (!scheduleDate || !scheduleTime) {
+      showToast('Please select a publish date and time.', 'error')
+      return
+    }
+    setConfirmAction('schedule')
+  }
+
+  const confirmSchedule = async () => {
     if (submitting) return
     setSubmitting(true)
     try {
       await schedulePost(await buildPayload('Scheduled'))
-      setToast(`Post scheduled for ${scheduleDate} at ${scheduleTime}!`)
-    } catch {
-      setToast('Failed to schedule post. Check the date/time.')
+      showToast(`Post scheduled for ${scheduleDate} at ${scheduleTime}!`)
+    } catch (err) {
+      showToast(err?.response?.data?.detail || 'Failed to schedule post. Check the date/time.', 'error')
     } finally {
       setSubmitting(false)
+      setConfirmAction(null)
     }
   }
 
-  // const handlePublishNow = async () => {
-  //   if (submitting) return
-  //   setSubmitting(true)
-  //   try {
-  //     await schedulePost(await buildPayload('Queued'))
-  //     setToast('Post queued for publishing across selected platforms...')
-  //     setTimeout(() => navigate('/dashboard/creator/my-posts'), 1000)
-  //   } catch {
-  //     setToast('Failed to publish post.')
-  //   } finally {
-  //     setSubmitting(false)
-  //   }
-  // }
-  // import { uploadMedia, schedulePost, saveDraft, publishPost } from '../../../services/postService'
-
-// ...
-
-  const handlePublishNow = async () => {
-    if (selectedPlatforms.length === 0) {
-      setToast('Please select at least one platform.')
+  const handlePublishClick = () => {
+    if (effectivePlatforms.length === 0) {
+      showToast('Please select at least one connected platform.', 'error')
       return
     }
     if (!caption.trim()) {
-      setToast('Caption cannot be empty.')
+      showToast('Caption cannot be empty.', 'error')
       return
     }
+    // Publish Now does not need a date/time — it goes out immediately.
+    setConfirmAction('publish')
+  }
+
+  const confirmPublish = async () => {
     if (submitting) return
     setSubmitting(true)
     try {
       const created = await schedulePost(await buildPayload('Scheduled'))
-      await publishPost(created.id)
-      setToast('Post published successfully!')
-      setTimeout(() => navigate('/dashboard/creator/my-posts'), 1000)
-    } catch {
-      setToast('Failed to publish post.')
+      const res = await publishPost(created.id)
+      if (res?.status === 'Published') {
+        showToast('Post published successfully!')
+        setTimeout(() => navigate('/dashboard/creator/my-posts'), 1000)
+      } else {
+        showToast(res?.message || 'Post could not be published.', 'error')
+      }
+    } catch (err) {
+      showToast(err?.response?.data?.detail || 'Failed to publish post.', 'error')
     } finally {
       setSubmitting(false)
+      setConfirmAction(null)
     }
   }
 
@@ -286,17 +328,22 @@ export default function ContentScheduling() {
             <p className="text-slate-600 dark:text-slate-300 mt-1 text-sm font-medium">
               Pick platforms, write your post, attach media, then save, schedule, or publish instantly.
             </p>
+            {!platformsLoading && !hasConnectedPlatforms && (
+              <p className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-950/40 border border-amber-300/60 dark:border-amber-800/40 px-3 py-1.5 rounded-lg">
+                <AlertTriangle size={13} /> Connect at least one social account to schedule or publish posts.
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="md" onClick={handleSaveDraft} disabled={submitting}>
+            <Button variant="outline" size="md" onClick={handleSaveDraft} disabled={submitting || !hasConnectedPlatforms}>
               <Save size={16} />
               <span>Save Draft</span>
             </Button>
-            <Button variant="primary" size="md" onClick={handleSchedulePost} disabled={submitting}>
+            <Button variant="primary" size="md" onClick={handleScheduleClick} disabled={submitting || !hasConnectedPlatforms}>
               <Calendar size={16} />
               <span>Schedule Post</span>
             </Button>
-            <Button variant="primary" size="md" onClick={handlePublishNow} disabled={submitting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Button variant="primary" size="md" onClick={handlePublishClick} disabled={submitting || !hasConnectedPlatforms} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               <Send size={16} />
               <span>Publish Now</span>
             </Button>
@@ -323,28 +370,44 @@ export default function ContentScheduling() {
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
               {sectionTitle(1, Layers, 'Select Platforms')}
               <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">
-                {selectedPlatforms.length} selected
+                {effectivePlatforms.length} selected
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 -mt-1">Choose where this post will be published.</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <p className="text-[10px] text-slate-400 -mt-1">Only your connected accounts can be selected.</p>
+            {platformsLoading && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {platformList.map(p => (
+                  <div key={p.id} className="h-14 rounded-xl animate-pulse" style={{ background: 'var(--bg-alt)' }} />
+                ))}
+              </div>
+            )}
+            <div className={`grid grid-cols-2 sm:grid-cols-3 gap-2.5 ${platformsLoading ? 'hidden' : ''}`}>
               {platformList.map((p) => {
                 const Icon = p.icon
-                const isSelected = selectedPlatforms.includes(p.id)
+                const connected = connectedPlatforms.includes(p.id)
+                const isSelected = selectedPlatforms.includes(p.id) && connected
                 return (
                   <button
                     key={p.id}
-                    onClick={() => handlePlatformToggle(p.id)}
+                    onClick={() => connected && handlePlatformToggle(p.id)}
+                    disabled={!connected}
+                    title={connected ? p.name : `${p.name} is not connected`}
                     className={`
                       flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold transition-all duration-200
                       ${isSelected
                         ? 'border-indigo-500 bg-indigo-50/70 text-indigo-700 shadow-sm dark:text-indigo-400 dark:border-indigo-400 dark:bg-indigo-950/30'
-                        : 'border-slate-100 bg-slate-50/50 hover:bg-slate-100 dark:border-slate-700/60 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 dark:hover:bg-slate-700/60 dark:hover:border-slate-600'}
+                        : connected
+                          ? 'border-slate-100 bg-slate-50/50 hover:bg-slate-100 dark:border-slate-700/60 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 dark:hover:bg-slate-700/60 dark:hover:border-slate-600'
+                          : 'border-slate-100 bg-slate-50/40 dark:border-slate-700/40 dark:bg-slate-800/20 text-slate-300 dark:text-slate-600'}
                     `}
+                    style={connected ? undefined : { opacity: 0.6, cursor: 'not-allowed' }}
                   >
                     <Icon size={16} className="flex-shrink-0" />
                     <span className="truncate">{p.name}</span>
-                    {isSelected && <CheckCircle2 size={15} className="text-indigo-500 flex-shrink-0 ml-auto" />}
+                    {connected && isSelected && <CheckCircle2 size={15} className="text-indigo-500 flex-shrink-0 ml-auto" />}
+                    {!connected && (
+                      <span className="text-[8px] font-bold uppercase tracking-wide ml-auto" style={{ color: 'var(--text-subtle)' }}>not connected</span>
+                    )}
                   </button>
                 )
               })}
@@ -756,11 +819,67 @@ export default function ContentScheduling() {
 
       </div>
 
-      {toast && (
-        <div className="fixed bottom-10 right-5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 z-50 text-sm font-semibold transition-all duration-300 animate-slide-in">
-          <span>{toast}</span>
-          <button onClick={() => setToast('')} className="text-xs font-bold opacity-80 hover:opacity-100 ml-2">✕</button>
-        </div>
+      {createPortal(
+        confirmAction && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
+            <div className="w-full max-w-sm rounded-[var(--r-xl)] p-6 shadow-[var(--shadow-lg)] my-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-bold" style={{ color: 'var(--text)' }}>
+                  {confirmAction === 'schedule' ? 'Schedule this post?' : 'Publish this post now?'}
+                </h3>
+                <button onClick={() => setConfirmAction(null)} className="p-1.5 rounded-lg hover:bg-[var(--bg-alt)]" style={{ color: 'var(--text-muted)' }}>
+                  <X size={16} />
+                </button>
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                {confirmAction === 'schedule'
+                  ? `This post will be scheduled for ${scheduleDate} at ${scheduleTime} on:`
+                  : 'This post will be published immediately on:'}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {effectivePlatforms.map((id) => {
+                  const p = platformList.find((x) => x.id === id)
+                  const Icon = p?.icon
+                  return Icon ? (
+                    <span key={id} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: 'rgba(79,70,229,.10)', color: '#4F46E5' }}>
+                      <Icon size={12} /> {p.name}
+                    </span>
+                  ) : null
+                })}
+              </div>
+              {confirmAction === 'publish' && (
+                <p className="mt-3 text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                  <AlertTriangle size={13} /> This cannot be undone — publishing starts right away.
+                </p>
+              )}
+              <div className="flex gap-3 pt-5">
+                <button onClick={() => setConfirmAction(null)} className="flex-1 h-10 rounded-[var(--r-md)] border text-sm font-semibold" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}>
+                  Cancel
+                </button>
+                <button onClick={confirmAction === 'schedule' ? confirmSchedule : confirmPublish} disabled={submitting}
+                  className="flex-1 h-10 rounded-[var(--r-md)] text-sm font-semibold text-white hover:brightness-105"
+                  style={{ background: confirmAction === 'publish' ? 'linear-gradient(135deg,#059669,#10B981)' : 'linear-gradient(135deg,#1E3A8A,#4F46E5)' }}>
+                  {submitting ? 'Working...' : confirmAction === 'schedule' ? 'Schedule' : 'Publish Now'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ),
+        document.body
+      )}
+
+      {createPortal(
+        toast && (
+          <div className="fixed top-5 inset-x-0 z-[100] flex justify-center px-4 pointer-events-none">
+            <div className="flex items-center gap-2.5 px-5 py-3 rounded-[var(--r-xl)] shadow-[var(--shadow-lg)] text-sm font-semibold text-white animate-slide-in pointer-events-auto"
+              style={{ background: toast.type === 'error' ? 'linear-gradient(135deg,#DC2626,#EF4444)' : 'linear-gradient(135deg,#059669,#10B981)' }}>
+              {toast.type === 'error' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+              <span>{toast.msg}</span>
+              <button onClick={() => setToast(null)} className="ml-1 text-xs font-bold opacity-80 hover:opacity-100">✕</button>
+            </div>
+          </div>
+        ),
+        document.body
       )}
 
     </div>

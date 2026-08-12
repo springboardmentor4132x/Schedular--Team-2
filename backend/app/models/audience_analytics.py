@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 
 from app.database.database import Base
 
@@ -26,4 +26,4 @@ class AudienceAnalytics(Base):
 
     last_synced = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    social_account = relationship("SocialAccount", backref="audience_analytics")
+    social_account = relationship("SocialAccount", backref=backref("audience_analytics", passive_deletes=True))

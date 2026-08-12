@@ -57,7 +57,7 @@ def _client_summary(db: Session, workspace: Workspace):
     }
 
 def _post_item(post: Post):
-    return {"id": post.id, "title": post.title or "Untitled post", "caption": post.caption or "", "platform": post.social_accounts[0].platform if post.social_accounts else "instagram", "platforms": [a.platform for a in post.social_accounts], "campaign": post.campaign.name if post.campaign else None, "campaignId": post.campaign_id, "status": post.status.lower().replace(" ", "_"), "scheduledAt": post.scheduled_for.isoformat() if post.scheduled_for else None, "publishedAt": post.updated_at.isoformat() if post.status == "Published" and post.updated_at else None, "mediaUrl": post.media_file_path, "contentType": post.content_type, "createdAt": post.created_at.isoformat() if post.created_at else None}
+    return {"id": post.id, "title": post.title or "Untitled post", "caption": post.caption or "", "platform": post.social_accounts[0].platform if post.social_accounts else "instagram", "platforms": [a.platform for a in post.social_accounts], "campaign": post.campaign.name if post.campaign else None, "campaignId": post.campaign_id, "status": post.status.lower().replace(" ", "_"), "scheduledAt": post.scheduled_for.isoformat() if post.scheduled_for else None, "publishedAt": post.updated_at.isoformat() if post.status == "Published" and post.updated_at else None, "mediaUrl": post.media_file_path, "contentType": post.content_type, "createdAt": post.created_at.isoformat() if post.created_at else None, "failureReason": post.failure_reason}
 
 def _request_item(item: WorkRequest):
     return {"id": item.id, "clientId": item.business_user_id, "workspaceId": item.workspace_id, "status": item.status.lower(), "details": json.loads(item.details or "{}"), "decisionNote": item.decision_note, "createdAt": item.created_at, "updatedAt": item.updated_at}
@@ -196,7 +196,24 @@ def create_client_post(client_id: int, payload: PostCreate, current_user: User =
         campaign = db.query(Campaign).filter(Campaign.id == payload.campaign_id, Campaign.workspace_id == w.id).first()
         if not campaign: raise HTTPException(status_code=400, detail="Campaign does not belong to this client")
     account_ids = None
-    if payload.platform:
+    platforms = [p for p in (payload.platforms or []) if p]
+    if platforms:
+        # Multi-platform publishing: link every connected account the client
+        # owner has for the requested platforms.
+        accounts = db.query(SocialAccount).filter(
+            SocialAccount.user_id == w.owner_id,
+            SocialAccount.platform.in_(platforms),
+            SocialAccount.status == "Connected",
+        ).all()
+        if accounts:
+            payload.social_account_ids = [acc.id for acc in accounts]
+            account_ids = [acc.id for acc in accounts]
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="None of the selected platforms are connected for this client.",
+            )
+    elif payload.platform:
         account = db.query(SocialAccount).filter(
             SocialAccount.user_id == w.owner_id,
             SocialAccount.platform == payload.platform,
@@ -302,13 +319,20 @@ def analytics(client_id: int | None = None, days: int = 30, current_user: User =
     active_campaigns = sum(1 for c in campaigns if c.status == "Active")
     pending_requests = sum(1 for r in work_requests if r.status.lower() == "pending")
 
-    approval_counts = {"Approved": 0, "Rejected": 0, "Pending": 0}
-    for request in work_requests:
-        status = request.status.title()
-        if status in approval_counts:
-            approval_counts[status] += 1
-    approval_colors = {"Approved": "#22C55E", "Rejected": "#EF4444", "Pending": "#F59E0B"}
-    approval = [{"name": name, "value": count, "color": approval_colors[name]} for name, count in approval_counts.items() if count > 0]
+    # Publishing status breakdown — how content is distributed across lifecycle states.
+    status_counts = {"Published": 0, "Scheduled": 0, "Failed": 0, "Cancelled": 0, "Draft": 0}
+    for post in posts:
+        status = "Scheduled" if post.status in ("Scheduled", "Queued") else post.status
+        if status in status_counts:
+            status_counts[status] += 1
+    status_colors = {
+        "Published": "#22C55E",
+        "Scheduled": "#1E3A8A",
+        "Failed": "#EF4444",
+        "Cancelled": "#64748B",
+        "Draft": "#F59E0B",
+    }
+    publishing_status = [{"name": name, "value": count, "color": status_colors[name]} for name, count in status_counts.items() if count > 0]
 
     client_rows = []
     for w in workspaces:
@@ -337,7 +361,7 @@ def analytics(client_id: int | None = None, days: int = 30, current_user: User =
         "series": _bucket_post_counts(posts, max(min(days, 90), 1)),
         "monthly": _monthly_post_counts(posts),
         "platformSplit": _platform_split(posts),
-        "approval": approval,
+        "publishingStatus": publishing_status,
         "clients": client_rows,
     }
 

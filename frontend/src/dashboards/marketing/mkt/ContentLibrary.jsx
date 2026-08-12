@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Plus, Eye, Edit3, Trash2, ArrowLeft, Users, X } from 'lucide-react'
+import { Search, Plus, Eye, Edit3, Trash2, ArrowLeft, Users, X, Send } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import { useNavigate } from 'react-router-dom'
 import { useClient } from '../../../context/ClientContext'
@@ -8,6 +8,7 @@ import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
 import FilePreview from '../../../components/dashboard/FilePreview'
 import { contentApi, CONTENT_TYPE_LABELS, CONTENT_FILTER_OPTIONS } from '../../../services/contentApi'
+import { publishPost } from '../../../services/postService'
 
 const PLATFORM_META = {
   instagram: { icon: FaInstagram, color: '#E1306C', label: 'Instagram' },
@@ -29,6 +30,27 @@ export function LibraryPanel() {
   const [libraryItems, setLibraryItems] = useState([])
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState(null)
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  const handlePublish = async item => {
+    try {
+      const res = await publishPost(item.id)
+      if (res?.status === 'Published') {
+        showToast('Post published successfully!')
+        setLibraryItems(prev => prev.filter(current => current.id !== item.id))
+        setSelected(prev => (prev?.id === item.id ? null : prev))
+      } else {
+        showToast(res?.message || 'Post could not be published.', 'error')
+      }
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Failed to publish post.', 'error')
+    }
+  }
 
   useEffect(() => {
     if (!activeClient) return
@@ -52,6 +74,16 @@ export function LibraryPanel() {
 
   return (
     <>
+      <AnimatePresence>
+        {toast && (
+          <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
+            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-[var(--r-md)] text-sm font-semibold shadow-[var(--shadow-lg)]"
+            style={{ background: toast.type === 'error' ? 'rgba(239,68,68,.95)' : 'rgba(34,197,94,.95)', color:'#fff' }}>
+            {toast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 mb-5">
         <div className="card p-5 xl:col-span-1">
           <h2 className="text-sm font-bold mb-4" style={{ color:'var(--text)' }}>Library overview</h2>
@@ -144,6 +176,11 @@ export function LibraryPanel() {
                           <button onClick={() => setSelected(item)} className="text-xs font-semibold" style={{ color:'var(--primary)' }}>
                             <Eye size={12} /> View
                           </button>
+                          {item.status === 'draft' && (
+                            <button onClick={() => handlePublish(item)} className="text-xs font-semibold" style={{ color:'#22C55E' }}>
+                              <Send size={12} /> Publish
+                            </button>
+                          )}
                           <button onClick={() => navigate('/dashboard/mkt/content')} className="text-xs font-semibold" style={{ color:'var(--text-muted)' }}>
                             <Edit3 size={12} /> Edit
                           </button>
@@ -207,6 +244,13 @@ export function LibraryPanel() {
                     <p>{selected.status || 'N/A'}</p>
                   </div>
                 </div>
+                {selected.status === 'draft' && (
+                  <button onClick={() => handlePublish(selected)}
+                    className="flex items-center justify-center gap-2 w-full h-10 rounded-[var(--r-md)] text-sm font-semibold text-white hover:brightness-105"
+                    style={{ background:'linear-gradient(135deg,#059669,#10B981)' }}>
+                    <Send size={15} /> Publish Draft
+                  </button>
+                )}
               </div>
             </motion.div>
           </motion.div>

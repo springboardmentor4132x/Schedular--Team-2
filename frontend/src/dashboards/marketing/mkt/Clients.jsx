@@ -1,15 +1,74 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
   Search, Users, Megaphone, CalendarCheck,
   FileText, ExternalLink, ChevronDown,
-  Globe, Mail, MapPin,
+  Globe, Mail, MapPin, Check, X, Loader2, Inbox, Clock,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 import { useClient } from '../../../context/ClientContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
+import { marketingService } from '../../../services/marketingService'
+
+function formatRequestTime(value) {
+  if (!value) return 'Recently'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return 'Recently'
+  const diff = Math.round((Date.now() - d.getTime()) / 60000)
+  if (diff < 60) return `${Math.max(diff, 1)}m ago`
+  if (diff < 1440) return `${Math.round(diff / 60)}h ago`
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function ApproveModal({ request, action, onConfirm, onCancel, submitting }) {
+  const [note, setNote] = useState('')
+  const approve = action === 'approved'
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <motion.div initial={{ scale: 0.95, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }}
+        className="w-full max-w-md rounded-[var(--r-xl)] p-6 shadow-[var(--shadow-lg)]"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        <div className="flex items-start justify-between mb-4">
+          <h2 className="text-base font-bold" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: 'var(--text)' }}>
+            {approve ? 'Approve client' : 'Reject request'}
+          </h2>
+          <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-[var(--bg-alt)]" style={{ color: 'var(--text-muted)' }}><X size={16} /></button>
+        </div>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
+          {approve ? (
+            <>Approve <span className="font-semibold" style={{ color: 'var(--text)' }}>{request.companyName}</span> as a client? They will appear in your workspace immediately.</>
+          ) : (
+            <>Reject <span className="font-semibold" style={{ color: 'var(--text)' }}>{request.companyName}</span>'s request? They will be notified.</>
+          )}
+        </p>
+        <textarea
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          rows={3}
+          placeholder="Optional note…"
+          className="w-full p-3 text-sm rounded-[var(--r-md)] border outline-none resize-none mb-5"
+          style={{ background: 'var(--bg-alt)', borderColor: 'var(--border)', color: 'var(--text)' }}
+        />
+        <div className="flex flex-col gap-2">
+          <button onClick={() => onConfirm(note.trim())} disabled={submitting}
+            className="w-full flex items-center justify-center gap-2 h-11 rounded-[var(--r-md)] text-sm font-semibold text-white hover:brightness-105 transition-all"
+            style={{ background: approve ? 'linear-gradient(135deg,#16A34A,#22C55E)' : 'linear-gradient(135deg,#DC2626,#EF4444)' }}>
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : approve ? <Check size={14} /> : <X size={14} />}
+            {approve ? 'Approve client' : 'Reject request'}
+          </button>
+          <button onClick={onCancel}
+            className="w-full h-10 rounded-[var(--r-md)] border text-sm font-semibold transition-all"
+            style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+            Cancel
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
 
 const PLATFORM_ICONS = {
   instagram: { icon: FaInstagram, color: '#E1306C' },
@@ -29,11 +88,60 @@ const INDUSTRIES = ['All', 'Technology', 'E-Commerce', 'Finance', 'Health & Well
 
 export default function Clients() {
   const navigate = useNavigate()
-  const { selectClient, clients, loadingClients } = useClient()
+  const { selectClient, clients, loadingClients, refreshClients } = useClient()
   const [search,   setSearch]   = useState('')
   const [industry, setIndustry] = useState('All')
   const [status,   setStatus]   = useState('all')
   const [sortBy,   setSortBy]   = useState('name')
+  const [requests, setRequests] = useState([])
+  const [loadingReq, setLoadingReq] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [notice,   setNotice]   = useState(null)
+  const [decision, setDecision] = useState(null)
+
+  const loadRequests = async () => {
+    setLoadingReq(true)
+    try {
+      const data = await marketingService.connectionRequests()
+      setRequests(data ?? [])
+    } catch {
+      setRequests([])
+    } finally {
+      setLoadingReq(false)
+    }
+  }
+
+  useEffect(() => {
+    let active = true
+    marketingService.connectionRequests()
+      .then(data => { if (active) setRequests(data ?? []) })
+      .catch(() => { if (active) setRequests([]) })
+    return () => { active = false }
+  }, [])
+
+  const handleDecision = async (note) => {
+    setSubmitting(true)
+    setNotice(null)
+    try {
+      await marketingService.decideConnectionRequest(decision.id, decision.status, note)
+      const name = decision.companyName
+      setDecision(null)
+      await loadRequests()
+      await refreshClients()
+      setNotice({
+        type: 'success',
+        text: decision.status === 'approved'
+          ? `${name} approved as a client.`
+          : `Request from ${name} rejected.`,
+      })
+    } catch (error) {
+      setNotice({ type: 'error', text: error?.response?.data?.detail ?? 'Could not update the request.' })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const pendingRequests = requests.filter(r => r.status === 'pending')
 
   const clientSource = clients
 
@@ -62,6 +170,64 @@ export default function Clients() {
         title="Clients"
         subtitle={`${clientSource.filter(c => c.status === 'active').length} active · ${clientSource.length} approved clients`}
       />
+
+      {notice && (
+        <div className="mb-4 px-4 py-3 rounded-[var(--r-md)] text-sm font-medium"
+          style={{ background: notice.type === 'success' ? 'rgba(34,197,94,.10)' : 'rgba(239,68,68,.10)', color: notice.type === 'success' ? '#22C55E' : '#EF4444', border: `1px solid ${notice.type === 'success' ? 'rgba(34,197,94,.20)' : 'rgba(239,68,68,.20)'}` }}>
+          {notice.text}
+        </div>
+      )}
+
+      {/* Pending client requests */}
+      {(loadingReq || pendingRequests.length > 0) && (
+        <div className="card p-5 mb-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,.12)' }}>
+              <Inbox size={15} style={{ color: '#F59E0B' }} />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-sm font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--text)' }}>
+                Client Requests ({pendingRequests.length})
+              </h2>
+              <p className="text-[11px]" style={{ color: 'var(--text-subtle)' }}>Businesses requesting your team — approve to add them as a client.</p>
+            </div>
+          </div>
+
+          {loadingReq ? (
+            <div className="animate-pulse space-y-2">{[1, 2].map(i => <div key={i} className="h-16 rounded-[var(--r-md)]" style={{ background: 'var(--bg-alt)' }} />)}</div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {pendingRequests.map(req => (
+                <div key={req.id} className="flex items-center justify-between gap-3 p-3 rounded-[var(--r-md)]" style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: 'linear-gradient(135deg,#1E3A8A,#4F46E5)' }}>
+                      {(req.companyName || '?').split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{req.companyName}</p>
+                      <p className="text-[11px] truncate flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                        <Mail size={10} /> {req.email} · <Clock size={10} /> {formatRequestTime(req.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button onClick={() => setDecision({ ...req, status: 'approved' })}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--r-sm)] text-xs font-semibold text-white transition-all hover:brightness-105"
+                      style={{ background: 'linear-gradient(135deg,#16A34A,#22C55E)' }}>
+                      <Check size={13} /> Approve
+                    </button>
+                    <button onClick={() => setDecision({ ...req, status: 'rejected' })}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--r-sm)] text-xs font-semibold transition-all"
+                      style={{ background: 'rgba(239,68,68,.10)', color: '#EF4444' }}>
+                      <X size={13} /> Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -212,6 +378,10 @@ export default function Clients() {
           )
         })}
       </div>
+
+      <AnimatePresence>
+        {decision && <ApproveModal request={decision} action={decision.status} onConfirm={handleDecision} onCancel={() => setDecision(null)} submitting={submitting} />}
+      </AnimatePresence>
     </div>
   )
 }

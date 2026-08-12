@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 export default function BarChart({ data = [], dataKey = 'value', xKey = 'label', title, barColor = 'bg-indigo-600 dark:bg-indigo-500', height = 220 }) {
   const [hoveredIdx, setHoveredIdx] = useState(null)
@@ -8,7 +8,7 @@ export default function BarChart({ data = [], dataKey = 'value', xKey = 'label',
   const maxVal = Math.max(...data.map((d) => d[dataKey] || 0), 1)
 
   return (
-    <div className="card space-y-4">
+    <div className="card p-5 space-y-4">
       {title && (
         <div className="flex items-center justify-between border-b border-default pb-3">
           <h3 className="text-base font-bold text-primary">{title}</h3>

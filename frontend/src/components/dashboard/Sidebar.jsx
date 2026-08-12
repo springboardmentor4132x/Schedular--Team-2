@@ -4,8 +4,8 @@ import {
   LayoutDashboard, CalendarDays, FileText,
   ScrollText, BarChart2, Bell,
   User, Settings, LogOut, ChevronLeft, ChevronRight,
-  Link2, Megaphone, Users, Send, PenSquare,
-  CheckCircle2, Activity,
+  Link2, Megaphone, Users, Send,
+  Activity, List,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { ROLE_LABELS } from '../../context/authRoles'
@@ -42,17 +42,16 @@ const BUSINESS_NAV = [
 ]
 
 const MARKETING_NAV = [
-  { label: 'Dashboard',           icon: LayoutDashboard, href: null },
-  { label: 'Clients',             icon: Users,           href: '/dashboard/mkt/clients' },
-  { label: 'Connected Apps',      icon: Link2,           href: '/dashboard/mkt/connected-apps' },
-  { label: 'Content Management',  icon: PenSquare,       href: '/dashboard/mkt/content' },
-  { label: 'Content Library',     icon: FileText,        href: '/dashboard/mkt/content-library' },
-  { label: 'Content Review',      icon: CheckCircle2,    href: '/dashboard/mkt/content-review' },
-  { label: 'Content Scheduling',  icon: CalendarDays,    href: '/dashboard/mkt/scheduling' },
-  { label: 'Publishing Calendar', icon: CalendarDays,    href: '/dashboard/mkt/calendar' },
-  { label: 'Campaigns',           icon: Megaphone,       href: '/dashboard/mkt/campaigns' },
-  { label: 'Reports',             icon: ScrollText,      href: '/dashboard/mkt/reports' },
-  { label: 'Notifications',       icon: Bell,            href: '/dashboard/notifications' },
+  { label: 'Dashboard',          icon: LayoutDashboard, href: null },
+  { label: 'Client Workspace',   icon: Users,           href: '/dashboard/mkt/workspace' },
+  { label: 'Connection Requests',icon: Send,            href: '/dashboard/mkt/requests' },
+  { label: 'Campaigns',          icon: Megaphone,       href: '/dashboard/mkt/campaigns' },
+  { label: 'Scheduling',         icon: CalendarDays,    href: '/dashboard/mkt/scheduling' },
+  { label: 'Publishing Calendar',icon: CalendarDays,    href: '/dashboard/mkt/calendar' },
+  { label: 'Publishing Queue',   icon: List,            href: '/dashboard/mkt/queue' },
+  { label: 'Analytics',          icon: BarChart2,       href: '/dashboard/analytics' },
+  { label: 'Reports',            icon: ScrollText,      href: '/dashboard/mkt/reports' },
+  { label: 'Notifications',      icon: Bell,            href: '/dashboard/notifications' },
 ]
 
 const MINIMAL_NAV = [

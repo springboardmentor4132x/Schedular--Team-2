@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, verify_workspace_access
 from app.models.user import User
 
 from app.schemas.analytics import (
@@ -16,6 +16,7 @@ from app.schemas.analytics import (
     DashboardResponse,
     DashboardSummary,
     PerformanceTrendsResponse,
+    AnalyticsMetricResponse,
 )
 from app.services import analytics_service
 
@@ -26,13 +27,16 @@ router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 @router.get("/dashboard", response_model=DashboardResponse)
 def get_dashboard(
+    workspace_id: Optional[int] = Query(None, description="Scope to a workspace (business/marketing)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    summary = analytics_service.get_dashboard_summary(db, current_user.id)
+    if workspace_id is not None:
+        verify_workspace_access(db, workspace_id, current_user)
+    summary = analytics_service.get_dashboard_summary(db, current_user.id, workspace_id)
     trends = analytics_service.get_performance_trends(db, current_user.id, granularity="daily")
-    top, lowest = analytics_service.get_top_bottom_posts(db, current_user.id)
-    recent = analytics_service.get_recent_posts(db, current_user.id)
+    top, lowest = analytics_service.get_top_bottom_posts(db, current_user.id, workspace_id=workspace_id)
+    recent = analytics_service.get_recent_posts(db, current_user.id, workspace_id=workspace_id)
 
     return DashboardResponse(
         summary=DashboardSummary(**summary),
@@ -50,6 +54,7 @@ def get_dashboard(
 
 @router.get("/posts", response_model=list[PostAnalyticsResponse])
 def content_analytics(
+    workspace_id: Optional[int] = Query(None, description="Scope to a workspace (business/marketing)"),
     platform: Optional[str] = None,
     campaign_id: Optional[int] = None,
     content_type: Optional[str] = None,
@@ -59,8 +64,11 @@ def content_analytics(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if workspace_id is not None:
+        verify_workspace_access(db, workspace_id, current_user)
     return analytics_service.get_content_analytics(
-        db, current_user.id, platform, campaign_id, content_type, start_date, end_date, sort_by
+        db, current_user.id, platform, campaign_id, content_type, start_date, end_date,
+        sort_by, workspace_id,
     )
 
 
@@ -137,7 +145,9 @@ def top_campaigns(
 
 
 # ---------------- Platform Comparison ----------------
+# GET /analytics/platforms (spec) and /analytics/platforms/compare (legacy)
 
+@router.get("/platforms", response_model=list[PlatformComparisonItem])
 @router.get("/platforms/compare", response_model=list[PlatformComparisonItem])
 def compare_platforms(
     db: Session = Depends(get_db),
@@ -168,3 +178,41 @@ def top_posts(
 ):
     top, _ = analytics_service.get_top_bottom_posts(db, current_user.id, limit)
     return top
+
+
+# ---------------- Metric Analytics (spec endpoints) ----------------
+# GET /analytics/engagement | /followers | /reach | /impressions | /clicks
+
+_METRIC_DESCRIPTIONS = {
+    "engagement": "Aggregated engagement (likes + comments + shares) with platform breakdown and trend.",
+    "followers": "Follower totals per platform with growth metrics and daily trend.",
+    "reach": "Aggregated reach with platform breakdown and daily trend.",
+    "impressions": "Aggregated impressions with platform breakdown and daily trend.",
+    "clicks": "Aggregated clicks with platform breakdown and daily trend.",
+}
+
+
+def _register_metric_endpoint(metric: str, description: str):
+    @router.get(f"/{metric}", name=f"{metric}_analytics", response_model=AnalyticsMetricResponse)
+    def metric_analytics(
+        workspace_id: Optional[int] = Query(None, description="Scope to a workspace (business/marketing)"),
+        platform: Optional[str] = Query(None, description="Filter by platform"),
+        campaign_id: Optional[int] = Query(None, description="Filter by campaign"),
+        content_type: Optional[str] = Query(None, description="Filter by content type"),
+        start_date: Optional[date] = Query(None, description="Start date (YYYY-MM-DD)"),
+        end_date: Optional[date] = Query(None, description="End date (YYYY-MM-DD)"),
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ):
+        if workspace_id is not None:
+            verify_workspace_access(db, workspace_id, current_user)
+        return analytics_service.get_metric_analytics(
+            db, current_user.id, metric,
+            platform, campaign_id, content_type, start_date, end_date, workspace_id,
+        )
+
+    metric_analytics.__doc__ = description
+
+
+for _metric, _desc in _METRIC_DESCRIPTIONS.items():
+    _register_metric_endpoint(_metric, _desc)

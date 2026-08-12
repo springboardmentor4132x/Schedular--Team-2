@@ -18,8 +18,11 @@ from app.models.platform_analytics import PlatformAnalytics
 # ---------------------------------------------------------
 
 def _apply_post_filters(query, user_id: int, platform: Optional[str], campaign_id: Optional[int],
-                         content_type: Optional[str], start_date, end_date):
+                         content_type: Optional[str], start_date, end_date,
+                         workspace_id: Optional[int] = None):
     query = query.join(Post, Post.id == PostAnalytics.post_id).filter(Post.user_id == user_id)
+    if workspace_id is not None:
+        query = query.filter(Post.workspace_id == workspace_id)
     if platform:
         query = query.filter(PostAnalytics.platform == platform)
     if campaign_id:
@@ -60,10 +63,12 @@ def get_content_analytics(
     db: Session, user_id: int,
     platform: Optional[str] = None, campaign_id: Optional[int] = None,
     content_type: Optional[str] = None, start_date=None, end_date=None,
-    sort_by: Optional[str] = None,
+    sort_by: Optional[str] = None, workspace_id: Optional[int] = None,
 ) -> List[dict]:
     query = db.query(PostAnalytics)
-    query = _apply_post_filters(query, user_id, platform, campaign_id, content_type, start_date, end_date)
+    query = _apply_post_filters(
+        query, user_id, platform, campaign_id, content_type, start_date, end_date, workspace_id
+    )
 
     if sort_by == "engagement":
         query = query.order_by(PostAnalytics.engagement_rate.desc())
@@ -215,26 +220,34 @@ def get_platform_comparison(db: Session, user_id: int) -> List[dict]:
 # 5. Dashboard Summary
 # ---------------------------------------------------------
 
-def get_dashboard_summary(db: Session, user_id: int) -> dict:
-    published = db.query(Post).filter(Post.user_id == user_id, Post.status == "Published").count()
-    scheduled = db.query(Post).filter(Post.user_id == user_id, Post.status == "Scheduled").count()
+def get_dashboard_summary(db: Session, user_id: int, workspace_id: Optional[int] = None) -> dict:
+    def _post_query():
+        query = db.query(Post).filter(Post.user_id == user_id)
+        if workspace_id is not None:
+            query = query.filter(Post.workspace_id == workspace_id)
+        return query
 
-    totals = (
-        db.query(
-            func.coalesce(func.sum(PostAnalytics.impressions), 0),
-            func.coalesce(func.sum(PostAnalytics.reach), 0),
-            func.coalesce(func.sum(PostAnalytics.likes), 0),
-            func.coalesce(func.sum(PostAnalytics.comments), 0),
-            func.coalesce(func.sum(PostAnalytics.shares), 0),
-            func.coalesce(func.sum(PostAnalytics.clicks), 0),
-        )
-        .join(Post, Post.id == PostAnalytics.post_id)
-        .filter(Post.user_id == user_id)
-        .first()
+    published = _post_query().filter(Post.status == "Published").count()
+    scheduled = _post_query().filter(Post.status == "Scheduled").count()
+
+    totals_query = db.query(PostAnalytics).join(Post, Post.id == PostAnalytics.post_id).filter(
+        Post.user_id == user_id
     )
+    if workspace_id is not None:
+        totals_query = totals_query.filter(Post.workspace_id == workspace_id)
+    totals = totals_query.with_entities(
+        func.coalesce(func.sum(PostAnalytics.impressions), 0),
+        func.coalesce(func.sum(PostAnalytics.reach), 0),
+        func.coalesce(func.sum(PostAnalytics.likes), 0),
+        func.coalesce(func.sum(PostAnalytics.comments), 0),
+        func.coalesce(func.sum(PostAnalytics.shares), 0),
+        func.coalesce(func.sum(PostAnalytics.clicks), 0),
+    ).first()
     impressions, reach, likes, comments, shares, clicks = totals
     engagement = likes + comments + shares
 
+    # Social accounts are user-level (no workspace linkage), so follower totals
+    # stay account-wide even when a workspace filter is applied.
     followers = (
         db.query(func.coalesce(func.sum(SocialAccount.followers_count), 0))
         .filter(SocialAccount.user_id == user_id)
@@ -258,21 +271,20 @@ def get_dashboard_summary(db: Session, user_id: int) -> dict:
     }
 
 
-def get_top_bottom_posts(db: Session, user_id: int, limit: int = 5):
-    all_posts = get_content_analytics(db, user_id, sort_by="engagement")
+def get_top_bottom_posts(db: Session, user_id: int, limit: int = 5,
+                         workspace_id: Optional[int] = None):
+    all_posts = get_content_analytics(db, user_id, sort_by="engagement", workspace_id=workspace_id)
     top = all_posts[:limit]
     lowest = list(reversed(all_posts))[:limit]
     return top, lowest
 
 
-def get_recent_posts(db: Session, user_id: int, limit: int = 5):
-    posts = (
-        db.query(Post)
-        .filter(Post.user_id == user_id, Post.status == "Published")
-        .order_by(Post.published_at.desc())
-        .limit(limit)
-        .all()
-    )
+def get_recent_posts(db: Session, user_id: int, limit: int = 5,
+                     workspace_id: Optional[int] = None):
+    query = db.query(Post).filter(Post.user_id == user_id, Post.status == "Published")
+    if workspace_id is not None:
+        query = query.filter(Post.workspace_id == workspace_id)
+    posts = query.order_by(Post.published_at.desc()).limit(limit).all()
     results = []
     for post in posts:
         pa = db.query(PostAnalytics).filter(PostAnalytics.post_id == post.id).first()
@@ -321,3 +333,103 @@ def get_performance_trends(db: Session, user_id: int, granularity: str = "daily"
         "clicks_trend": clicks_trend,
         "followers_trend": followers_trend,
     }
+
+
+# ---------------------------------------------------------
+# 7. Metric Analytics (engagement / followers / reach /
+#    impressions / clicks) — the /analytics/* spec endpoints
+# ---------------------------------------------------------
+
+_METRIC_COLUMNS = {
+    "engagement": PostAnalytics.likes + PostAnalytics.comments + PostAnalytics.shares,
+    "reach": PostAnalytics.reach,
+    "impressions": PostAnalytics.impressions,
+    "clicks": PostAnalytics.clicks,
+}
+
+_TREND_COLUMNS = {
+    "engagement": PlatformAnalytics.engagement,
+    "reach": PlatformAnalytics.reach,
+    "impressions": PlatformAnalytics.impressions,
+    "clicks": PlatformAnalytics.clicks,
+    "followers": PlatformAnalytics.followers,
+}
+
+
+def get_metric_analytics(
+    db: Session, user_id: int, metric: str,
+    platform: Optional[str] = None, campaign_id: Optional[int] = None,
+    content_type: Optional[str] = None, start_date=None, end_date=None,
+    workspace_id: Optional[int] = None,
+) -> dict:
+    """Aggregate a single metric (engagement/followers/reach/impressions/clicks)
+    with optional filters, a per-platform breakdown, and a daily trend."""
+    metric = (metric or "engagement").lower()
+
+    if metric == "followers":
+        # Social accounts have no workspace linkage — follower totals stay
+        # user-wide even when a workspace filter is requested.
+        return _get_followers_analytics(db, user_id, platform, start_date, end_date, workspace_id)
+
+    if metric not in _METRIC_COLUMNS:
+        raise ValueError(f"Unsupported analytics metric: {metric}")
+
+    column = _METRIC_COLUMNS[metric]
+    base = db.query(PostAnalytics.platform, func.coalesce(func.sum(column), 0))
+    base = _apply_post_filters(
+        base, user_id, platform, campaign_id, content_type, start_date, end_date, workspace_id
+    )
+    rows = base.group_by(PostAnalytics.platform).all()
+
+    by_platform = [{"platform": p, "value": int(v)} for p, v in rows]
+    total = sum(item["value"] for item in by_platform)
+    trend = _get_metric_trend(db, user_id, metric, platform, start_date, end_date)
+
+    return {"metric": metric, "total": total, "by_platform": by_platform, "trend": trend}
+
+
+def _get_metric_trend(db: Session, user_id: int, metric: str, platform: Optional[str] = None,
+                      start_date=None, end_date=None) -> list:
+    column = _TREND_COLUMNS[metric]
+    accounts = db.query(SocialAccount.id).filter(SocialAccount.user_id == user_id).subquery()
+    query = (
+        db.query(PlatformAnalytics.snapshot_date, func.coalesce(func.sum(column), 0))
+        .filter(PlatformAnalytics.social_account_id.in_(db.query(accounts.c.id)))
+        .group_by(PlatformAnalytics.snapshot_date)
+        .order_by(PlatformAnalytics.snapshot_date.asc())
+    )
+    if platform:
+        query = query.filter(PlatformAnalytics.platform_name == platform)
+    if start_date:
+        query = query.filter(PlatformAnalytics.snapshot_date >= start_date)
+    if end_date:
+        query = query.filter(PlatformAnalytics.snapshot_date <= end_date)
+    return [{"date": d.isoformat(), "value": int(v)} for d, v in query.all()]
+
+
+def _get_followers_analytics(db: Session, user_id: int, platform: Optional[str] = None,
+                             start_date=None, end_date=None,
+                             workspace_id: Optional[int] = None) -> dict:
+    # workspace_id is accepted for API parity but unused: social accounts are
+    # user-level and have no workspace column to filter on.
+    query = db.query(SocialAccount).filter(SocialAccount.user_id == user_id)
+    if platform:
+        query = query.filter(SocialAccount.platform == platform)
+    accounts = query.all()
+
+    by_platform = []
+    for acc in accounts:
+        audience = (
+            db.query(AudienceAnalytics)
+            .filter(AudienceAnalytics.social_account_id == acc.id)
+            .first()
+        )
+        by_platform.append({
+            "platform": acc.platform,
+            "value": acc.followers_count or 0,
+            "new_followers": audience.new_followers if audience else 0,
+            "lost_followers": audience.lost_followers if audience else 0,
+        })
+    total = sum(item["value"] for item in by_platform)
+    trend = _get_metric_trend(db, user_id, "followers", platform, start_date, end_date)
+    return {"metric": "followers", "total": total, "by_platform": by_platform, "trend": trend}

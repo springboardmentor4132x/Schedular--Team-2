@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react'
-import { getPublishingLogs } from '../../../../services/publishingService'
-import { Search, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
+import { getPublishingLogs, prettyLogResponse } from '../../../../services/publishingService'
+import {
+  Search, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, Link2,
+} from 'lucide-react'
+
+const PLATFORM_DOT = {
+  Instagram: '#E1306C',
+  Facebook: '#1877F2',
+  LinkedIn: '#0A66C2',
+  X: '#374151',
+  YouTube: '#FF0000',
+  Pinterest: '#E60023',
+}
 
 const statusBadge = {
   published: 'badge-published',
@@ -8,28 +19,46 @@ const statusBadge = {
   cancelled: 'badge-cancelled',
 }
 
+const statusLabel = {
+  published: 'Published',
+  failed: 'Failed',
+  cancelled: 'Cancelled',
+}
+
+
 export default function PublishingLogs() {
   const [logs, setLogs] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [filterPlatform, setFilterPlatform] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-  const [expandedId, setExpandedId] = useState(null)
   const perPage = 10
 
-  const fetchLogs = async () => {
-    setLoading(true)
-    const res = await getPublishingLogs({ platform: filterPlatform, status: filterStatus, search, page, perPage })
-    setLogs(res.data)
-    setTotal(res.total)
-    setLoading(false)
-  }
+  useEffect(() => {
+    let cancelled = false
+    getPublishingLogs({ platform: filterPlatform, status: filterStatus, search, page, perPage })
+      .then((res) => {
+        if (!cancelled) {
+          setLogs(res.data)
+          setTotal(res.total)
+          setError('')
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setLogs([])
+          setTotal(0)
+          setError(err?.response?.data?.detail || 'Failed to load publishing logs.')
+        }
+      })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [page, filterPlatform, filterStatus, search])
 
-  useEffect(() => { fetchLogs() }, [page, filterPlatform, filterStatus, search])
-
-  const totalPages = Math.ceil(total / perPage)
+  const totalPages = Math.max(1, Math.ceil(total / perPage))
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
@@ -70,115 +99,140 @@ export default function PublishingLogs() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="table-container">
-        <div className="overflow-x-auto">
-          <table className="table-inner">
-            <thead className="table-head">
-              <tr>
-                <th className="table-th">Date</th>
-                <th className="table-th">Platform</th>
-                <th className="table-th">Campaign</th>
-                <th className="table-th">Status</th>
-                <th className="table-th">Response</th>
-                <th className="table-th">Retries</th>
-                <th className="table-th">Published By</th>
-                <th className="table-th text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="table-row">
-                    {Array.from({ length: 8 }).map((__, j) => (
-                      <td key={j} className="table-td"><div className="h-4 w-20 bg-surface rounded animate-pulse" /></td>
-                    ))}
-                  </tr>
-                ))
-              ) : logs.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="table-td text-center py-12">
-                    <p className="text-sm text-secondary font-semibold">No log entries found</p>
-                  </td>
-                </tr>
-              ) : (
-                logs.map((log) => (
-                  <tr key={log.id} className="table-row">
-                    <td className="table-td whitespace-nowrap">
-                      <span className="text-sm text-primary">{log.date}</span>
-                    </td>
-                    <td className="table-td">
-                      <span className="text-sm font-semibold text-primary">{log.platform}</span>
-                    </td>
-                    <td className="table-td">
-                      <span className="text-sm text-primary">{log.campaign}</span>
-                    </td>
-                    <td className="table-td">
-                      <span className={`badge ${statusBadge[log.status] || 'badge-default'}`}>{log.status}</span>
-                    </td>
-                    <td className="table-td">
-                      <span className={`text-xs font-medium ${log.status === 'failed' ? 'text-rose-600 dark:text-rose-400' : 'text-secondary'} truncate max-w-[180px] block`}>
-                        {log.response}
-                      </span>
-                    </td>
-                    <td className="table-td text-center">
-                      <span className={`text-sm font-bold ${log.retryCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-secondary'}`}>
-                        {log.retryCount}
-                      </span>
-                    </td>
-                    <td className="table-td">
-                      <span className="text-sm text-secondary">{log.publishedBy}</span>
-                    </td>
-                    <td className="table-td text-right">
-                      <button
-                        onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
-                        className="btn btn-ghost btn-xs"
-                        title="View Details"
-                      >
-                        <Eye size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Error */}
+      {error && (
+        <div className="card p-4 flex items-center gap-2 text-rose-600 dark:text-rose-400 text-sm font-semibold">
+          <AlertTriangle size={15} /> {error}
         </div>
+      )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-default">
-            <p className="text-xs text-secondary">
-              Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="btn btn-ghost btn-xs"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i + 1)}
-                  className={`btn btn-xs ${page === i + 1 ? 'btn-primary' : 'btn-ghost'}`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="btn btn-ghost btn-xs"
-              >
-                <ChevronRight size={14} />
-              </button>
+      {/* Log entries */}
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="card p-5 space-y-3 animate-pulse">
+              <div className="h-5 w-48 bg-surface rounded" />
+              <div className="h-4 w-full bg-surface rounded" />
+              <div className="h-24 w-full bg-surface rounded" />
             </div>
+          ))}
+        </div>
+      ) : logs.length === 0 ? (
+        <div className="card p-10 text-center">
+          <p className="text-sm text-secondary font-semibold">No log entries found</p>
+          <p className="text-xs text-secondary mt-1">Publishing attempts will appear here once posts are published.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {logs.map((log) => {
+            const failed = log.status === 'failed'
+            return (
+              <div
+                key={log.id}
+                className="card p-5"
+                style={{ borderLeft: failed ? '3px solid #EF4444' : '3px solid #22C55E' }}
+              >
+                {/* Header */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ background: PLATFORM_DOT[log.platform] || '#64748B' }}
+                    />
+                    <span className="text-sm font-bold text-primary">{log.platform}</span>
+                    <span className="text-xs text-secondary truncate max-w-[260px]">{log.campaign}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`badge ${statusBadge[log.status] || 'badge-default'}`}>
+                      {statusLabel[log.status] || log.status}
+                    </span>
+                    <span className="text-xs text-secondary whitespace-nowrap">{log.date}</span>
+                  </div>
+                </div>
+
+                {/* Caption preview */}
+                {log.caption && (
+                  <p className="text-xs text-secondary leading-relaxed mt-2 line-clamp-2">{log.caption}</p>
+                )}
+
+                {/* Meta chips */}
+                <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px]">
+                  <span className="px-2 py-1 rounded-full font-semibold bg-surface text-primary border border-default">
+                    Retries: {log.retryCount}
+                  </span>
+                  <span className="px-2 py-1 rounded-full font-semibold bg-surface text-primary border border-default">
+                    by {log.publishedBy}
+                  </span>
+                  {log.platformPostId && (
+                    <span className="px-2 py-1 rounded-full font-semibold flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+                      <Link2 size={10} /> Platform post ID: {log.platformPostId}
+                    </span>
+                  )}
+                </div>
+
+                {/* Failure reason — always visible */}
+                {failed && log.failureReason && (
+                  <div className="flex items-start gap-2 mt-4 p-4 rounded-lg bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40">
+                    <AlertTriangle size={14} className="text-rose-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-rose-700 dark:text-rose-300 leading-relaxed">{log.failureReason}</p>
+                  </div>
+                )}
+
+                {/* API response — always visible */}
+                <div className="mt-3">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    {failed ? (
+                      <AlertTriangle size={12} className="text-rose-500" />
+                    ) : (
+                      <CheckCircle2 size={12} className="text-emerald-500" />
+                    )}
+                    <span className="text-[11px] font-semibold text-secondary uppercase tracking-wider">
+                      API Response
+                    </span>
+                  </div>
+                  <pre className="text-[11px] leading-relaxed text-secondary whitespace-pre-wrap break-all bg-surface rounded-lg p-4 border border-default max-h-48 overflow-y-auto">
+                    {prettyLogResponse(log.response)}
+                  </pre>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="card flex items-center justify-between px-4 py-3">
+          <p className="text-xs text-secondary">
+            Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="btn btn-ghost btn-xs"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i + 1)}
+                className={`btn btn-xs ${page === i + 1 ? 'btn-primary' : 'btn-ghost'}`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="btn btn-ghost btn-xs"
+            >
+              <ChevronRight size={14} />
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

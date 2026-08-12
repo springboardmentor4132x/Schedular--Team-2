@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 export default function AreaChart({ data = [], dataKey = 'value', xKey = 'date', title, strokeColor = '#6366f1', height = 240 }) {
   const [hoveredIndex, setHoveredIndex] = useState(null)
@@ -25,7 +25,7 @@ export default function AreaChart({ data = [], dataKey = 'value', xKey = 'date',
   const areaPath = `${dPath} L ${points[points.length - 1].x},${chartHeight - paddingY} L ${points[0].x},${chartHeight - paddingY} Z`
 
   return (
-    <div className="card space-y-3">
+    <div className="card p-5 space-y-3">
       {title && (
         <div className="flex items-center justify-between border-b border-default pb-3">
           <h3 className="text-base font-bold text-primary">{title}</h3>

@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ---------------------------------------------------------
@@ -136,3 +136,43 @@ class PlatformHistoryItem(BaseModel):
     status: PostPublishingStatus
     platform_post_id: Optional[str]
     api_response: Optional[str]
+
+
+# ---------------------------------------------------------
+# Module 5 — canonical /publish/* surface
+# ---------------------------------------------------------
+
+class PublishReadyItem(BaseModel):
+    id: int
+    title: Optional[str]
+    caption: Optional[str]
+    platforms: List[str]
+    content_type: str
+    scheduled_for: Optional[datetime]
+    status: PostPublishingStatus
+
+
+class PublishOutcome(BaseModel):
+    published: int
+    failed: int
+    total: int
+    platform_post_id: Optional[str]
+    failure_reason: Optional[str]
+
+
+class PublishLogEntry(BaseModel):
+    id: int
+    platform: str
+    status: str
+    retry_count: int = 0
+    failure_reason: Optional[str] = None
+    platform_post_id: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+
+class PublishPublishResponse(BaseModel):
+    message: str
+    post_id: int
+    status: PostPublishingStatus
+    summary: Optional[PublishOutcome] = None
+    logs: List[PublishLogEntry] = Field(default_factory=list)

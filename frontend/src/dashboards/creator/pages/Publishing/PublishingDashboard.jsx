@@ -64,7 +64,7 @@ export default function PublishingDashboard() {
   if (loading) {
     return (
       <div className="space-y-6 max-w-7xl mx-auto">
-        <div className="card animate-pulse space-y-3">
+        <div className="card p-5 animate-pulse space-y-3">
           <div className="w-64 h-7 rounded bg-surface" />
           <div className="w-96 h-4 rounded bg-surface" />
         </div>
@@ -78,7 +78,7 @@ export default function PublishingDashboard() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
       {/* Header */}
-      <section className="card relative overflow-hidden bg-gradient-to-r from-indigo-50 to-purple-50/50 dark:from-indigo-950/30 dark:to-purple-950/20 border border-default shadow-card">
+      <section className="card p-5 sm:p-6 relative overflow-hidden bg-gradient-to-r from-indigo-50 to-purple-50/50 dark:from-indigo-950/30 dark:to-purple-950/20 border border-default shadow-card">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-primary">Publishing Dashboard</h1>
@@ -101,9 +101,9 @@ export default function PublishingDashboard() {
       </section>
 
       {/* Quick Actions */}
-      <section className="card">
+      <section className="card p-5">
         <h2 className="text-base font-bold text-primary mb-4 border-b border-default pb-3">Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
             { label: 'Create Post', icon: PlusCircle, desc: 'Write and schedule a new post', to: '/dashboard/creator/content-scheduling' },
             { label: 'Publishing Calendar', icon: Calendar, desc: 'View your content calendar', to: '/dashboard/creator/publishing-calendar' },
@@ -128,7 +128,7 @@ export default function PublishingDashboard() {
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Activity */}
-        <div className="card lg:col-span-2 space-y-4">
+        <div className="card p-5 lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between border-b border-default pb-3">
             <h2 className="text-base font-bold text-primary">Recent Publishing Activity</h2>
             <button onClick={() => navigate('/dashboard/creator/publishing/logs')} className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
@@ -150,7 +150,7 @@ export default function PublishingDashboard() {
         </div>
 
         {/* Publishing Status */}
-        <div className="card space-y-4">
+        <div className="card p-5 space-y-4">
           <h2 className="text-base font-bold text-primary border-b border-default pb-3">Platform Status</h2>
           <div className="flex items-center gap-4 mb-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold">
@@ -180,7 +180,7 @@ export default function PublishingDashboard() {
       {/* Schedule Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Today's Schedule */}
-        <div className="card space-y-4">
+        <div className="card p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-default pb-3">
             <h2 className="text-base font-bold text-primary">Today's Schedule</h2>
             <span className="text-xs font-semibold text-secondary">{data.todaySchedule.length} posts</span>
@@ -204,7 +204,7 @@ export default function PublishingDashboard() {
         </div>
 
         {/* Upcoming */}
-        <div className="card space-y-4">
+        <div className="card p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-default pb-3">
             <h2 className="text-base font-bold text-primary">Upcoming Schedule</h2>
             <button onClick={() => navigate('/dashboard/creator/publishing-calendar')} className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">

@@ -311,7 +311,7 @@
   }
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: none; }
   }
   .delay-1 { animation-delay: 0.08s; opacity: 0; }
   .delay-2 { animation-delay: 0.16s; opacity: 0; }
@@ -322,7 +322,7 @@
   /* Input error card fade-in */
   @keyframes inputErrorFadeIn {
     from { opacity: 0; transform: translateY(-4px); }
-    to   { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: none; }
   }
 
   /* Terms / checkbox shake on validation fail */
@@ -582,23 +582,23 @@
 
   @keyframes analyticsFadeIn {
     from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: none; }
   }
   @keyframes analyticsSlideInRight {
     from { opacity: 0; transform: translateX(16px); }
-    to   { opacity: 1; transform: translateX(0); }
+    to   { opacity: 1; transform: none; }
   }
   @keyframes analyticsSlideInLeft {
     from { opacity: 0; transform: translateX(-16px); }
-    to   { opacity: 1; transform: translateX(0); }
+    to   { opacity: 1; transform: none; }
   }
   @keyframes analyticsSlideUp {
     from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: none; }
   }
   @keyframes analyticsScaleIn {
     from { opacity: 0; transform: scale(0.95); }
-    to   { opacity: 1; transform: scale(1); }
+    to   { opacity: 1; transform: none; }
   }
   @keyframes analyticsPulseDot {
     0%, 100% { opacity: 1; }

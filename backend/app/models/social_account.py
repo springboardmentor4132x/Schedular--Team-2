@@ -110,4 +110,5 @@ class SocialAccount(Base):
         "Post",
         secondary="post_social_accounts",
         back_populates="social_accounts",
+        passive_deletes=True,
    )

@@ -121,3 +121,19 @@ class PerformanceTrendsResponse(BaseModel):
     impressions_trend: List[TrendPoint]
     clicks_trend: List[TrendPoint]
     followers_trend: List[TrendPoint]
+
+
+# ---------------- Metric Analytics (spec endpoints) ----------------
+
+class PlatformMetricItem(BaseModel):
+    platform: str
+    value: int
+    new_followers: Optional[int] = None
+    lost_followers: Optional[int] = None
+
+
+class AnalyticsMetricResponse(BaseModel):
+    metric: str  # engagement | followers | reach | impressions | clicks
+    total: int
+    by_platform: List[PlatformMetricItem]
+    trend: List[TrendPoint]

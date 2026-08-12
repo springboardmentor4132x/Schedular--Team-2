@@ -73,7 +73,6 @@ from app.services.pinterest_service import (
     exchange_code_for_access_token as exchange_pinterest_token,
     get_pinterest_user_info,
 )
-from app.routers import settings
 
 router = APIRouter(
     prefix="/social-accounts",
@@ -237,21 +236,7 @@ def get_social_accounts(current_user: User = Depends(get_current_user), db: Sess
 #     )
     
 
-import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
-
-from app.database.database import get_db
-from app.models.user import User
-from app.models.social_account import SocialAccount
-from app.auth.dependencies import get_current_user
-from app.core.config import settings
-
-router = APIRouter(
-    prefix="/social-accounts",
-    tags=["Social Accounts"]
-)
 
 @router.get("/facebook/connect")
 def facebook_login(user_id: int = None, redirect_uri: str = None):
@@ -393,49 +378,17 @@ async def facebook_callback(code: str, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/")
-def get_connected_accounts(db: Session = Depends(get_db)):
-    """Fetch all saved social accounts from the database safely."""
-    try:
-        accounts = db.query(SocialAccount).all()
-        return {
-            "total_accounts": len(accounts),
-            "accounts": [
-                {
-                    "id": acc.id,
-                    "platform": acc.platform,
-                    "platform_user_id": acc.platform_user_id,
-                    "username": acc.username,
-                    "status": acc.status,
-                    "created_at": str(acc.created_at) if acc.created_at else None
-                }
-                for acc in accounts
-            ]
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
-        )
-
-
 @router.delete("/{account_id}")
-def disconnect_account(account_id: int, db: Session = Depends(get_db)):
-    """Disconnects and deletes a social account from the database."""
+def disconnect_account(account_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Disconnects and deletes the current user's social account from the database."""
     account = db.query(SocialAccount).filter(SocialAccount.id == account_id).first()
-    
     if not account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Social account not found."
-        )
-    
+        raise HTTPException(status_code=404, detail="Social account not found")
+    if account.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to disconnect this account")
     db.delete(account)
     db.commit()
-    
-    return {
-        "message": f"Successfully disconnected and removed account ID {account_id} ({account.platform})."
-    }
+    return {"message": "Account disconnected successfully"}
 
 # ===========================
 # LinkedIn OAuth
@@ -994,21 +947,6 @@ def pinterest_callback(request: Request, code: str = "", db: Session = Depends(g
 
     except Exception as e:
         return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
-
-
-@router.delete("/{account_id}")
-def disconnect_social_account(account_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    account = db.query(SocialAccount).filter(SocialAccount.id == account_id).first()
-    if not account:
-        raise HTTPException(status_code=404, detail="Social account not found")
-        
-    if account.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to disconnect this account")
-        
-    db.delete(account)
-    db.commit()
-    
-    return {"message": "Account disconnected successfully"}
 
 
 @router.post("/{account_id}/sync", response_model=SocialAccountResponse)

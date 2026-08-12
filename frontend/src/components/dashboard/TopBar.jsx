@@ -27,7 +27,9 @@ const ROUTE_LABELS = {
   '/dashboard/reports':            'Reports',
   // Marketing Team routes
   '/dashboard/mkt/clients':        'Clients',
+  '/dashboard/mkt/requests':       'Connection Requests',
   '/dashboard/mkt/workspace':      'Client Workspace',
+  '/dashboard/mkt/queue':          'Publishing Queue',
   '/dashboard/mkt/connected-apps': 'Connected Apps',
   '/dashboard/mkt/content':        'Content Management',
   '/dashboard/mkt/content-library': 'Content Library',
@@ -36,6 +38,9 @@ const ROUTE_LABELS = {
   '/dashboard/mkt/calendar':       'Publishing Calendar',
   '/dashboard/mkt/campaigns':      'Campaign Management',
   '/dashboard/mkt/reports':        'Reports',
+  '/dashboard/mkt/logs':           'Publishing Logs',
+  '/dashboard/mkt/failed':         'Failed Posts',
+  '/dashboard/mkt/history':        'Platform History',
   // Shared
   '/dashboard/analytics':          'Analytics',
   '/dashboard/notifications':      'Notifications',

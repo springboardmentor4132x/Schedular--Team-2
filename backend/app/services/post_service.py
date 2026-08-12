@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.models.post import Post
 from app.models.social_account import SocialAccount
 from app.schemas.post import PostCreate, PostUpdate
+from app.services import publishing_service
 
 ALLOWED_MEDIA_TYPES = {
     "image/jpeg",
@@ -47,6 +48,16 @@ def _get_owned_accounts(db: Session, user_id: int, account_ids: list[int]):
         )
         .all()
     )
+
+
+def _maybe_enqueue(db: Session, post: Post):
+    """Register a scheduled post into the publishing queue so the background
+    worker picks it up when due (Module 5 auto-publishing)."""
+    if post.scheduled_for is None:
+        return
+    if post.status not in ("Scheduled", "Queued"):
+        return
+    publishing_service.enqueue_post(db, post)
 
 
 def _post_response(post: Post):
@@ -134,6 +145,9 @@ def create_post(
 
     db.commit()
     db.refresh(new_post)
+
+    if status in ("Scheduled", "Queued") and new_post.scheduled_for is not None:
+        _maybe_enqueue(db, new_post)
 
     return _post_response(new_post)
 
@@ -247,6 +261,14 @@ def update_post(db: Session, user_id: int, post_id: int, post_data: PostUpdate):
 
     db.commit()
     db.refresh(post)
+
+    if post_data.scheduled_for is not None:
+        _maybe_enqueue(db, post)
+
+    # A cancelled post must not be picked up by the publishing worker later.
+    if post.status == "Cancelled":
+        publishing_service.cancel_post(db, post.id)
+
     return _post_response(post)
 
 
@@ -256,6 +278,9 @@ def delete_post(db: Session, user_id: int, post_id: int):
         raise HTTPException(status_code=404, detail="Post not found")
     if post.user_id != user_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this post")
+
+    # Cancel any pending queue entries so the worker never publishes a deleted post.
+    publishing_service.cancel_post(db, post_id)
 
     db.delete(post)
     db.commit()

@@ -16,6 +16,7 @@ class PostCreate(BaseModel):
     campaign_id: Optional[int] = None
     status: str = Field(default="Draft", max_length=50)
     platform: Optional[str] = Field(default=None, max_length=50)
+    platforms: Optional[list[str]] = Field(default_factory=list)
 
 
 class PostUpdate(BaseModel):

@@ -2,37 +2,58 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
-  Users, Megaphone, FileText, CalendarCheck, Send,
-  PenSquare, BarChart2, ScrollText,
-  CheckCircle2, Clock,
+  Users, Megaphone, CalendarCheck, Send,
+  BarChart2, Bell, ScrollText,
+  CheckCircle2, AlertCircle, TrendingUp,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useClient } from '../../context/ClientContext'
 import StatCard from '../../components/dashboard/StatCard'
-import ActivityFeed from '../../components/dashboard/ActivityFeed'
 import { marketingService } from '../../services/marketingService'
+import { getNotifications } from '../../services/notificationService'
 
-/* ── Quick actions ───────────────────────────────────────────────── */
+/* ── Notification icon mapping ─────────────────────────────────── */
+const NOTIF_STYLES = {
+  success: { icon:CheckCircle2, iconColor:'#22C55E', iconBg:'rgba(34,197,94,.1)'  },
+  error:   { icon:AlertCircle,  iconColor:'#EF4444', iconBg:'rgba(239,68,68,.1)'  },
+  info:    { icon:TrendingUp,   iconColor:'#1E3A8A', iconBg:'rgba(30,58,138,.1)'  },
+  campaign:{ icon:Megaphone,    iconColor:'#4F46E5', iconBg:'rgba(79,70,229,.1)'  },
+}
+
+/* ── Quick actions — spec-correct ────────────────────────────────── */
 const QUICK_ACTIONS = [
   { label: 'Client Workspace', href: '/dashboard/mkt/workspace',  color: '#1E3A8A', bg: 'rgba(30,58,138,.10)',  icon: Users      },
   { label: 'Campaigns',        href: '/dashboard/mkt/campaigns',  color: '#4F46E5', bg: 'rgba(79,70,229,.10)',  icon: Megaphone  },
   { label: 'Scheduling',       href: '/dashboard/mkt/scheduling', color: '#22C55E', bg: 'rgba(34,197,94,.10)',  icon: CalendarCheck },
-  { label: 'Publishing Queue', href: '/dashboard/mkt/publishing', color: '#F59E0B', bg: 'rgba(245,158,11,.10)', icon: Send       },
+  { label: 'Publishing Queue', href: '/dashboard/mkt/queue',      color: '#F59E0B', bg: 'rgba(245,158,11,.10)', icon: Send       },
   { label: 'Analytics',        href: '/dashboard/analytics',      color: '#E1306C', bg: 'rgba(225,48,108,.10)', icon: BarChart2  },
   { label: 'Reports',          href: '/dashboard/mkt/reports',    color: '#0A66C2', bg: 'rgba(10,102,194,.10)', icon: ScrollText },
 ]
 
-/* ── Recent activity ─────────────────────────────────────────────── */
+function formatNotifTime(value) {
+  if (!value) return 'Recently'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return 'Recently'
+  const diff = Math.round((Date.now() - d.getTime()) / 60000)
+  if (diff < 60) return `${Math.max(diff, 1)}m ago`
+  if (diff < 1440) return `${Math.round(diff / 60)}h ago`
+  return `${Math.round(diff / 1440)}d ago`
+}
+
 export default function MarketingDashboard() {
-  const { user }    = useAuth()
+  const { user }         = useAuth()
   const { selectClient } = useClient()
-  const navigate    = useNavigate()
-  const hour        = new Date().getHours()
-  const greeting    = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const navigate         = useNavigate()
+  const hour             = new Date().getHours()
+  const greeting         = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const [data, setData] = useState({ clients: [], stats: {} })
-  useEffect(() => { marketingService.dashboard().then(setData).catch(() => setData({ clients: [], stats: {} })) }, [])
+  const [notifs, setNotifs] = useState([])
+  useEffect(() => {
+    marketingService.dashboard().then(setData).catch(() => setData({ clients: [], stats: {} }))
+    getNotifications().then(setNotifs).catch(() => setNotifs([]))
+  }, [])
   const stats = data.stats || {}
-  const activity = (data.activity || []).map(post => ({ id:post.id, icon:post.status === 'published' ? CheckCircle2 : Clock, iconColor:post.status === 'published' ? '#22C55E' : '#1E3A8A', iconBg:'rgba(30,58,138,.1)', title:`${post.status.replace('_', ' ')} — ${post.title}`, description:post.platform, time:post.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'Recently', badge:post.status, badgeColor:post.status === 'published' ? '#22C55E' : '#1E3A8A' }))
+  const pendingPosts = stats.draftPosts ?? 0
 
   return (
     <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
@@ -59,15 +80,15 @@ export default function MarketingDashboard() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <button onClick={() => navigate('/dashboard/mkt/clients')}
+            <button onClick={() => navigate('/dashboard/mkt/workspace')}
               className="flex items-center gap-1.5 px-4 h-9 rounded-[var(--r-md)] text-sm font-semibold transition-all hover:brightness-95"
               style={{ background:'rgba(255,255,255,0.15)', color:'#fff' }}>
-              <Users size={14} /> View Clients
+              <Users size={14} /> Client Workspace
             </button>
-            <button onClick={() => navigate('/dashboard/mkt/content')}
+            <button onClick={() => navigate('/dashboard/mkt/campaigns')}
               className="flex items-center gap-1.5 px-4 h-9 rounded-[var(--r-md)] text-sm font-semibold transition-all hover:brightness-95"
               style={{ background:'rgba(255,255,255,0.15)', color:'#fff' }}>
-              <PenSquare size={14} /> Create Content
+              <Megaphone size={14} /> Campaigns
             </button>
           </div>
         </div>
@@ -75,11 +96,11 @@ export default function MarketingDashboard() {
 
       {/* ── KPI cards — spec-correct ── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <StatCard title="Assigned Clients" value={stats.assignedClients ?? 0} icon={Users} iconColor="#22C55E" iconBg="rgba(34,197,94,.12)" index={0} />
-        <StatCard title="Draft Posts" value={stats.draftPosts ?? 0} icon={FileText} iconColor="#F59E0B" iconBg="rgba(245,158,11,.12)" index={1} />
-        <StatCard title="Scheduled Posts" value={stats.scheduledPosts ?? 0} icon={CalendarCheck} iconColor="#1E3A8A" iconBg="rgba(30,58,138,.12)" index={2} />
-        <StatCard title="Active Campaigns" value={stats.activeCampaigns ?? 0} icon={Megaphone} iconColor="#4F46E5" iconBg="rgba(79,70,229,.10)" index={3} />
-        <StatCard title="Published Posts" value={stats.publishedPosts ?? 0} icon={Send} iconColor="#E1306C" iconBg="rgba(225,48,108,.10)" index={4} />
+        <StatCard title="Assigned Clients"  value={stats.assignedClients ?? 0}  icon={Users}         iconColor="#1E3A8A" iconBg="rgba(30,58,138,.12)"  index={0} />
+        <StatCard title="Active Campaigns"  value={stats.activeCampaigns ?? 0}  icon={Megaphone}     iconColor="#4F46E5" iconBg="rgba(79,70,229,.10)"  index={1} />
+        <StatCard title="Scheduled Posts"   value={stats.scheduledPosts ?? 0}   icon={CalendarCheck} iconColor="#22C55E" iconBg="rgba(34,197,94,.12)"  trend={5} index={2} />
+        <StatCard title="Pending Posts"     value={pendingPosts}                icon={Bell}          iconColor="#F59E0B" iconBg="rgba(245,158,11,.12)" index={3} />
+        <StatCard title="Published Posts"   value={stats.publishedPosts ?? 0}   icon={Send}          iconColor="#E1306C" iconBg="rgba(225,48,108,.10)" trend={8} index={4} />
       </div>
 
       {/* ── Quick actions ── */}
@@ -108,7 +129,7 @@ export default function MarketingDashboard() {
         </div>
       </motion.div>
 
-      {/* ── Client overview + Activity ── */}
+      {/* ── Client overview + Recent Notifications ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* Client cards */}
@@ -154,12 +175,44 @@ export default function MarketingDashboard() {
           </div>
         </motion.div>
 
-        {/* Activity */}
+        {/* Recent Notifications */}
         <motion.div
           initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }}
           transition={{ duration:0.3, delay:0.15 }}
+          className="card p-5"
         >
-          <ActivityFeed items={activity} title="Recent Activity" />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold" style={{ fontFamily:"'Plus Jakarta Sans', sans-serif", color:'var(--text)' }}>
+              Recent Notifications
+            </h2>
+            <button onClick={() => navigate('/dashboard/notifications')}
+              className="text-xs font-semibold hover:underline" style={{ color:'var(--primary)' }}>
+              View all →
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            {(notifs.slice(0,4)).map(n => {
+              const st = NOTIF_STYLES[n.type] || NOTIF_STYLES.info
+              const Icon = st.icon
+              return (
+                <div key={n.id} className="flex items-start gap-3 p-2.5 rounded-[var(--r-md)]"
+                  style={{ background:'var(--bg-alt)', border:'1px solid var(--border)' }}>
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ background:st.iconBg }}>
+                    <Icon size={13} style={{ color:st.iconColor }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold truncate" style={{ color:'var(--text)' }}>{n.title}</p>
+                    <p className="text-[10px] mt-0.5 leading-relaxed line-clamp-2" style={{ color:'var(--text-muted)' }}>{n.message}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color:'var(--text-subtle)' }}>{formatNotifTime(n.created_at)}</p>
+                  </div>
+                </div>
+              )
+            })}
+            {notifs.length === 0 && (
+              <p className="text-xs text-center py-6" style={{ color:'var(--text-subtle)' }}>No notifications yet.</p>
+            )}
+          </div>
         </motion.div>
       </div>
     </div>

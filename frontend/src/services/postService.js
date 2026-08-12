@@ -63,6 +63,15 @@ export const deletePost = async (id) => {
 }
 
 export const publishPost = async (id) => {
-  const response = await API.post(`/posts/publish/${id}`);
+  // Use the canonical /publish pipeline (token validation, platform dispatch,
+  // publishing logs, retries) instead of the legacy status-flip endpoint.
+  const response = await API.post(`/publish/${id}`);
+  return response.data;
+};
+
+export const cancelPost = async (id) => {
+  // Cancel a scheduled post — keeps the post in the library but stops it from
+  // being auto-published by the worker (marks post + queue entries Cancelled).
+  const response = await API.post(`/publish/cancel/${id}`);
   return response.data;
 };

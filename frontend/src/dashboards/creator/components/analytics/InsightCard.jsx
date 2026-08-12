@@ -1,5 +1,3 @@
-import React from 'react'
-
 /**
  * Reusable InsightCard component for analytical findings & recommendations
  */
@@ -12,7 +10,7 @@ export default function InsightCard({
   className = ''
 }) {
   return (
-    <div className={`card space-y-3 flex flex-col justify-between ${className}`}>
+    <div className={`card p-5 space-y-3 flex flex-col justify-between ${className}`}>
       <div className="flex items-center justify-between border-b border-default pb-2.5">
         <div className="flex items-center gap-2">
           {Icon && <Icon size={16} className="text-indigo-500 shrink-0" />}

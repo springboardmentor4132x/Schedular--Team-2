@@ -41,6 +41,11 @@ function dateLabel(value) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
+export async function getAnalyticsTotals(workspaceId) {
+  const response = await API.get('/analytics/dashboard', { params: workspaceId ? { workspace_id: workspaceId } : {} })
+  return response.data.summary || {}
+}
+
 export async function getDashboardSummary() {
   const [dash, compare, audience] = await Promise.all([
     API.get('/analytics/dashboard'),
@@ -161,6 +166,8 @@ export async function getContentAnalytics(filters = {}) {
   if (filters.campaign && filters.campaign !== 'All') params.campaign_id = Number(filters.campaign)
   if (filters.sortBy === 'reach') params.sort_by = 'reach'
   if (filters.sortBy === 'engagementRate') params.sort_by = 'engagement'
+  if (filters.startDate) params.start_date = filters.startDate
+  if (filters.endDate) params.end_date = filters.endDate
   const response = await API.get('/analytics/posts', { params })
   let posts = response.data.map((p) => ({
     id: p.post_id,

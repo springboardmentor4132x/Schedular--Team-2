@@ -1,21 +1,21 @@
-import React from 'react'
-
 export default function DonutChart({ data = [], title }) {
   if (!data || data.length === 0) return null
 
   const total = data.reduce((acc, d) => acc + (d.percentage || d.value || 0), 0)
-  let cumulative = 0
 
-  const slices = data.map((d) => {
-    const val = d.percentage || d.value || 0
-    const startAngle = (cumulative / total) * 360
-    cumulative += val
-    const endAngle = (cumulative / total) * 360
-    return { ...d, startAngle, endAngle, val }
-  })
+  const slices = data.reduce(
+    (acc, d) => {
+      const val = d.percentage || d.value || 0
+      const startAngle = (acc.run / total) * 360
+      acc.run += val
+      acc.slices.push({ ...d, startAngle, endAngle: (acc.run / total) * 360, val })
+      return acc
+    },
+    { run: 0, slices: [] }
+  ).slices
 
   return (
-    <div className="card space-y-4">
+    <div className="card p-5 space-y-4">
       {title && (
         <div className="border-b border-default pb-3">
           <h3 className="text-base font-bold text-primary">{title}</h3>

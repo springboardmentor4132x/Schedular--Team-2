@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getPlatformHistory } from '../../../../services/publishingService'
-import { TrendingUp, TrendingDown, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { TrendingUp, TrendingDown, CheckCircle2, XCircle, Clock, Link2 } from 'lucide-react'
 
 function MiniBar({ successful, failed, total }) {
   if (total === 0) return <div className="h-1.5 w-full rounded-full bg-surface" />
@@ -27,7 +27,7 @@ export default function PlatformHistory() {
         <div className="h-8 w-48 bg-surface rounded animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="card animate-pulse space-y-4">
+            <div key={i} className="card p-5 animate-pulse space-y-4">
               <div className="h-6 w-32 bg-surface rounded" />
               <div className="grid grid-cols-2 gap-3">
                 <div className="h-12 bg-surface rounded" />
@@ -52,11 +52,11 @@ export default function PlatformHistory() {
       {/* Platform Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {platforms.map((platform) => (
-          <div key={platform.id} className="card card-hover space-y-5">
+          <div key={platform.id} className="card card-hover p-5 space-y-5">
             {/* Platform Header */}
             <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 ${platform.color}`}>
-                {platform.icon}
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${platform.color}`}>
+                <platform.icon size={24} />
               </div>
               <div>
                 <h3 className="text-base font-bold text-primary">{platform.name}</h3>
@@ -101,7 +101,7 @@ export default function PlatformHistory() {
 
             {/* Recent Activity */}
             <div>
-              <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">Recent Activity (Last 5 Days)</p>
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">Recent Activity (Last 5 Posts)</p>
               <div className="space-y-2">
                 {platform.recentActivity.map((day) => (
                   <div key={day.date} className="flex items-center gap-3">
@@ -120,6 +120,46 @@ export default function PlatformHistory() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Post History with platform post IDs */}
+            <div>
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">Post History</p>
+              {platform.items.length === 0 ? (
+                <p className="text-xs text-secondary">No posts on {platform.name} yet.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {platform.items.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-surface border border-default">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {item.status === 'Failed' ? (
+                          <XCircle size={12} className="text-rose-500 flex-shrink-0" />
+                        ) : (
+                          <CheckCircle2 size={12} className="text-emerald-500 flex-shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-primary truncate">Post #{item.id}</p>
+                          <p className="text-[10px] text-secondary">{item.publishedAt ? new Date(item.publishedAt).toLocaleString() : '—'}</p>
+                        </div>
+                      </div>
+                      <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                        style={{
+                          background: item.status === 'Failed' ? 'rgba(239,68,68,.12)' : 'rgba(34,197,94,.12)',
+                          color: item.status === 'Failed' ? '#EF4444' : '#22C55E',
+                        }}
+                      >
+                        {item.status === 'Failed' ? 'Failed' : 'Published'}
+                      </span>
+                      {item.platformPostId && (
+                        <span className="text-[10px] text-secondary flex items-center gap-1 flex-shrink-0">
+                          <Link2 size={9} /> {item.platformPostId}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}

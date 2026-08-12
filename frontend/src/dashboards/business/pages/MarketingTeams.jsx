@@ -97,7 +97,6 @@ export default function MarketingTeams() {
 
   const refresh = async () => {
     setLoading(true)
-    setNotice(null)
     try {
       const [teamRes, directory, requestsRes] = await Promise.all([
         fetchAssignedTeam(), fetchMarketingTeams(), fetchTeamRequests(),
@@ -136,6 +135,7 @@ export default function MarketingTeams() {
 
   const members = team?.members ?? []
   const assignedId = members.find(member => member.role === 'Marketing')?.id ?? members[0]?.id ?? null
+  const hasApprovedTeam = !!assignedId || teams.some(item => item.request_status === 'approved')
   const pendingRequests = requests.filter(item => item.status === 'pending')
 
   const handleRequest = async (teamId) => {
@@ -144,11 +144,11 @@ export default function MarketingTeams() {
     try {
       await requestMarketingTeam(teamId)
       const requestedTeam = teams.find(item => item.id === teamId)
+      await refresh()
       setSuccessTeam(requestedTeam?.name ?? 'The marketing team')
-      refresh()
     } catch (error) {
+      await refresh()
       setNotice({ type: 'error', text: error?.response?.data?.detail ?? 'Could not send the request.' })
-      refresh()
     } finally {
       setSubmitting(false)
     }
@@ -159,11 +159,11 @@ export default function MarketingTeams() {
     setNotice(null)
     try {
       await cancelTeamRequest(requestId)
+      await refresh()
       setNotice({ type: 'success', text: 'Connection request cancelled.' })
-      refresh()
     } catch (error) {
+      await refresh()
       setNotice({ type: 'error', text: error?.response?.data?.detail ?? 'Could not cancel the request.' })
-      refresh()
     } finally {
       setSubmitting(false)
     }
@@ -175,11 +175,11 @@ export default function MarketingTeams() {
     try {
       await removeMarketingTeam()
       setConfirmRemove(false)
+      await refresh()
       setNotice({ type: 'success', text: 'Marketing team removed. You can now request a different team.' })
-      refresh()
     } catch (error) {
+      await refresh()
       setNotice({ type: 'error', text: error?.response?.data?.detail ?? 'Could not remove the marketing team.' })
-      refresh()
     } finally {
       setSubmitting(false)
     }
@@ -235,8 +235,15 @@ export default function MarketingTeams() {
                             {submitting ? <Loader2 size={13} className="animate-spin" /> : <X size={13} />} Cancel request
                           </button>
                         ) : (
-                          <button type="button" onClick={() => handleRequest(item.id)} disabled={submitting} className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--r-sm)] text-xs font-semibold transition" style={{ background: 'linear-gradient(135deg,#1E3A8A,#4F46E5)', color: '#fff' }}>
-                            {submitting ? <Loader2 size={13} className="animate-spin" /> : item.request_status === 'rejected' ? <RefreshCw size={13} /> : <Send size={13} />} {item.request_status === 'rejected' ? 'Request again' : 'Request this team'}
+                          <button type="button"
+                            onClick={() => !hasApprovedTeam && handleRequest(item.id)}
+                            disabled={submitting || hasApprovedTeam}
+                            title={hasApprovedTeam ? 'Remove your current team before requesting another.' : 'Send a connection request'}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--r-sm)] text-xs font-semibold transition"
+                            style={hasApprovedTeam
+                              ? { background: 'var(--bg-alt)', color: 'var(--text-subtle)', cursor: 'not-allowed', border: '1px solid var(--border)' }
+                              : { background: 'linear-gradient(135deg,#1E3A8A,#4F46E5)', color: '#fff' }}>
+                            {submitting ? <Loader2 size={13} className="animate-spin" /> : item.request_status === 'rejected' ? <RefreshCw size={13} /> : <Send size={13} />} {item.request_status === 'rejected' ? 'Request again' : hasApprovedTeam ? 'Remove current team first' : 'Request this team'}
                           </button>
                         )}
                       </div>

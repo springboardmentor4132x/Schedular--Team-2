@@ -1,10 +1,8 @@
-import React from 'react'
-
 export default function ProgressList({ title, items = [], labelKey = 'label', valueKey = 'percentage', extraKey = 'count', iconKey }) {
   if (!items || items.length === 0) return null
 
   return (
-    <div className="card space-y-4">
+    <div className="card p-5 space-y-4">
       {title && (
         <div className="border-b border-default pb-3">
           <h3 className="text-base font-bold text-primary">{title}</h3>

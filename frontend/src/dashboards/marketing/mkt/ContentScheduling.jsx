@@ -1,286 +1,873 @@
-﻿import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
+import Button from '../../../shared/components/Button'
+import { useAuth } from '../../../context/AuthContext'
+import { useClient } from '../../../context/ClientContext'
+import { uploadMedia, publishPost } from '../../../services/postService'
+import { marketingService } from '../../../services/marketingService'
 import {
-  CalendarDays, Search, Plus,
-  X, ArrowLeft, Users,
-  GripVertical, Trash2,
+  Calendar,
+  Sparkles,
+  Layers,
+  X,
+  Upload,
+  Eye,
+  Sliders,
+  Save,
+  Send,
+  Folder,
+  Image as ImageIcon,
+  Heart,
+  MessageCircle,
+  Repeat2,
+  ThumbsUp,
+  Share2,
+  Globe,
+  BarChart2,
+  BadgeCheck,
+  CheckCircle2,
+  ChevronRight,
+  Play,
+  ArrowLeft,
+  Users,
+  AlertTriangle,
 } from 'lucide-react'
 import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
-import { useNavigate } from 'react-router-dom'
-import { useClient } from '../../../context/ClientContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
-import { marketingService } from '../../../services/marketingService'
 
 const PLATFORM_META = {
-  instagram:{ icon:FaInstagram, color:'#E1306C', label:'Instagram' },
-  facebook: { icon:FaFacebook,  color:'#1877F2', label:'Facebook'  },
-  linkedin: { icon:FaLinkedin,  color:'#0A66C2', label:'LinkedIn'  },
-  x:        { icon:FaXTwitter,  color:'#374151', label:'X'         },
-  youtube:  { icon:FaYoutube,   color:'#FF0000', label:'YouTube'   },
-  pinterest:{ icon:FaPinterest, color:'#E60023', label:'Pinterest' },
+  instagram: { icon: FaInstagram,  color: '#E1306C', label: 'Instagram' },
+  facebook:  { icon: FaFacebook,   color: '#1877F2', label: 'Facebook'  },
+  linkedin:  { icon: FaLinkedin,   color: '#0A66C2', label: 'LinkedIn'  },
+  x:         { icon: FaXTwitter,   color: '#374151', label: 'X'         },
+  youtube:   { icon: FaYoutube,    color: '#FF0000', label: 'YouTube'   },
+  pinterest: { icon: FaPinterest,  color: '#E60023', label: 'Pinterest' },
 }
-const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-function isoDate(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+
+const platformList = Object.entries(PLATFORM_META).map(([id, meta]) => ({
+  id,
+  name: meta.label,
+  icon: meta.icon,
+}))
+
+const hashtagSuggestions = ['#marketing', '#socialmedia', '#contentcreator', '#orbitsocial', '#growthhacks']
+
+const STEPS = ['Platform', 'Caption & Hashtags', 'Media', 'Campaign', 'Schedule', 'Preview']
+
+function todayLocalStr() {
+  const d = new Date()
+  return d.toLocaleDateString('sv-SE')
+}
+
+function daysFromToday(days) {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return d.toLocaleDateString('sv-SE')
+}
 
 export function SchedulingPanel() {
+  const { user } = useAuth()
   const { activeClient } = useClient()
-  const [view,setView]=useState('list')
-  const [search,setSearch]=useState('')
-  const [platform,setPlatform]=useState('all')
-  const [year]=useState(new Date().getFullYear())
-  const [month]=useState(new Date().getMonth())
-  const [showModal,setShowModal]=useState(false)
-  const [toast,setToast]=useState(null)
-  const [form,setForm]=useState({ title:'', platform:'instagram', date:'', time:'', campaign:'', caption:'', mediaFile:null, mediaPreview:null })
-  const [queue,setQueue]=useState([])
 
-  const filtered = queue.filter(p => {
-    const matchSearch = p.title.toLowerCase().includes(search.toLowerCase())
-    const matchPlatform = platform === 'all' || p.platform === platform
-    return matchSearch && matchPlatform
-  })
+  const [selectedPlatforms, setSelectedPlatforms] = useState(['instagram'])
+  const [caption, setCaption] = useState('')
+  const [mediaList, setMediaList] = useState([])
+  const [uploadProgress, setUploadProgress] = useState(null)
+  const fileInputRef = useRef(null)
+
+  const [scheduleDate, setScheduleDate] = useState(todayLocalStr())
+  const [scheduleTime, setScheduleTime] = useState('')
+  const [recurrence, setRecurrence] = useState('Never')
+  const [previewTab, setPreviewTab] = useState('instagram')
+
+  const [recStartDate, setRecStartDate] = useState(todayLocalStr())
+  const [recEndDate, setRecEndDate] = useState(() => daysFromToday(30))
+  const [selectedWeekdays, setSelectedWeekdays] = useState(['Mon', 'Wed'])
+  const [monthlyOption, setMonthlyOption] = useState('Same date each month')
+
+  const [hashtags, setHashtags] = useState('')
+  const [campaigns, setCampaigns] = useState([])
+  const [selectedCampaign, setSelectedCampaign] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [toast, setToast] = useState(null)
+  const [confirmAction, setConfirmAction] = useState(null)
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3500)
+      return () => clearTimeout(timer)
+    }
+  }, [toast])
 
   useEffect(() => {
     if (!activeClient) return
-    let cancelled = false
-    marketingService.workspace(activeClient.id).then(data => {
-      if (cancelled) return
-      setQueue((data.posts || []).filter(post => post.status === 'scheduled'))
-    }).catch(() => { if (!cancelled) setQueue([]) })
-    return () => { cancelled = true }
+    let mounted = true
+    marketingService.workspace(activeClient.id)
+      .then((data) => {
+        if (mounted) setCampaigns(data.campaigns || [])
+      })
+      .catch(() => {
+        if (mounted) setCampaigns([])
+      })
+    return () => {
+      mounted = false
+    }
   }, [activeClient])
 
-  const showToast=(msg,type='success')=>{ setToast({msg,type}); setTimeout(()=>setToast(null),3000) }
+  const recurrencePreviewText = useMemo(() => {
+    if (recurrence === 'Never') return 'Repeat Once'
+    if (recurrence === 'Daily') return `Daily recurrence starting ${recStartDate} until ${recEndDate}`
+    if (recurrence === 'Weekly') return `Weekly on ${selectedWeekdays.join(', ')} (Start: ${recStartDate})`
+    if (recurrence === 'Monthly') return `Monthly on ${monthlyOption} (Start: ${recStartDate})`
+    return 'Custom schedule'
+  }, [recurrence, recStartDate, recEndDate, selectedWeekdays, monthlyOption])
 
-  const handleSchedule=async()=>{
-    if(!form.title||!form.date||!form.time){ showToast('Fill in all required fields.','error'); return }
+  const wordCount = caption.split(/\s+/).filter(Boolean).length
+
+  const connectedPlatforms = (activeClient?.connectedPlatforms ?? []).filter((p) => PLATFORM_META[p])
+  const hasConnectedPlatforms = connectedPlatforms.length > 0
+  const effectivePlatforms = selectedPlatforms.filter((p) => connectedPlatforms.includes(p))
+
+  const previewName = user?.name || 'Marketing Team'
+  const previewHandle = user?.email?.split('@')[0] || 'marketing'
+  const previewInitials = previewName
+    .split(/\s+/)
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'MT'
+  const previewMedia = mediaList[0]?.url || ''
+
+  const showToast = (msg, type = 'success') => setToast({ msg, type })
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadProgress(10)
     try {
-      const post = await marketingService.createPost(activeClient.id, { title:form.title, caption:form.caption || '', status:'Scheduled', scheduled_for:`${form.date}T${form.time}`, timezone:Intl.DateTimeFormat().resolvedOptions().timeZone, campaign_id:Number(form.campaign) || null, platform:form.platform })
-      setQueue(prev=>[...prev,{ id:post.id,title:post.title,caption:post.caption,platform:form.platform,status:'scheduled',scheduledAt:post.scheduled_for,campaign:form.campaign || null }])
-    } catch (error) { showToast(error.response?.data?.detail || 'Could not schedule post.','error'); return }
-    setShowModal(false)
-    setForm({ title:'', platform:'instagram', date:'', time:'', campaign:'', caption:'', mediaFile:null, mediaPreview:null })
-    showToast('Post scheduled!')
+      const result = await uploadMedia(file)
+      setMediaList([{ id: Date.now(), url: result.media_url, name: file.name, type: file.type }])
+      showToast(`${file.name} uploaded successfully!`)
+    } catch {
+      showToast('Media upload failed.', 'error')
+    } finally {
+      setUploadProgress(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
-  const removePost=async id=>{ try { await marketingService.updatePost(activeClient.id, id, { status:'Cancelled' }); setQueue(prev=>prev.filter(p=>p.id!==id)); showToast('Post cancelled.') } catch { showToast('Could not cancel post.','error') } }
-  const selectMedia=(file)=>{
-    if(!file) return
-    const preview = URL.createObjectURL(file)
-    setForm(p=>({ ...p, mediaFile:file, mediaPreview:preview }))
+  const handleSimulatedUpload = () => {
+    fileInputRef.current?.click()
   }
-  const removeMedia=()=> setForm(p=>({ ...p, mediaFile:null, mediaPreview:null }))
 
-  const firstDay=new Date(year,month,1).getDay()
-  const daysInMonth=new Date(year,month+1,0).getDate()
-  const cells=[]
-  for(let i=0;i<firstDay;i++) cells.push(null)
-  for(let d=1;d<=daysInMonth;d++) cells.push(d)
-  const todayStr=isoDate(new Date().getFullYear(),new Date().getMonth(),new Date().getDate())
+  const handlePlatformToggle = (id) => {
+    setSelectedPlatforms((prev) => {
+      const next = prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+      if (!next.includes(previewTab)) setPreviewTab(next[0] || 'instagram')
+      return next
+    })
+  }
 
-  const inputSty={ background:'var(--bg-alt)', borderColor:'var(--border)', color:'var(--text)' }
-  const inputCls='w-full h-10 px-4 text-sm rounded-[var(--r-md)] border outline-none'
+  const handleAddHashtag = (tag) => {
+    setHashtags(prev => (prev.includes(tag) ? prev : prev ? `${prev} ${tag}` : tag))
+  }
+
+  const handleWeekdayToggle = (day) => {
+    setSelectedWeekdays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    )
+  }
+
+  const buildPayload = (status) => {
+    const media = mediaList[0]
+    const fullCaption = hashtags.trim() ? `${caption}\n\n${hashtags}` : caption
+    const firstLine = fullCaption.split('\n')[0]?.trim() || 'Untitled post'
+    const campaignId = campaigns.some((c) => String(c.id) === selectedCampaign)
+      ? Number(selectedCampaign)
+      : null
+    return {
+      title: firstLine.slice(0, 100),
+      caption: fullCaption,
+      content_type: media ? (media.type?.startsWith('video') ? 'video' : 'image') : 'text',
+      media_url: media?.url || null,
+      scheduled_for:
+          status === 'Queued' || !scheduleDate || !scheduleTime
+              ? null
+              : new Date(`${scheduleDate}T${scheduleTime}`).toISOString(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      campaign_id: campaignId,
+      platforms: effectivePlatforms,
+      status,
+    }
+  }
+
+  const handleSaveDraft = async () => {
+    if (!activeClient) return
+    if (effectivePlatforms.length === 0) {
+      showToast('Please select at least one connected platform.', 'error')
+      return
+    }
+    if (!caption.trim()) {
+      showToast('Caption cannot be empty.', 'error')
+      return
+    }
+    if (submitting) return
+    setSubmitting(true)
+    try {
+      await marketingService.createPost(activeClient.id, buildPayload('Draft'))
+      showToast('Draft saved successfully!')
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Failed to save draft.', 'error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleScheduleClick = () => {
+    if (!activeClient) return
+    if (effectivePlatforms.length === 0) {
+      showToast('Please select at least one connected platform.', 'error')
+      return
+    }
+    if (!caption.trim()) {
+      showToast('Caption cannot be empty.', 'error')
+      return
+    }
+    if (!scheduleDate || !scheduleTime) {
+      showToast('Please select a publish date and time.', 'error')
+      return
+    }
+    setConfirmAction('schedule')
+  }
+
+  const confirmSchedule = async () => {
+    if (submitting) return
+    setSubmitting(true)
+    try {
+      await marketingService.createPost(activeClient.id, buildPayload('Scheduled'))
+      showToast(`Post scheduled for ${scheduleDate} at ${scheduleTime}!`)
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Failed to schedule post. Check the date/time.', 'error')
+    } finally {
+      setSubmitting(false)
+      setConfirmAction(null)
+    }
+  }
+
+  const handlePublishClick = () => {
+    if (!activeClient) return
+    if (effectivePlatforms.length === 0) {
+      showToast('Please select at least one connected platform.', 'error')
+      return
+    }
+    if (!caption.trim()) {
+      showToast('Caption cannot be empty.', 'error')
+      return
+    }
+    // Publish Now does not need a date/time — it goes out immediately.
+    setConfirmAction('publish')
+  }
+
+  const confirmPublish = async () => {
+    if (submitting) return
+    setSubmitting(true)
+    try {
+      const created = await marketingService.createPost(activeClient.id, buildPayload('Scheduled'))
+      const res = await publishPost(created.id)
+      if (res?.status === 'Published') {
+        showToast('Post published successfully!')
+      } else {
+        showToast(res?.message || 'Post could not be published.', 'error')
+      }
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Failed to publish post.', 'error')
+    } finally {
+      setSubmitting(false)
+      setConfirmAction(null)
+    }
+  }
+
+  const stepBadge = (n) => (
+    <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 text-white text-[11px] font-bold flex items-center justify-center shadow-sm flex-shrink-0">{n}</span>
+  )
+
+  const sectionTitle = (n, Icon, title) => (
+    <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+      {stepBadge(n)}
+      <Icon size={16} className="text-indigo-500 dark:text-indigo-400" />
+      <span>{title}</span>
+    </h2>
+  )
+
+  if (!activeClient) {
+    return (
+      <div className="card p-6">
+        <EmptyState icon={Users} title="No client selected" message="Select a client to start scheduling." />
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-5">
-      {toast && (
-        <AnimatePresence>
-          <motion.div initial={{ opacity:0,y:-8 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0 }}
-            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-[var(--r-md)] text-sm font-semibold shadow-[var(--shadow-lg)]"
-            style={{ background: toast.type==='error' ? 'rgba(239,68,68,.95)' : 'rgba(34,197,94,.95)', color:'#fff' }}>
-            {toast.msg}
-          </motion.div>
-        </AnimatePresence>
-      )}
+    <div className="space-y-6 max-w-[1400px] mx-auto animate-fade-in pb-20">
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color:'var(--text-subtle)' }} />
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search queue…"
-            className="w-full h-10 pl-9 pr-4 text-sm rounded-[var(--r-md)] border outline-none" style={inputSty} />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {['all','instagram','facebook','linkedin','x','youtube','pinterest'].map(p=>{
-            const active=platform===p
-            return (
-              <button key={p} onClick={()=>setPlatform(p)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all"
-                style={{
-                  background: active ? 'var(--bg-alt)' : 'var(--card)',
-                  borderColor: active ? 'var(--primary)' : 'var(--border)',
-                  color: active ? 'var(--text)' : 'var(--text-muted)',
-                }}>
-                {p==='all' ? 'All' : p}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        <div className="card p-4 flex flex-col md:flex-row md:items-center gap-4 justify-between">
+      {/* Header */}
+      <section className="card p-5 sm:p-6 relative overflow-hidden bg-gradient-to-r from-indigo-50/70 via-white to-purple-50/50 dark:from-indigo-950/30 dark:via-slate-900/40 dark:to-purple-950/30 border-indigo-100/50 dark:border-indigo-950/40 shadow-card">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Queue</p>
-            <h2 className="text-lg font-bold" style={{ color:'var(--text)' }}>Scheduled Content</h2>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Create & Schedule Posts</h1>
+            <p className="text-slate-600 dark:text-slate-300 mt-1 text-sm font-medium">
+              Pick a platform, write your post, attach media, then save, schedule, or publish instantly for {activeClient?.name}.
+            </p>
+            {!hasConnectedPlatforms && (
+              <p className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-950/40 border border-amber-300/60 dark:border-amber-800/40 px-3 py-1.5 rounded-lg">
+                <AlertTriangle size={13} /> This client has no connected platforms. Connect one from Connected Apps before scheduling.
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={()=>setView('list')} className="px-3 py-1.5 rounded-lg text-xs font-semibold border"
-              style={{ background:view==='list'?'var(--primary)':'var(--card)', color:view==='list'?'#fff':'var(--text-muted)' }}>
-              List
-            </button>
-            <button onClick={()=>setView('calendar')} className="px-3 py-1.5 rounded-lg text-xs font-semibold border"
-              style={{ background:view==='calendar'?'var(--primary)':'var(--card)', color:view==='calendar'?'#fff':'var(--text-muted)' }}>
-              Calendar
-            </button>
-            <button onClick={()=>setShowModal(true)} className="flex items-center gap-2 px-4 h-9 rounded-[var(--r-md)] text-sm font-semibold text-white"
-              style={{ background:'linear-gradient(135deg,#1E3A8A,#4F46E5)' }}>
-              <Plus size={15}/> Schedule Post
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="md" onClick={handleSaveDraft} disabled={submitting || !hasConnectedPlatforms}>
+              <Save size={16} />
+              <span>Save Draft</span>
+            </Button>
+            <Button variant="primary" size="md" onClick={handleScheduleClick} disabled={submitting || !hasConnectedPlatforms}>
+              <Calendar size={16} />
+              <span>Schedule Post</span>
+            </Button>
+            <Button variant="primary" size="md" onClick={handlePublishClick} disabled={submitting || !hasConnectedPlatforms} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Send size={16} />
+              <span>Publish Now</span>
+            </Button>
           </div>
         </div>
 
-        {view === 'list' ? (
-          filtered.length === 0 ? (
-            <div className="card p-6">
-              <EmptyState icon={CalendarDays} title="Queue is empty" message="Schedule a post to get started." />
+        <div className="hidden sm:flex items-center gap-1.5 mt-5 pt-4 border-t border-slate-200/70 dark:border-slate-700/60 flex-wrap">
+          {STEPS.map((label, i) => (
+            <span key={label} className="flex items-center gap-1.5 text-[10px] font-bold">
+              <span className="w-4 h-4 rounded-full bg-indigo-600 dark:bg-indigo-500 text-white text-[9px] flex items-center justify-center">{i + 1}</span>
+              <span className="text-slate-500 dark:text-slate-400">{label}</span>
+              {i < STEPS.length - 1 && <ChevronRight size={12} className="text-slate-300 dark:text-slate-600" />}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+
+        {/* LEFT — Platform, Caption, Media */}
+        <div className="lg:col-span-2 space-y-6">
+
+          <div className="card p-5 space-y-4 shadow-card">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
+              {sectionTitle(1, Layers, 'Select Platforms')}
+              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">
+                {effectivePlatforms.length} selected
+              </span>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {filtered.map((post, index) => {
-                const dt = new Date(post.scheduledAt)
+            <p className="text-[10px] text-slate-400 -mt-1">Choose the client's connected platform this post will be published to.</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {platformList.map((p) => {
+                const Icon = p.icon
+                const connected = connectedPlatforms.includes(p.id)
+                const isSelected = selectedPlatforms.includes(p.id) && connected
                 return (
-                  <motion.div key={post.id} initial={{ opacity:0,y:8 }} animate={{ opacity:1,y:0 }} transition={{ delay:index*0.03 }}
-                    className="card p-4 flex items-center gap-4">
-                    <div className="text-[var(--text-subtle)] flex-shrink-0"><GripVertical size={16} /></div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate" style={{ color:'var(--text)' }}>{post.title}</p>
-                      <p className="text-xs text-[var(--text-muted)] truncate">{dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · {dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}{post.campaign ? ` · ${post.campaign}` : ''}</p>
-                    </div>
-                    <button onClick={()=>removePost(post.id)} className="p-1.5 rounded-lg hover:bg-[var(--bg-alt)]" style={{ color:'var(--error)' }}>
-                      <Trash2 size={13} />
-                    </button>
-                  </motion.div>
+                  <button
+                    key={p.id}
+                    onClick={() => connected && handlePlatformToggle(p.id)}
+                    disabled={!connected}
+                    title={connected ? p.name : `${p.name} is not connected for this client`}
+                    className={`
+                      flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold transition-all duration-200
+                      ${isSelected
+                        ? 'border-indigo-500 bg-indigo-50/70 text-indigo-700 shadow-sm dark:text-indigo-400 dark:border-indigo-400 dark:bg-indigo-950/30'
+                        : connected
+                          ? 'border-slate-100 bg-slate-50/50 hover:bg-slate-100 dark:border-slate-700/60 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 dark:hover:bg-slate-700/60 dark:hover:border-slate-600'
+                          : 'border-slate-100 bg-slate-50/40 dark:border-slate-700/40 dark:bg-slate-800/20 text-slate-300 dark:text-slate-600'}
+                    `}
+                    style={connected ? undefined : { opacity: 0.6, cursor: 'not-allowed' }}
+                  >
+                    <Icon size={16} className="flex-shrink-0" />
+                    <span className="truncate">{p.name}</span>
+                    {connected && isSelected && <CheckCircle2 size={15} className="text-indigo-500 flex-shrink-0 ml-auto" />}
+                    {!connected && (
+                      <span className="text-[8px] font-bold uppercase tracking-wide ml-auto" style={{ color: 'var(--text-subtle)' }}>not connected</span>
+                    )}
+                  </button>
                 )
               })}
             </div>
-          )
-        ) : (
-          <div className="card p-5">
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {DAYS.map(day => (
-                <div key={day} className="text-center text-xs font-semibold py-1" style={{ color:'var(--text-subtle)' }}>{day}</div>
+          </div>
+
+          <div className="card p-5 space-y-4 shadow-card">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
+              {sectionTitle(2, Sparkles, 'Caption & Hashtags')}
+              <span className="text-[10px] text-slate-400 font-bold flex-shrink-0 ml-2">{wordCount} words</span>
+            </div>
+            <textarea
+              rows={5}
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="Write your main caption here..."
+              className="w-full p-4 text-sm bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-400 leading-relaxed text-slate-800 dark:text-slate-100 resize-y"
+            />
+            <div className="flex flex-wrap gap-2">
+              {hashtagSuggestions.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => handleAddHashtag(tag)}
+                  className="px-2.5 py-1 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors"
+                >
+                  + {tag}
+                </button>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-1">
-              {cells.map((day, idx) => {
-                if (!day) return <div key={`blank-${idx}`} />
-                const iso = isoDate(year, month, day)
-                const dayPosts = queue.filter(p => p.scheduledAt.startsWith(iso))
-                const isToday = iso === todayStr
-                return (
-                  <div key={iso} className="min-h-[68px] p-1 rounded-[var(--r-sm)]" style={{ background:isToday?'rgba(30,58,138,.06)':'transparent', border:`1.5px solid ${isToday?'var(--primary)':'var(--border)'}` }}>
-                    <div className="text-xs font-semibold mb-1 w-5 h-5 flex items-center justify-center rounded-full" style={{ background:isToday?'var(--primary)':'transparent', color:isToday?'#fff':'var(--text)' }}>{day}</div>
-                    {dayPosts.slice(0,2).map(post => {
-                      const meta = PLATFORM_META[post.platform]
-                      return (
-                        <div key={post.id} className="flex items-center gap-1 px-1 py-0.5 rounded mb-0.5" style={{ background:`${meta.color}20` }}>
-                          <meta.icon size={9} style={{ color:meta.color, flexShrink:0 }} />
-                          <span className="text-[9px] truncate font-medium" style={{ color:meta.color }}>{post.title}</span>
-                        </div>
-                      )
-                    })}
-                    {dayPosts.length > 2 && <div className="text-[9px] text-[var(--text-subtle)]">+{dayPosts.length - 2}</div>}
+            <input
+              type="text"
+              value={hashtags}
+              onChange={(e) => setHashtags(e.target.value)}
+              placeholder="#OrbitSocial #TechReview"
+              className="w-full p-3 text-xs font-semibold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-800 dark:text-slate-100"
+            />
+          </div>
+
+          <div className="card p-5 space-y-4 shadow-card">
+            {sectionTitle(3, ImageIcon, 'Media Attachments')}
+            <div
+              onClick={handleSimulatedUpload}
+              className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 p-6 rounded-2xl text-center cursor-pointer flex flex-col items-center justify-center space-y-1.5 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <Upload size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Click to upload media asset</p>
+                <p className="text-[10px] text-slate-400">Images / videos (JPG, PNG, MP4)</p>
+              </div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+
+            {uploadProgress && (
+              <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-600 dark:bg-indigo-400 transition-all" style={{ width: `${uploadProgress}%` }}></div>
+              </div>
+            )}
+
+            {mediaList.map((m, i) => (
+              <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-100 dark:border-slate-700">
+                <span className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 flex items-center justify-center flex-shrink-0">
+                  <ImageIcon size={15} className="text-indigo-500" />
+                </span>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate">{m.name}</span>
+                <button onClick={() => setMediaList([])} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 text-rose-500 rounded ml-auto" title="Remove media">
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+        </div>
+
+        {/* RIGHT — Campaign, Schedule, Preview */}
+        <div className="lg:col-span-2 space-y-6">
+
+          <div className="card p-5 space-y-4 shadow-card">
+            {sectionTitle(4, Folder, 'Campaign (Optional)')}
+            <p className="text-[10px] text-slate-400 -mt-1">Group this post under one of the client's campaigns.</p>
+            <select
+              value={selectedCampaign}
+              onChange={(e) => setSelectedCampaign(e.target.value)}
+              className="w-full p-2.5 text-xs font-semibold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-800 dark:text-slate-100"
+            >
+              <option value="">No campaign</option>
+              {campaigns.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="card p-5 space-y-4 shadow-card">
+            {sectionTitle(5, Calendar, 'Schedule & Recurrence')}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[9px] font-extrabold text-slate-400 uppercase">Publish Date</label>
+                <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="w-full p-2 text-xs font-semibold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-800 dark:text-slate-100" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-extrabold text-slate-400 uppercase">Publish Time</label>
+                <input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} className="w-full p-2 text-xs font-semibold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-800 dark:text-slate-100" />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[9px] font-extrabold text-slate-400 uppercase">Recurrence Mode</label>
+              <select
+                value={recurrence}
+                onChange={e => setRecurrence(e.target.value)}
+                className="w-full p-2.5 text-xs font-semibold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-800 dark:text-slate-100"
+              >
+                <option value="Never">Repeat Once (Never)</option>
+                <option value="Daily">Daily Recurrence</option>
+                <option value="Weekly">Weekly Recurrence</option>
+                <option value="Monthly">Monthly Recurrence</option>
+                <option value="Custom">Custom Recurrence</option>
+              </select>
+            </div>
+
+            {recurrence !== 'Never' && (
+              <div className="p-4 bg-slate-50/50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700 rounded-2xl space-y-4">
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  <Sliders size={14} className="text-indigo-500" />
+                  Configure Recurrence Rules
+                </h4>
+
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase">Start Date</label>
+                    <input type="date" value={recStartDate} onChange={e => setRecStartDate(e.target.value)} className="w-full p-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
                   </div>
+                  {recurrence === 'Daily' || recurrence === 'Custom' ? (
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase">End Date</label>
+                      <input type="date" value={recEndDate} onChange={e => setRecEndDate(e.target.value)} className="w-full p-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                    </div>
+                  ) : null}
+                </div>
+
+                {recurrence === 'Weekly' && (
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase block">Occurs on Days</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                        const isActive = selectedWeekdays.includes(day)
+                        return (
+                          <button
+                            key={day}
+                            onClick={() => handleWeekdayToggle(day)}
+                            className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border transition-colors ${isActive ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-500 text-indigo-700 dark:text-indigo-400' : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'}`}
+                          >
+                            {day}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {recurrence === 'Monthly' && (
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase block">Monthly Option</label>
+                    <select value={monthlyOption} onChange={e => setMonthlyOption(e.target.value)} className="w-full p-2 text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                      <option value="Same date each month">Same date each month (e.g. 28th)</option>
+                      <option value="Last day of month">Last day of month</option>
+                      <option value="First Monday">First Monday of each month</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="space-y-1 border-t dark:border-slate-700 pt-3">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase block">Recurrence Preview Details</label>
+                  <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold leading-normal">
+                    {recurrencePreviewText}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="card p-5 space-y-4 shadow-card">
+            {sectionTitle(6, Eye, 'Live Preview')}
+            <p className="text-[10px] text-slate-400 -mt-1">See exactly how your post will look on the selected platform.</p>
+
+            <div className="flex flex-wrap gap-1 border-b border-slate-100 dark:border-slate-700/60 pb-1">
+              {platformList.map((p) => {
+                const Icon = p.icon
+                const isSelected = selectedPlatforms.includes(p.id)
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setPreviewTab(p.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${previewTab === p.id ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30' : `text-slate-400 ${isSelected ? 'hover:text-slate-700 dark:hover:text-slate-200' : 'opacity-50'}`}`}
+                  >
+                    <Icon size={13} />
+                    <span className="capitalize">{p.name.split(' ')[0]}</span>
+                  </button>
                 )
               })}
             </div>
-          </div>
-        )}
-      </div>
 
-      <AnimatePresence>
-        {showModal && (
-          <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-            <motion.div initial={{ scale:0.95,y:16 }} animate={{ scale:1,y:0 }} exit={{ scale:0.95 }}
-              className="w-full max-w-md rounded-[var(--r-xl)] p-6 shadow-[var(--shadow-lg)]"
-              style={{ background:'var(--card)', border:'1px solid var(--border)' }}
-              onClick={e=>e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-base font-bold" style={{ color:'var(--text)' }}>Schedule Post</h2>
-                <button onClick={()=>setShowModal(false)} className="p-1.5 rounded-lg hover:bg-[var(--bg-alt)]" style={{ color:'var(--text-muted)' }}><X size={16} /></button>
-              </div>
-              <div className="flex flex-col gap-4">
-                <div>
-                  <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Post Title *</label>
-                  <input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} placeholder="Post title" className={inputCls} style={inputSty} />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Platform *</label>
-                  <select value={form.platform} onChange={e=>setForm(p=>({...p,platform:e.target.value}))} className={inputCls} style={inputSty}>
-                    {Object.entries(PLATFORM_META).map(([id, meta]) => <option key={id} value={id}>{meta.label}</option>)}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Date *</label>
-                    <input type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))} className={inputCls} style={inputSty} />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Time *</label>
-                    <input type="time" value={form.time} onChange={e=>setForm(p=>({...p,time:e.target.value}))} className={inputCls} style={inputSty} />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Caption</label>
-                  <textarea value={form.caption} onChange={e=>setForm(p=>({...p,caption:e.target.value}))}
-                    rows={3} className="w-full px-4 py-3 text-sm rounded-[var(--r-md)] border outline-none resize-none transition-all" style={inputSty}
-                    placeholder="Write a caption for this post..." />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold mb-1.5 block" style={{ color:'var(--text)' }}>Media</label>
-                  <div className="rounded-[var(--r-md)] border border-dashed border-slate-500/40 bg-[var(--bg-alt)] p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm text-[var(--text-muted)]">Upload image, video or audio</div>
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-all hover:brightness-110">
-                        <input type="file" accept="image/*,video/*,audio/*" className="hidden" onChange={e=>selectMedia(e.target.files?.[0])} />
-                        Choose file
-                      </label>
+            <div className="max-w-sm mx-auto p-2.5 bg-slate-100/80 dark:bg-slate-900/70 border-2 border-indigo-200/70 dark:border-slate-700 rounded-2xl shadow-[0_10px_30px_rgba(30,58,138,0.10)] dark:shadow-none">
+
+              {previewTab === 'instagram' && (
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden text-slate-800 dark:text-slate-100">
+                  <div className="flex items-center gap-2 px-3 py-2.5">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px] flex-shrink-0">
+                      <div className="w-full h-full rounded-full bg-white dark:bg-slate-800 flex items-center justify-center">
+                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200">{previewInitials}</span>
+                      </div>
                     </div>
-                    {form.mediaPreview && (
-                      <div className="mt-3 rounded-[var(--r-md)] border border-slate-600/40 bg-slate-950/10 p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold" style={{ color:'var(--text)' }}>{form.mediaFile?.name}</p>
-                            <p className="text-xs text-[var(--text-muted)]">{form.mediaFile?.type}</p>
-                          </div>
-                          <button type="button" onClick={removeMedia} className="text-sm font-semibold text-blue-500">Remove</button>
-                        </div>
-                        <div className="mt-3">
-                          {form.mediaFile?.type.startsWith('image/') && (
-                            <img src={form.mediaPreview} alt="Preview" className="w-full rounded-[var(--r-md)] object-cover" />
-                          )}
-                          {form.mediaFile?.type.startsWith('video/') && (
-                            <video src={form.mediaPreview} controls className="w-full rounded-[var(--r-md)]" />
-                          )}
-                          {form.mediaFile?.type.startsWith('audio/') && (
-                            <audio src={form.mediaPreview} controls className="w-full rounded-[var(--r-md)]" />
-                          )}
-                        </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold leading-tight truncate">{previewName}</p>
+                      <p className="text-[10px] text-slate-400">@{previewHandle}</p>
+                    </div>
+                    <span className="text-slate-400 text-sm font-bold">•••</span>
+                  </div>
+                  <div className="aspect-square bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
+                    {previewMedia ? (
+                      <img src={previewMedia} alt="Instagram preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1">
+                        <ImageIcon size={20} />
+                        <span>Photo / Video</span>
                       </div>
                     )}
                   </div>
+                  <div className="p-3 space-y-1.5">
+                    <div className="flex items-center gap-4 text-slate-700 dark:text-slate-200">
+                      <Heart size={16} className="text-rose-500 fill-current" />
+                      <MessageCircle size={16} />
+                      <span className="ml-auto text-slate-400">
+                        <Send size={16} />
+                      </span>
+                    </div>
+                    <p className="text-[10px] font-bold">128 likes</p>
+                    <p className="text-xs leading-relaxed">
+                      <span className="font-bold">{previewName}</span> {caption}
+                    </p>
+                    {hashtags.trim() && (
+                      <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">{hashtags}</p>
+                    )}
+                    <p className="text-[10px] text-slate-400">View all 3 comments</p>
+                  </div>
                 </div>
-                <div className="flex gap-3 pt-2">
-                  <button onClick={()=>setShowModal(false)} className="flex-1 h-10 rounded-[var(--r-md)] border text-sm font-semibold" style={{ background:'var(--card)', borderColor:'var(--border)', color:'var(--text)' }}>Cancel</button>
-                  <button onClick={handleSchedule} className="flex-1 h-10 rounded-[var(--r-md)] text-sm font-semibold text-white hover:brightness-105" style={{ background:'linear-gradient(135deg,#1E3A8A,#4F46E5)' }}>Schedule</button>
+              )}
+
+              {previewTab === 'facebook' && (
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden text-slate-800 dark:text-slate-100">
+                  <div className="flex items-center gap-2 px-3 py-2.5">
+                    <div className="w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">{previewInitials}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold leading-tight truncate">{previewName}</p>
+                      <p className="text-[10px] text-slate-400 flex items-center gap-1">Just now · <Globe size={11} /></p>
+                    </div>
+                  </div>
+                  <p className="px-3 pb-2 text-xs leading-relaxed">{caption}</p>
+                  {hashtags.trim() && (
+                    <p className="px-3 pb-2 text-[11px] font-semibold text-blue-600 dark:text-blue-400">{hashtags}</p>
+                  )}
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
+                    {previewMedia ? (
+                      <img src={previewMedia} alt="Facebook preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1">
+                        <ImageIcon size={20} />
+                        <span>Photo / Video</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700 text-[11px] text-slate-500">
+                    <span className="flex items-center gap-1.5"><ThumbsUp size={13} className="text-blue-500" /> 12</span>
+                    <span className="flex items-center gap-3">
+                      <span className="flex items-center gap-1"><MessageCircle size={13} /> 4</span>
+                      <span className="flex items-center gap-1"><Share2 size={13} /> Share</span>
+                    </span>
+                  </div>
                 </div>
+              )}
+
+              {previewTab === 'linkedin' && (
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden text-slate-800 dark:text-slate-100">
+                  <div className="flex items-center gap-2 px-3 py-2.5">
+                    <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">{previewInitials}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold leading-tight truncate">{previewName}</p>
+                      <p className="text-[10px] text-slate-400 truncate">{previewName} · Just now</p>
+                    </div>
+                    <span className="text-slate-300 text-base font-bold">…</span>
+                  </div>
+                  <div className="px-3 pb-2 space-y-1.5">
+                    <p className="text-xs leading-relaxed">{caption}</p>
+                    {hashtags.trim() && (
+                      <p className="text-[11px] font-semibold text-sky-700 dark:text-sky-400">{hashtags}</p>
+                    )}
+                  </div>
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
+                    {previewMedia ? (
+                      <img src={previewMedia} alt="LinkedIn preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1">
+                        <ImageIcon size={20} />
+                        <span>Photo / Video</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700 text-[11px] text-slate-500">
+                    <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-1"><ThumbsUp size={13} className="text-sky-600" /> 45</span>
+                      <span className="flex items-center gap-1"><MessageCircle size={13} /> 6</span>
+                      <span className="flex items-center gap-1"><Repeat2 size={13} /> 3</span>
+                    </span>
+                    <span>1d</span>
+                  </div>
+                </div>
+              )}
+
+              {previewTab === 'x' && (
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden text-slate-800 dark:text-slate-100 p-3.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-full bg-slate-400 dark:bg-slate-500 text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0">{previewInitials}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold leading-tight truncate">{previewName} <span className="text-sky-500"><BadgeCheck size={13} className="inline" /></span></p>
+                      <p className="text-[10px] text-slate-400">@{previewHandle}</p>
+                    </div>
+                  </div>
+                  <p className="mt-2.5 text-xs leading-relaxed">{caption}</p>
+                  {hashtags.trim() && (
+                    <p className="mt-1.5 text-[11px] font-semibold text-sky-600 dark:text-sky-400">{hashtags}</p>
+                  )}
+                  <div className="mt-2.5 rounded-2xl aspect-video bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
+                    {previewMedia ? (
+                      <img src={previewMedia} alt="X preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1">
+                        <ImageIcon size={20} />
+                        <span>Image / Video</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+                    <span className="flex items-center gap-1.5"><MessageCircle size={13} /> 8</span>
+                    <span className="flex items-center gap-1.5"><Repeat2 size={13} /> 21</span>
+                    <span className="flex items-center gap-1.5 text-rose-500"><Heart size={13} /> 112</span>
+                    <span className="flex items-center gap-1.5"><BarChart2 size={13} /> 1.2K</span>
+                  </div>
+                </div>
+              )}
+
+              {previewTab === 'youtube' && (
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden text-slate-800 dark:text-slate-100">
+                  <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                    {previewMedia ? (
+                      <img src={previewMedia} alt="YouTube preview" className="w-full h-full object-cover opacity-90" />
+                    ) : (
+                      <div className="w-full h-full bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-400 text-[10px] gap-1">
+                        <ImageIcon size={20} />
+                        <span>Video thumbnail</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg">
+                        <Play size={18} className="fill-current ml-0.5" />
+                      </div>
+                    </div>
+                    <span className="absolute bottom-1.5 right-1.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">0:42</span>
+                  </div>
+                  <div className="flex gap-2.5 p-3">
+                    <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">{previewInitials}</div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold leading-snug line-clamp-2">{caption || 'Video title appears here'}</p>
+                      <p className="text-[10px] text-slate-400 mt-1">{previewName} · 1.2K views · 2 days ago</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {previewTab === 'pinterest' && (
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden text-slate-800 dark:text-slate-100">
+                  <div className="relative aspect-[3/4] bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
+                    {previewMedia ? (
+                      <img src={previewMedia} alt="Pinterest preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1">
+                        <ImageIcon size={20} />
+                        <span>Pin image</span>
+                      </div>
+                    )}
+                    <span className="absolute top-2 left-2 w-7 h-7 rounded-full bg-red-600 text-white text-xs font-black flex items-center justify-center shadow">P</span>
+                    <span className="absolute bottom-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full shadow">Save</span>
+                  </div>
+                  <p className="p-2.5 text-[11px] font-semibold leading-relaxed line-clamp-2">{caption || 'Pin description appears here'}</p>
+                </div>
+              )}
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      {createPortal(
+        confirmAction && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
+            <div className="w-full max-w-sm rounded-[var(--r-xl)] p-6 shadow-[var(--shadow-lg)] my-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-bold" style={{ color: 'var(--text)' }}>
+                  {confirmAction === 'schedule' ? 'Schedule this post?' : 'Publish this post now?'}
+                </h3>
+                <button onClick={() => setConfirmAction(null)} className="p-1.5 rounded-lg hover:bg-[var(--bg-alt)]" style={{ color: 'var(--text-muted)' }}>
+                  <X size={16} />
+                </button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                {confirmAction === 'schedule'
+                  ? `This post will be scheduled for ${scheduleDate} at ${scheduleTime} on:`
+                  : 'This post will be published immediately on:'}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {effectivePlatforms.map((id) => {
+                  const meta = PLATFORM_META[id]
+                  const Icon = meta.icon
+                  return (
+                    <span key={id} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: `${meta.color}15`, color: meta.color }}>
+                      <Icon size={12} /> {meta.label}
+                    </span>
+                  )
+                })}
+              </div>
+              {confirmAction === 'publish' && (
+                <p className="mt-3 text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                  <AlertTriangle size={13} /> This cannot be undone — publishing starts right away.
+                </p>
+              )}
+              <div className="flex gap-3 pt-5">
+                <button onClick={() => setConfirmAction(null)} className="flex-1 h-10 rounded-[var(--r-md)] border text-sm font-semibold" style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}>
+                  Cancel
+                </button>
+                <button onClick={confirmAction === 'schedule' ? confirmSchedule : confirmPublish} disabled={submitting}
+                  className="flex-1 h-10 rounded-[var(--r-md)] text-sm font-semibold text-white hover:brightness-105"
+                  style={{ background: confirmAction === 'publish' ? 'linear-gradient(135deg,#059669,#10B981)' : 'linear-gradient(135deg,#1E3A8A,#4F46E5)' }}>
+                  {submitting ? 'Working...' : confirmAction === 'schedule' ? 'Schedule' : 'Publish Now'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ),
+        document.body
+      )}
+
+      {createPortal(
+        toast && (
+          <div className="fixed top-5 inset-x-0 z-[100] flex justify-center px-4 pointer-events-none">
+            <div className="flex items-center gap-2.5 px-5 py-3 rounded-[var(--r-xl)] shadow-[var(--shadow-lg)] text-sm font-semibold text-white animate-slide-in pointer-events-auto"
+              style={{ background: toast.type === 'error' ? 'linear-gradient(135deg,#DC2626,#EF4444)' : 'linear-gradient(135deg,#059669,#10B981)' }}>
+              {toast.type === 'error' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+              <span>{toast.msg}</span>
+              <button onClick={() => setToast(null)} className="ml-1 text-xs font-bold opacity-80 hover:opacity-100">✕</button>
+            </div>
+          </div>
+        ),
+        document.body
+      )}
+
     </div>
   )
 }
@@ -294,21 +881,19 @@ export default function ContentScheduling() {
       <div className="p-6">
         <div className="card">
           <EmptyState icon={Users} title="No client selected" message="Select a client first."
-            action={{ label:'View Clients', onClick:() => navigate('/dashboard/mkt/clients') }} />
+            action={{ label: 'View Clients', onClick: () => navigate('/dashboard/mkt/clients') }} />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-[1100px] mx-auto">
-      <button onClick={() => navigate('/dashboard/mkt/workspace')} className="flex items-center gap-1.5 text-sm font-semibold mb-4 hover:underline" style={{ color:'var(--primary)' }}>
+    <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
+      <button onClick={() => navigate('/dashboard/mkt/workspace')}
+        className="flex items-center gap-1.5 text-sm font-semibold mb-4 hover:underline" style={{ color: 'var(--primary)' }}>
         <ArrowLeft size={15} /> Back to Workspace
       </button>
-      <PageHeader
-        title="Content Scheduling"
-        subtitle={`Scheduling for: ${activeClient.name}`}
-      />
+      <PageHeader title="Content Scheduling" subtitle={`Scheduling for: ${activeClient.name}`} />
       <SchedulingPanel />
     </div>
   )

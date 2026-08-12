@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { getContentAnalytics } from '../../../../services/analyticsService'
 import PostCompareModal from '../../components/analytics/Shared/PostCompareModal'
-import { Search, Filter, ArrowUpDown, Layers, Eye } from 'lucide-react'
+import { Search, Layers } from 'lucide-react'
 
 export default function ContentAnalytics() {
   const context = useOutletContext() || {}
@@ -13,6 +13,8 @@ export default function ContentAnalytics() {
   const [platform, setPlatform] = useState(context.selectedPlatform || 'All')
   const [campaign, setCampaign] = useState(context.selectedCampaign || 'All')
   const [sortBy, setSortBy] = useState('reach') // reach, engagementRate, likes
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   const campaigns = context.campaigns || []
 
@@ -20,11 +22,11 @@ export default function ContentAnalytics() {
   const [showCompareModal, setShowCompareModal] = useState(false)
 
   useEffect(() => {
-    getContentAnalytics({ search, platform, campaign, sortBy }).then((res) => {
+    getContentAnalytics({ search, platform, campaign, sortBy, startDate, endDate }).then((res) => {
       setPosts(res)
       setLoading(false)
     })
-  }, [search, platform, campaign, sortBy])
+  }, [search, platform, campaign, sortBy, startDate, endDate])
 
   const toggleSelectPost = (id) => {
     setSelectedPostIds((prev) =>
@@ -111,6 +113,35 @@ export default function ContentAnalytics() {
               <option value="engagementRate">Engagement Rate</option>
               <option value="likes">Likes</option>
             </select>
+          </div>
+
+          {/* Date Range Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-secondary whitespace-nowrap">From:</span>
+            <input
+              type="date"
+              value={startDate}
+              max={endDate || undefined}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="select-base text-xs"
+            />
+            <span className="text-xs font-semibold text-secondary whitespace-nowrap">To:</span>
+            <input
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="select-base text-xs"
+            />
+            {(startDate || endDate) && (
+              <button
+                onClick={() => { setStartDate(''); setEndDate('') }}
+                className="text-xs font-semibold hover:underline whitespace-nowrap"
+                style={{ color: 'var(--primary)' }}
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
       </div>

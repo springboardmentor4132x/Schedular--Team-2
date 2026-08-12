@@ -23,6 +23,7 @@ from app.routers import (
     marketing,
     notifications,
     posts,
+    publish,
     publishing,
     social_accounts,
     users,
@@ -84,6 +85,7 @@ app.include_router(notifications.router, prefix="/api/v1", tags=["Notifications"
 app.include_router(business.router, prefix="/api/v1", tags=["Business"])
 app.include_router(marketing.router, prefix="/api/v1", tags=["Marketing"])
 app.include_router(publishing.router, prefix="/api/v1", tags=["Publishing"])
+app.include_router(publish.router, prefix="/api/v1", tags=["Publish"])
 app.include_router(analytics.router, prefix="/api/v1", tags=["Analytics"])
 
 # Serve uploaded files.

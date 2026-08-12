@@ -49,7 +49,7 @@ export default function FailedPosts() {
 
   return (
     <div className="p-4 sm:p-6 max-w-[1100px] mx-auto">
-      <button onClick={() => navigate('/dashboard/mkt/publishing')}
+      <button onClick={() => navigate('/dashboard/mkt/queue')}
         className="flex items-center gap-1.5 text-sm font-semibold mb-4 hover:underline" style={{ color: 'var(--primary)' }}>
         <ArrowLeft size={15} /> Back to Publishing Center
       </button>
@@ -62,7 +62,7 @@ export default function FailedPosts() {
       ) : (
         <div className="space-y-2">
           {failed.map(f => (
-            <div key={f.id} className="card p-4 flex flex-wrap items-center justify-between gap-3" style={{ borderLeft: '3px solid #EF4444' }}>
+            <div key={f.id} className="card p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4" style={{ borderLeft: '3px solid #EF4444' }}>
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,.10)' }}>
                   <AlertTriangle size={15} style={{ color: '#EF4444' }} />

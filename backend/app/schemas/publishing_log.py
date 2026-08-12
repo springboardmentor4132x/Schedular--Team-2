@@ -23,6 +23,7 @@ class PublishingLogItemResponse(PublishingLogResponse):
     """Log entry enriched with post + campaign context for the publishing logs page."""
     created_at: Optional[datetime] = None
     title: Optional[str] = None
+    caption: Optional[str] = None
     platforms: List[str] = Field(default_factory=list)
     campaign_name: Optional[str] = None
     published_by: Optional[str] = None

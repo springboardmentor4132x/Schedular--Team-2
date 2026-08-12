@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from app.database.database import SessionLocal
-from app.services import schedular_service
+from app.services import publishing_service
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ async def start_publishing_worker():
     while True:
         db = SessionLocal()
         try:
-            schedular_service.publish_due_posts(db)
+            publishing_service.process_publishing_queue(db)
         except Exception:
             logger.exception("Error while processing publishing queue")
         finally:

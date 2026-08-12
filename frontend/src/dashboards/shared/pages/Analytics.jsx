@@ -233,7 +233,7 @@ function MarketingAnalytics({ data }) {
   const kpis = data?.kpis ?? {}
   const series = data?.series ?? []
   const platformSplit = data?.platformSplit ?? []
-  const approval = data?.approval ?? []
+  const publishingStatus = data?.publishingStatus ?? []
   const clients = data?.clients ?? []
   const platformTotal = platformSplit.reduce((sum, p) => sum + (p.value || 0), 0)
 
@@ -278,23 +278,23 @@ function MarketingAnalytics({ data }) {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
           className="card p-5">
           <h2 className="text-sm font-bold mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--text)' }}>
-            Approval Breakdown
+            Publishing Status
           </h2>
-          {approval.length === 0 ? (
-            <p className="text-xs py-8 text-center" style={{ color: 'var(--text-muted)' }}>No work requests yet.</p>
+          {publishingStatus.length === 0 ? (
+            <p className="text-xs py-8 text-center" style={{ color: 'var(--text-muted)' }}>No posts yet.</p>
           ) : (
             <>
               <ResponsiveContainer width="100%" height={160}>
                 <PieChart>
-                  <Pie data={approval} cx="50%" cy="50%" innerRadius={45} outerRadius={70}
+                  <Pie data={publishingStatus} cx="50%" cy="50%" innerRadius={45} outerRadius={70}
                     dataKey="value" nameKey="name" paddingAngle={3}>
-                    {approval.map(entry => <Cell key={entry.name} fill={entry.color} />)}
+                    {publishingStatus.map(entry => <Cell key={entry.name} fill={entry.color} />)}
                   </Pie>
                   <Tooltip formatter={(v, n) => [`${v}`, n]} />
                 </PieChart>
               </ResponsiveContainer>
               <ul className="flex flex-col gap-1.5 mt-2">
-                {approval.map(p => (
+                {publishingStatus.map(p => (
                   <li key={p.name} className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
@@ -415,7 +415,7 @@ export default function Analytics() {
       <PageHeader
         title="Analytics"
         subtitle={isMarketing
-          ? 'Team workflow metrics — output, approvals, and platform performance.'
+          ? 'Team workflow metrics — output, publishing status, and platform performance.'
           : 'Content activity across your connected platforms.'}
         actions={
           <div

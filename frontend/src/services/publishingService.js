@@ -1,4 +1,5 @@
 import API from '../shared/api/api'
+import { FaInstagram, FaFacebook, FaLinkedin, FaXTwitter, FaYoutube, FaPinterest } from 'react-icons/fa6'
 
 const PLATFORM_LABELS = {
   instagram: 'Instagram',
@@ -15,9 +16,32 @@ function platformLabel(value) {
   return PLATFORM_LABELS[value.toLowerCase()] || value
 }
 
+// Explicit date/month/year (DD/MM/YYYY) with a 12-hour clock,
+// e.g. 12/08/2026, 06:13 pm — independent of browser locale.
 function formatDateTime(value) {
   if (!value) return '—'
-  return new Date(value).toLocaleString()
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+  let hours = date.getHours()
+  const ampm = hours >= 12 ? 'pm' : 'am'
+  hours = hours % 12 || 12
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${day}/${month}/${year}, ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`
+}
+
+// Pretty-printed publishing-log response payload for display.
+// React escapes the output when rendered in <pre>, so this is XSS-safe.
+export function prettyLogResponse(raw) {
+  if (!raw) return '—'
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+    return JSON.stringify(parsed, null, 2)
+  } catch {
+    return String(raw)
+  }
 }
 
 function statusAction(status) {
@@ -122,9 +146,24 @@ export async function getPublishingDashboard(workspaceId) {
   return { stats, recentActivity, todaySchedule, upcomingSchedule, publishingStatus }
 }
 
+const QUEUE_STATUS_RANK = {
+  Pending: 0,
+  Processing: 1,
+  Paused: 2,
+  Failed: 3,
+  Completed: 4,
+  Cancelled: 5,
+}
+
 export async function getPublishingQueue(workspaceId) {
   const response = await API.get('/publishing/queue', { params: paramsFor(workspaceId) })
-  return response.data.map((entry, index) => ({
+  // Time-proper order: active entries (soonest scheduled first), then history.
+  const sorted = [...(response.data || [])].sort((a, b) => {
+    const rank = (QUEUE_STATUS_RANK[a.processing_status] ?? 5) - (QUEUE_STATUS_RANK[b.processing_status] ?? 5)
+    if (rank !== 0) return rank
+    return new Date(a.scheduled_time || 0) - new Date(b.scheduled_time || 0)
+  })
+  return sorted.map((entry, index) => ({
     id: entry.id,
     post_id: entry.post_id,
     position: index + 1,
@@ -156,18 +195,34 @@ export async function getPublishingLogs(filters = {}, workspaceId) {
   const { platform, status, search } = filters
   const params = { ...paramsFor(workspaceId) }
   if (platform && platform !== 'All') params.platform = platform.toLowerCase()
-  if (status && status !== 'All') params.status = status === 'published' ? 'Success' : status
+  if (status && status !== 'All') {
+    // Backend stores log statuses as 'Published' / 'Failed' (legacy 'Success' too).
+    const LOG_STATUS_MAP = { published: 'Published', failed: 'Failed', cancelled: 'Cancelled' }
+    params.status = LOG_STATUS_MAP[status] || status
+  }
   const response = await API.get('/publishing/logs', { params })
-  let data = response.data.map((log) => ({
-    id: log.id,
-    date: formatDateTime(log.created_at),
-    platform: platformLabel(log.platform),
-    campaign: log.campaign_name || log.title || '—',
-    status: log.status === 'Success' ? 'published' : (log.status || '').toLowerCase(),
-    response: typeof log.response === 'string' ? log.response : JSON.stringify(log.response || ''),
-    retryCount: log.retry_count || 0,
-    publishedBy: log.published_by || 'System',
-  }))
+  // Newest publishing attempt first, by time.
+  const rows = [...(response.data || [])].sort(
+    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+  )
+  let data = rows.map((log) => {
+    // failure_reason / platform_post_id are embedded in the JSON response payload.
+    let parsed = null
+    try { parsed = typeof log.response === 'string' ? JSON.parse(log.response) : (log.response || null) } catch { /* ignore */ }
+    return {
+      id: log.id,
+      date: formatDateTime(log.created_at),
+      platform: platformLabel(log.platform),
+      campaign: log.campaign_name || log.title || '—',
+      caption: log.caption || '',
+      status: (log.status === 'Success' || log.status === 'Published') ? 'published' : (log.status || '').toLowerCase(),
+      response: typeof log.response === 'string' ? log.response : JSON.stringify(log.response || ''),
+      retryCount: log.retry_count || 0,
+      publishedBy: log.published_by || 'System',
+      platformPostId: log.platform_post_id || parsed?.platform_post_id || null,
+      failureReason: log.failure_reason || parsed?.failure_reason || null,
+    }
+  })
   if (search) {
     const q = search.toLowerCase()
     data = data.filter(
@@ -200,7 +255,9 @@ export async function getFailedPosts(workspaceId) {
 
 export async function retryPublishing(id) {
   const response = await API.post(`/publishing/failed/${id}/retry`)
-  return { success: true, message: response.data.message || `Post ${id} has been requeued for retry.` }
+  const status = response.data?.status
+  const ok = !status || status !== 'Failed'
+  return { success: ok, message: response.data?.message || `Post ${id} has been requeued for retry.` }
 }
 
 export async function getPlatformHistory(workspaceId) {
@@ -208,20 +265,19 @@ export async function getPlatformHistory(workspaceId) {
   const results = []
   for (const platform of platforms) {
     const response = await API.get(`/publishing/history/${platform}`, { params: paramsFor(workspaceId) })
-    const items = response.data
+    const items = [...(response.data || [])].sort(
+      (a, b) => new Date(b.published_at || 0) - new Date(a.published_at || 0)
+    )
     if (!items.length) continue
     const successful = items.filter((i) => i.status === 'Published').length
     const totalPosts = items.length
     const failedPosts = items.filter((i) => i.status === 'Failed').length
-    const recentActivity = items.slice(0, 5).map((i) => {
-      const d = new Date(i.published_at)
-      return {
-        date: d.toISOString().slice(0, 10),
-        posts: 1,
-        successful: i.status === 'Published' ? 1 : 0,
-        failed: i.status === 'Failed' ? 1 : 0,
-      }
-    })
+    const recentActivity = items.slice(0, 5).map((i) => ({
+      date: i.published_at ? new Date(i.published_at).toISOString().slice(0, 10) : '—',
+      posts: 1,
+      successful: i.status === 'Published' ? 1 : 0,
+      failed: i.status === 'Failed' ? 1 : 0,
+    }))
     results.push({
       id: platform,
       name: platformLabel(platform),
@@ -232,6 +288,14 @@ export async function getPlatformHistory(workspaceId) {
       successRate: totalPosts ? Number(((successful / totalPosts) * 100).toFixed(1)) : 0,
       failedPosts,
       recentActivity,
+      items: items.map((i) => ({
+        id: i.post_id,
+        title: i.title || null,
+        platform: platformLabel(platform),
+        publishedAt: i.published_at,
+        status: i.status,
+        platformPostId: i.platform_post_id || null,
+      })),
     })
   }
   return results
@@ -239,14 +303,14 @@ export async function getPlatformHistory(workspaceId) {
 
 function platformIcon(platform) {
   const map = {
-    instagram: '📸',
-    facebook: '📘',
-    linkedin: '💼',
-    x: '🐦',
-    youtube: '▶️',
-    pinterest: '📌',
+    instagram: FaInstagram,
+    facebook: FaFacebook,
+    linkedin: FaLinkedin,
+    x: FaXTwitter,
+    youtube: FaYoutube,
+    pinterest: FaPinterest,
   }
-  return map[platform] || '🌐'
+  return map[platform] || FaInstagram
 }
 
 function platformColor(platform) {

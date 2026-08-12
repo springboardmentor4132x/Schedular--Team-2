@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 
 from app.database.database import Base
 
@@ -21,4 +21,4 @@ class PlatformAnalytics(Base):
     snapshot_date = Column(Date, nullable=False, index=True)
     last_synced = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    social_account = relationship("SocialAccount", backref="platform_analytics")
+    social_account = relationship("SocialAccount", backref=backref("platform_analytics", passive_deletes=True))

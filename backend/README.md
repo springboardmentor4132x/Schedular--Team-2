@@ -1,129 +1,81 @@
-#Backend Documentation
+# Backend — FastAPI
 
-This document outlines the System Architecture, Database Schema, and API Structure for the SocialPilot platform.
+FastAPI backend for the social media scheduler & campaign management platform (see root `README.md` for setup).
 
-#1. System Architecture
-
-This architecture illustrates how the Next.js frontend, FastAPI backend, databases, and third-party APIs communicate.
+## 1. Architecture
 
 ```mermaid
 graph TD
-    %% Entities
     Client[Client Browser/Mobile]
-    Frontend[Next.js Frontend]
+    Frontend[React Frontend]
     Gateway[FastAPI Backend - Main]
     AuthService[Auth / RBAC Module]
     SchedulingService[Content Scheduling Module]
+    PublishingWorker[Background Publishing Worker]
     SocialService[Multi-Platform Publishing Module]
     AnalyticsService[Analytics Dashboard Module]
-    
-    Databases
+
     Postgres[(PostgreSQL)]
-    Mongo[(MongoDB)]
-    
-    External
+
     SocialAPIs((Social Media APIs))
 
-    Connections
     Client <-->|HTTPS| Frontend
     Frontend <-->|REST API / JWT| Gateway
-    
+
     Gateway --> AuthService
     Gateway --> SchedulingService
     Gateway --> SocialService
     Gateway --> AnalyticsService
-    
+
     AuthService <-->|Users, Roles, Campaigns| Postgres
-    SchedulingService <-->|Campaign Metadata| Postgres
-    SchedulingService <-->|Post Content, Media, Logs| Mongo
-    
+    SchedulingService <-->|Posts, Queue| Postgres
+    PublishingWorker --> SocialService
     SocialService <-->|Publishing via Tokens| SocialAPIs
     AnalyticsService <-->|Fetch Engagement| SocialAPIs
-
-
-#2. Database Schema (ER Diagram)
-
-The following Entity-Relationship diagram maps out the core relational data stored in PostgreSQL.
-
-erDiagram
-    USERS {
-        int id PK
-        string username
-        string email
-        string password_hash
-        string role "Admin, Creator, Business"
-        datetime created_at
-    }
-    
-    SOCIAL_ACCOUNTS {
-        int id PK
-        int user_id FK
-        string platform "Facebook, Twitter, LinkedIn, etc."
-        string access_token
-        string refresh_token
-        datetime token_expires_at
-    }
-    
-    CAMPAIGNS {
-        int id PK
-        int user_id FK
-        string name
-        date start_date
-        date end_date
-        float budget
-    }
-    
-    POSTS {
-        int id PK
-        int campaign_id FK
-        int social_account_id FK
-        string status "Draft, Scheduled, Published, Failed"
-        datetime scheduled_for
-        string mongo_document_id "References Mongo content"
-    }
-
-    USERS ||--o{ SOCIAL_ACCOUNTS : "manages"
-    USERS ||--o{ CAMPAIGNS : "creates"
-    CAMPAIGNS ||--o{ POSTS : "contains"
-    SOCIAL_ACCOUNTS ||--o{ POSTS : "publishes to"
-
-# 3. API Structure
-
-The RESTful APIs are modularized via FastAPI Routers.
-
-### Authentication (`/api/v1/auth`)
-*   `POST /register` - Create a new user
-*   `POST /login` - Authenticate and receive JWT
-*   `GET /me` - Get current user profile (Protected)
-
-### Campaigns (`/api/v1/campaigns`)
-*   `POST /` - Create a new campaign
-*   `GET /` - List user's campaigns
-*   `GET /{campaign_id}` - Get campaign details & metrics
-
-### Posts & Scheduling (`/api/v1/posts`)
-*   `POST /` - Create/schedule a new post
-*   `GET /` - List posts (filterable by status/date)
-*   `PUT /{post_id}` - Edit a scheduled post
-*   `DELETE /{post_id}` - Cancel a scheduled post
-
-### Analytics (`/api/v1/analytics`) - *To be implemented*
-*   `GET /engagement` - Get engagement metrics across platforms
-*   `GET /audience` - Get audience growth metrics
-
-# 4. Automatic Seed Data
-
-On first startup with a fresh database, `app/seed.py` inserts demo users
-(`biz1@test.com`, `mkt1@test.com`, `cre1@test.com` — password `password123`) plus a
-sample Instagram account, campaign and scheduled post so the UI has real data.
-
-- Seeding runs automatically via `main.py` and is idempotent (skips if `users` is non-empty).
-- **No admin account is seeded.** Only one admin may exist; the first user to register
-  with role `administrator` becomes the single platform admin, after which admin
-  registration is rejected by the backend (`POST /auth/register`) and hidden in the UI.
-
-Run seeding manually (optional):
-
-```bash
-python -c "import app.models; from app.database.database import Base, engine; Base.metadata.create_all(bind=engine)"
 ```
+
+## 2. Core Tables
+
+- **users** — accounts with role (`business`, `marketing`, `creator`, `administrator`)
+- **workspaces / workspace_members** — client workspaces and member assignment
+- **campaigns** — campaign metadata (budget, dates, status)
+- **posts** — content with status (`Draft`, `Scheduled`, `Queued`, `Published`, `Failed`, `Cancelled`)
+- **social_accounts** — connected platform accounts and OAuth tokens
+- **publishing_queue** — scheduled work items processed by the background worker
+- **publishing_logs** — per-platform publish attempts (status, response, failure reason, platform post ID)
+- **analytics tables** — audience, platform, post, and campaign analytics
+
+## 3. API Structure
+
+All routes are mounted under `/api/v1` and documented in Swagger at `/docs`.
+
+| Area | Router | Highlights |
+|---|---|---|
+| Authentication | `/auth` | `POST /register`, `POST /login`, `GET /me`, Google OAuth |
+| Users | `/users` | Profiles, settings |
+| Workspaces | `/workspaces` | Client workspaces & members |
+| Campaigns | `/campaigns` | CRUD + metrics |
+| Posts | `/posts` | Create/schedule/update/delete posts, media upload |
+| Social Accounts | `/social-accounts` | Connect/disconnect platforms, token refresh |
+| Publishing | `/publishing` | Queue, logs, failed posts, platform history, retries, cancel |
+| Publish | `/publish` | Immediate publish through the shared pipeline |
+| Marketing | `/marketing` | Marketing dashboard stats, client workspace, team requests |
+| Business | `/business` | Business dashboard, reports, activity |
+| Analytics | `/analytics` | Engagement, audience, platform, post, campaign metrics |
+| Notifications | `/notifications` | In-app notifications |
+| Admin | `/admin` | Platform-wide admin endpoints |
+| Settings | `/settings` | User settings |
+
+## 4. Background Worker
+
+`app/services/background_worker.py` starts an asyncio loop (via the app lifespan) that polls the **publishing queue** and publishes due posts through the shared pipeline — token validation → dispatch to platform services → logging → retries. No external scheduler is required.
+
+## 5. Seed Data
+
+`app/seed.py` runs automatically on startup when the `users` table is empty (and can be re-run manually — it is idempotent):
+
+- 3 business users, 4 marketing teams, 2 creators, and **1 administrator** (`admin1@test.com`)
+- Password for all seeded accounts: `password123`
+- Workspaces, test campaigns, posts (draft/scheduled/published), connected demo social accounts, analytics, and publishing history
+
+> Only **one** administrator can ever exist — registering another is rejected by the backend.

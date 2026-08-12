@@ -17,6 +17,7 @@ import { SchedulingPanel } from './ContentScheduling'
 import { PublishingPanel } from './PublishingCenter'
 import { contentApi, CONTENT_MAX_FILE_SIZE, ACCEPTED_FILE_TYPES } from '../../../services/contentApi'
 import { marketingService } from '../../../services/marketingService'
+import { publishPost } from '../../../services/postService'
 
 const PLATFORMS = [
   { id:'instagram', label:'Instagram', icon:FaInstagram, color:'#E1306C' },
@@ -149,7 +150,7 @@ export default function ContentManagement() {
       platform: form.platforms[0] || 'instagram',
       status,
       tags: form.hashtags.split(/[,\s]+/).filter(Boolean),
-      scheduledAt: form.scheduleDate && form.scheduleTime ? `${form.scheduleDate}T${form.scheduleTime}` : null,
+      scheduledAt: form.scheduleDate && form.scheduleTime ? new Date(`${form.scheduleDate}T${form.scheduleTime}`).toISOString() : null,
       uploadedBy: activeClient.name,
     }
 
@@ -192,6 +193,20 @@ export default function ContentManagement() {
   const handleDelete = id => {
     setDrafts(prev => prev.filter(item => item.id !== id))
     showToast('Draft removed')
+  }
+
+  const handlePublishDraft = async draft => {
+    try {
+      const res = await publishPost(draft.id)
+      if (res?.status === 'Published') {
+        showToast('Post published successfully!')
+        setDrafts(prev => prev.filter(item => item.id !== draft.id))
+      } else {
+        showToast(res?.message || 'Post could not be published.', 'error')
+      }
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Failed to publish post.', 'error')
+    }
   }
 
   const handleDuplicate = id => {
@@ -388,6 +403,12 @@ export default function ContentManagement() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2 pt-2 border-t" style={{ borderColor:'var(--border)' }}>
+                    {draft.status === 'draft' && (
+                      <button onClick={() => handlePublishDraft(draft)}
+                        className="flex items-center gap-1 text-xs font-semibold" style={{ color:'#22C55E' }}>
+                        <Send size={12} /> Publish
+                      </button>
+                    )}
                     <button onClick={() => openEdit(draft)} className="flex items-center gap-1 text-xs font-semibold text-[var(--primary)] hover:underline">
                       <Edit3 size={12} /> Edit
                     </button>
