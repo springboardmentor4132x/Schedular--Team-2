@@ -1,8 +1,10 @@
 from typing import List
 from datetime import datetime, timezone
 import httpx
+import os
+import shutil
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile ,File ,Form
 from fastapi.responses import RedirectResponse
 import httpx
 from sqlalchemy.orm import Session
@@ -12,7 +14,7 @@ from app.database.database import SessionLocal, get_db
 from app.models.social_account import SocialAccount
 from app.models.user import User
 from app.core.config import settings
-
+UPLOAD_DIR = settings.MEDIA_DIR
 from app.schemas.social_account import (
     SocialAccountConnect,
     SocialAccountResponse,
@@ -41,6 +43,8 @@ from app.services.linkedin_service import (
     get_linkedin_user_info,
     get_linkedin_profile,
     create_linkedin_post,
+    sync_post_analytics_to_db,
+    sync_audience_analytics_to_db,
 )
 
 from app.services.youtube_service import (
@@ -49,6 +53,9 @@ from app.services.youtube_service import (
     get_youtube_user_info,
     get_channel_details,
     upload_video,
+    sync_post_analytics_to_db as yt_sync_post,
+    sync_audience_analytics_to_db as yt_sync_audience,
+    sync_platform_snapshot_to_db as yt_sync_platform,
 )
 
 from app.services.instagram_service import (
@@ -73,10 +80,11 @@ from app.services.pinterest_service import (
     exchange_code_for_access_token as exchange_pinterest_token,
     get_pinterest_user_info,
 )
+from app.schemas.linkedin import LinkedInPostRequest
 
 router = APIRouter(
     prefix="/social-accounts",
-    tags=["Social Accounts"]
+    tags=["Social Accounts"],
 )
 
 
@@ -90,305 +98,371 @@ def get_social_accounts(current_user: User = Depends(get_current_user), db: Sess
 # Facebook OAuth
 # ===========================
 
+@router.get("/facebook/connect")
+def connect_facebook(request: Request):
+    user_id = request.query_params.get("user_id")
+
+    if user_id:
+        request.session["user_id"] = user_id
+
+    url = get_facebook_login_url()
+
+    return RedirectResponse(url=url)
+
+
+
+@router.get("/facebook/callback/")
+def facebook_callback(
+    request: Request,
+    code: str = "",
+    db: Session = Depends(get_db),
+    ):
+    """
+    Facebook redirects here after login.
+    Exchange authorization code for the access token,
+    retrieve user information, and store it in the database.
+    """
+    try:
+        if not code or request.query_params.get("error"):
+            err = request.query_params.get("error") or "Authorization failed"
+            return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={err}")
+        # Get the user from session (OAuth state)
+        # In production, use proper state parameter to identify user
+        user_id = request.session.get("user_id")
+        if not user_id:
+            # Try to get from query param or cookie
+            user_id = request.query_params.get("user_id")
+        
+        if not user_id:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")
+        
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if not user:
+            return RedirectResponse(url="http://localhost:5173/social-accounts?error=UserNotFound")
+
+        # Exchange code for short-lived token
+        token_data = exchange_code_for_access_token(code)
+        short_lived_token = token_data["access_token"]
+
+        # Exchange for long-lived token (60 days)
+        long_lived_data = get_fb_long_lived_token(short_lived_token)
+        access_token = long_lived_data["access_token"]
+        
+        # Calculate expiry
+        expires_in = long_lived_data.get("expires_in", 5184000)  # 60 days default
+        token_expires_at = datetime.now(timezone.utc) + timezone.utc.utcoffset(datetime.now()) if expires_in else None
+        if expires_in:
+            token_expires_at = datetime.now(timezone.utc) + __import__('datetime').timedelta(seconds=expires_in)
+
+        # Get user info (Facebook Page)
+        user_info = get_facebook_user_info(access_token)
+
+        page_access_token = user_info.get("page_access_token")
+
+        if not page_access_token:
+            raise Exception("Facebook Page access token not found.")
+
+        # Check if already connected
+        existing = db.query(SocialAccount).filter(
+            SocialAccount.user_id == user.id,
+            SocialAccount.platform == "facebook",
+            SocialAccount.platform_user_id == user_info["platform_user_id"]
+        ).first()
+        
+        if existing:
+            # Update existing
+            existing.access_token = access_token
+            existing.token_expires_at = token_expires_at
+            existing.username = user_info["username"]
+            existing.followers_count = user_info["followers_count"]
+            existing.profile_image = user_info["profile_image"]
+            existing.last_sync = datetime.now(timezone.utc)
+            existing.status = "Connected"
+            existing.health = "Healthy"
+            db.commit()
+            db.refresh(existing)
+        else:
+            # Create new
+            new_account = SocialAccount(
+                user_id=user.id,
+                platform="facebook",
+                platform_user_id=user_info["platform_user_id"],
+                username=user_info["username"],
+                profile_image=user_info["profile_image"],
+                followers_count=user_info["followers_count"],
+                access_token=access_token,
+                token_expires_at=token_expires_at,
+                status="Connected",
+                health="Healthy",
+                connected_since=datetime.now(timezone.utc),
+                last_sync=datetime.now(timezone.utc)
+            )
+            db.add(new_account)
+            db.commit()
+            db.refresh(new_account)
+            print("========== FACEBOOK DB SAVED ==========")
+            print("ID:", new_account.id)
+            print("USER ID:", new_account.user_id)
+            print("PLATFORM:", new_account.platform)
+            print("PLATFORM USER ID:", new_account.platform_user_id)
+            print("USERNAME:", new_account.username)
+            print("STATUS:", new_account.status)
+            print("======================================")
+
+        return RedirectResponse(
+            url="http://localhost:5173/social-accounts?success=true&platform=facebook"
+        )
+
+    except Exception as e:
+        import traceback
+
+        print("=" * 80)
+        print("FACEBOOK ERROR")
+        print(traceback.format_exc())
+        print("=" * 80)
+
+        raise e
+
+
+@router.post("/facebook/post")
+def publish_post(data: FacebookPostRequest):
+    try:
+        return create_facebook_post(
+            data.page_id,
+            data.page_access_token,
+            data.message,
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e),
+        )
+
+
+@router.post("/facebook/photo")
+def upload_photo(photo: FacebookPhotoRequest):
+    return upload_facebook_photo(
+        photo.page_id,
+        photo.page_access_token,
+        photo.image_url,
+        photo.caption,
+    )
+
+@router.post("/facebook/insights")
+def facebook_insights(data: FacebookInsightsRequest):
+    return get_page_insights(
+        data.page_id,
+        data.page_access_token
+    )
+    
+
+# from fastapi.responses import RedirectResponse
+
 # @router.get("/facebook/connect")
-# def connect_facebook(request: Request):
-#     user_id = request.query_params.get("user_id")
-
-#     if user_id:
-#         request.session["user_id"] = user_id
-
-#     url = get_facebook_login_url()
-
-#     return RedirectResponse(url=url)
-
+# def facebook_login(user_id: int = None, redirect_uri: str = None):
+#     """Initiates Facebook OAuth login flow."""
+#     FACEBOOK_CLIENT_ID = settings.FACEBOOK_CLIENT_ID
+#     fb_redirect_uri = redirect_uri or settings.FACEBOOK_REDIRECT_URI or "http://localhost:8000/api/v1/social-accounts/facebook/callback"
+    
+#     scope = "pages_show_list,pages_read_engagement,instagram_basic,instagram_content_publish"
+    
+#     meta_auth_url = (
+#         f"https://www.facebook.com/v18.0/dialog/oauth?"
+#         f"client_id={FACEBOOK_CLIENT_ID}&"
+#         f"redirect_uri={fb_redirect_uri}&"
+#         f"scope={scope}&"
+#         f"response_type=code"
+#     )
+#     return RedirectResponse(url=meta_auth_url)
 
 
 # @router.get("/facebook/callback")
-# def facebook_callback(
-#     request: Request,
-#     code: str = "",
-#     db: Session = Depends(get_db),
-#     ):
-#     """
-#     Facebook redirects here after login.
-#     Exchange authorization code for the access token,
-#     retrieve user information, and store it in the database.
-#     """
-#     try:
-#         if not code or request.query_params.get("error"):
-#             err = request.query_params.get("error") or "Authorization failed"
-#             return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={err}")
-#         # Get the user from session (OAuth state)
-#         # In production, use proper state parameter to identify user
-#         user_id = request.session.get("user_id")
-#         if not user_id:
-#             # Try to get from query param or cookie
-#             user_id = request.query_params.get("user_id")
-        
-#         if not user_id:
-#             return RedirectResponse(url="http://localhost:5173/social-accounts?error=NoUserSession")
-        
-#         user = db.query(User).filter(User.id == int(user_id)).first()
-#         if not user:
-#             return RedirectResponse(url="http://localhost:5173/social-accounts?error=UserNotFound")
+# async def facebook_callback(code: str, db: Session = Depends(get_db)):
+#     """Handles Facebook OAuth callback, filters for 'OrbitSocial Team', and saves Facebook & Instagram accounts to database."""
+#     FACEBOOK_CLIENT_ID = settings.FACEBOOK_CLIENT_ID
+#     FACEBOOK_CLIENT_SECRET = settings.FACEBOOK_CLIENT_SECRET
+#     FACEBOOK_REDIRECT_URI = settings.FACEBOOK_REDIRECT_URI or "http://localhost:8000/api/v1/social-accounts/facebook/callback"
 
-#         # Exchange code for short-lived token
-#         token_data = exchange_code_for_access_token(code)
-#         short_lived_token = token_data["access_token"]
-
-#         # Exchange for long-lived token (60 days)
-#         long_lived_data = get_fb_long_lived_token(short_lived_token)
-#         access_token = long_lived_data["access_token"]
+#     async with httpx.AsyncClient() as client:
+#         # 1. Exchange code for user access token
+#         token_url = "https://graph.facebook.com/v18.0/oauth/access_token"
+#         params = {
+#             "client_id": FACEBOOK_CLIENT_ID,
+#             "redirect_uri": FACEBOOK_REDIRECT_URI,
+#             "client_secret": FACEBOOK_CLIENT_SECRET,
+#             "code": code
+#         }
         
-#         # Calculate expiry
-#         expires_in = long_lived_data.get("expires_in", 5184000)  # 60 days default
-#         token_expires_at = datetime.now(timezone.utc) + timezone.utc.utcoffset(datetime.now()) if expires_in else None
-#         if expires_in:
-#             token_expires_at = datetime.now(timezone.utc) + __import__('datetime').timedelta(seconds=expires_in)
-
-#         # Get user info (Facebook Page)
-#         user_info = get_facebook_user_info(access_token)
-
-#         # Check if already connected
-#         existing = db.query(SocialAccount).filter(
-#             SocialAccount.user_id == user.id,
-#             SocialAccount.platform == "facebook",
-#             SocialAccount.platform_user_id == user_info["platform_user_id"]
-#         ).first()
-        
-#         if existing:
-#             # Update existing
-#             existing.access_token = access_token
-#             existing.token_expires_at = token_expires_at
-#             existing.username = user_info["username"]
-#             existing.followers_count = user_info["followers_count"]
-#             existing.profile_image = user_info["profile_image"]
-#             existing.last_sync = datetime.now(timezone.utc)
-#             existing.status = "Connected"
-#             existing.health = "Healthy"
-#             db.commit()
-#             db.refresh(existing)
-#         else:
-#             # Create new
-#             new_account = SocialAccount(
-#                 user_id=user.id,
-#                 platform="facebook",
-#                 platform_user_id=user_info["platform_user_id"],
-#                 username=user_info["username"],
-#                 profile_image=user_info["profile_image"],
-#                 followers_count=user_info["followers_count"],
-#                 access_token=access_token,
-#                 token_expires_at=token_expires_at,
-#                 status="Connected",
-#                 health="Healthy",
-#                 connected_since=datetime.now(timezone.utc),
-#                 last_sync=datetime.now(timezone.utc)
+#         response = await client.get(token_url, params=params)
+#         if response.status_code != 200:
+#             raise HTTPException(
+#                 status_code=status.HTTP_400_BAD_REQUEST,
+#                 detail="Failed to get access token from Facebook."
 #             )
-#             db.add(new_account)
-#             db.commit()
-#             db.refresh(new_account)
+#         token_data = response.json()
+#         user_access_token = token_data.get("access_token")
 
-#         return RedirectResponse(
-#             url="http://localhost:5173/social-accounts?success=true&platform=facebook"
-#         )
+#         # 2. Fetch pages
+#         pages_url = "https://graph.facebook.com/v18.0/me/accounts"
+#         pages_params = {
+#             "access_token": user_access_token,
+#             "fields": "id,name,access_token,instagram_business_account"
+#         }
+        
+#         pages_response = await client.get(pages_url, params=pages_params)
+#         if pages_response.status_code != 200:
+#             raise HTTPException(
+#                 status_code=status.HTTP_400_BAD_REQUEST,
+#                 detail="Failed to fetch Facebook Pages."
+#             )
+        
+#         pages_data = pages_response.json().get("data", [])
 
-#     except Exception as e:
-#         import traceback
-
-#         print("=" * 80)
-#         print("FACEBOOK ERROR")
-#         print(traceback.format_exc())
-#         print("=" * 80)
-
-#         raise e
-
-
-# @router.post("/facebook/post")
-# def publish_post(data: FacebookPostRequest):
-#     try:
-#         return create_facebook_post(
-#             data.page_id,
-#             data.page_access_token,
-#             data.message,
-#         )
-
-#     except Exception as e:
+#     # 3. Filter specifically for "OrbitSocial Team"
+#     target_page = next((page for page in pages_data if page.get("name") == "OrbitSocial Team"), None)
+    
+#     if not target_page:
 #         raise HTTPException(
-#             status_code=400,
-#             detail=str(e),
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail="Facebook Page 'OrbitSocial Team' not found among your connected pages."
 #         )
 
+#     page_id = target_page.get("id")
+#     page_name = target_page.get("name")
+#     page_access_token = target_page.get("access_token")
+#     insta_account = target_page.get("instagram_business_account", {})
+#     insta_id = insta_account.get("id")
 
-# @router.post("/facebook/photo")
-# def upload_photo(photo: FacebookPhotoRequest):
-#     return upload_facebook_photo(
-#         photo.page_id,
-#         photo.page_access_token,
-#         photo.image_url,
-#         photo.caption,
+#     # 4. Get a default user from the database to attach these social accounts to
+#     user = db.query(User).first()
+#     if not user:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail="No users found in the database to link social accounts to."
+#         )
+
+#     saved_accounts = []
+
+#     # 5. Save or Update Facebook Page in PostgreSQL
+#     fb_account = db.query(SocialAccount).filter(
+#         SocialAccount.user_id == user.id,
+#         SocialAccount.platform == "facebook",
+#         SocialAccount.platform_user_id == page_id
+#     ).first()
+
+#     if fb_account:
+#         fb_account.access_token = page_access_token
+#         fb_account.username = page_name
+#         fb_account.status = "Connected"
+#     else:
+#         fb_account = SocialAccount(
+#             user_id=user.id,
+#             platform="facebook",
+#             platform_user_id=page_id,
+#             username=page_name,
+#             access_token=page_access_token,
+#             status="Connected"
+#         )
+#         db.add(fb_account)
+#     saved_accounts.append("Facebook: OrbitSocial Team")
+
+#     # 6. Save or Update Instagram Business Account in PostgreSQL (if linked)
+#     if insta_id:
+#         insta_account_db = db.query(SocialAccount).filter(
+#             SocialAccount.user_id == user.id,
+#             SocialAccount.platform == "instagram",
+#             SocialAccount.platform_user_id == insta_id
+#         ).first()
+
+#         if insta_account_db:
+#             insta_account_db.access_token = page_access_token
+#             insta_account_db.username = f"{page_name} (IG)"
+#             insta_account_db.status = "Connected"
+#         else:
+#             insta_account_db = SocialAccount(
+#                 user_id=user.id,
+#                 platform="instagram",
+#                 platform_user_id=insta_id,
+#                 username=f"{page_name} (IG)",
+#                 access_token=page_access_token,
+#                 status="Connected"
+#             )
+#             db.add(insta_account_db)
+#         saved_accounts.append(f"Instagram ID: {insta_id}")
+
+#     db.commit()
+
+#     return {
+#         "message": "Successfully connected OrbitSocial Team and saved to database!",
+#         "saved_accounts": saved_accounts
+#     }
+
+
+# # --- Facebook OAuth Endpoints ---
+
+# @router.get("/facebook/login")
+# def facebook_login(redirect_uri: str = None):
+#     """Initiates Facebook OAuth login flow."""
+#     FACEBOOK_APP_ID = settings.FACEBOOK_APP_ID
+#     fb_redirect_uri = redirect_uri or settings.FACEBOOK_REDIRECT_URI
+    
+#     scope = "pages_show_list,pages_read_engagement,instagram_basic,instagram_content_publish"
+    
+#     meta_auth_url = (
+#         f"https://www.facebook.com/v18.0/dialog/oauth?"
+#         f"client_id={FACEBOOK_APP_ID}&"
+#         f"redirect_uri={fb_redirect_uri}&"
+#         f"scope={scope}&"
+#         f"response_type=code"
 #     )
-
-# @router.post("/facebook/insights")
-# def facebook_insights(data: FacebookInsightsRequest):
-#     return get_page_insights(
-#         data.page_id,
-#         data.page_access_token
-#     )
-    
-
-from fastapi.responses import RedirectResponse
-
-@router.get("/facebook/connect")
-def facebook_login(user_id: int = None, redirect_uri: str = None):
-    """Initiates Facebook OAuth login flow."""
-    FACEBOOK_CLIENT_ID = settings.FACEBOOK_CLIENT_ID
-    fb_redirect_uri = redirect_uri or settings.FACEBOOK_REDIRECT_URI or "http://localhost:8000/api/v1/social-accounts/facebook/callback"
-    
-    scope = "pages_show_list,pages_read_engagement,instagram_basic,instagram_content_publish"
-    
-    meta_auth_url = (
-        f"https://www.facebook.com/v18.0/dialog/oauth?"
-        f"client_id={FACEBOOK_CLIENT_ID}&"
-        f"redirect_uri={fb_redirect_uri}&"
-        f"scope={scope}&"
-        f"response_type=code"
-    )
-    return RedirectResponse(url=meta_auth_url)
+#     return RedirectResponse(url=meta_auth_url)
 
 
-@router.get("/facebook/callback")
-async def facebook_callback(code: str, db: Session = Depends(get_db)):
-    """Handles Facebook OAuth callback, filters for 'OrbitSocial Team', and saves Facebook & Instagram accounts to database."""
-    FACEBOOK_CLIENT_ID = settings.FACEBOOK_CLIENT_ID
-    FACEBOOK_CLIENT_SECRET = settings.FACEBOOK_CLIENT_SECRET
-    FACEBOOK_REDIRECT_URI = settings.FACEBOOK_REDIRECT_URI or "http://localhost:8000/api/v1/social-accounts/facebook/callback"
+# @router.get("/facebook/callback")
+# async def facebook_callback(code: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+#     """Handles the Facebook OAuth callback, exchanges code for token, and links social account."""
+#     FACEBOOK_APP_ID = settings.FACEBOOK_APP_ID
+#     FACEBOOK_APP_SECRET = settings.FACEBOOK_APP_SECRET
+#     FACEBOOK_REDIRECT_URI = settings.FACEBOOK_REDIRECT_URI
 
-    async with httpx.AsyncClient() as client:
-        # 1. Exchange code for user access token
-        token_url = "https://graph.facebook.com/v18.0/oauth/access_token"
-        params = {
-            "client_id": FACEBOOK_CLIENT_ID,
-            "redirect_uri": FACEBOOK_REDIRECT_URI,
-            "client_secret": FACEBOOK_CLIENT_SECRET,
-            "code": code
-        }
-        
-        response = await client.get(token_url, params=params)
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to get access token from Facebook."
-            )
-        token_data = response.json()
-        user_access_token = token_data.get("access_token")
+#     # 1. Exchange authorization code for a short-lived access token
+#     token_url = "https://graph.facebook.com/v18.0/oauth/access_token"
+#     params = {
+#         "client_id": FACEBOOK_APP_ID,
+#         "redirect_uri": FACEBOOK_REDIRECT_URI,
+#         "client_secret": FACEBOOK_APP_SECRET,
+#         "code": code
+#     }
 
-        # 2. Fetch pages
-        pages_url = "https://graph.facebook.com/v18.0/me/accounts"
-        pages_params = {
-            "access_token": user_access_token,
-            "fields": "id,name,access_token,instagram_business_account"
-        }
-        
-        pages_response = await client.get(pages_url, params=pages_params)
-        if pages_response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to fetch Facebook Pages."
-            )
-        
-        pages_data = pages_response.json().get("data", [])
+#     async with httpx.AsyncClient() as client:
+#         response = await client.get(token_url, params=params)
+#         if response.status_code != 200:
+#             raise HTTPException(
+#                 status_code=status.HTTP_400_BAD_REQUEST,
+#                 detail="Failed to get access token from Facebook."
+#             )
+#         token_data = response.json()
+#         access_token = token_data.get("access_token")
 
-    # 3. Filter specifically for "OrbitSocial Team"
-    target_page = next((page for page in pages_data if page.get("name") == "OrbitSocial Team"), None)
-    
-    if not target_page:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Facebook Page 'OrbitSocial Team' not found among your connected pages."
-        )
-
-    page_id = target_page.get("id")
-    page_name = target_page.get("name")
-    page_access_token = target_page.get("access_token")
-    insta_account = target_page.get("instagram_business_account", {})
-    insta_id = insta_account.get("id")
-
-    # 4. Get a default user from the database to attach these social accounts to
-    user = db.query(User).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No users found in the database to link social accounts to."
-        )
-
-    saved_accounts = []
-
-    # 5. Save or Update Facebook Page in PostgreSQL
-    fb_account = db.query(SocialAccount).filter(
-        SocialAccount.user_id == user.id,
-        SocialAccount.platform == "facebook",
-        SocialAccount.platform_user_id == page_id
-    ).first()
-
-    if fb_account:
-        fb_account.access_token = page_access_token
-        fb_account.username = page_name
-        fb_account.status = "Connected"
-    else:
-        fb_account = SocialAccount(
-            user_id=user.id,
-            platform="facebook",
-            platform_user_id=page_id,
-            username=page_name,
-            access_token=page_access_token,
-            status="Connected"
-        )
-        db.add(fb_account)
-    saved_accounts.append("Facebook: OrbitSocial Team")
-
-    # 6. Save or Update Instagram Business Account in PostgreSQL (if linked)
-    if insta_id:
-        insta_account_db = db.query(SocialAccount).filter(
-            SocialAccount.user_id == user.id,
-            SocialAccount.platform == "instagram",
-            SocialAccount.platform_user_id == insta_id
-        ).first()
-
-        if insta_account_db:
-            insta_account_db.access_token = page_access_token
-            insta_account_db.username = f"{page_name} (IG)"
-            insta_account_db.status = "Connected"
-        else:
-            insta_account_db = SocialAccount(
-                user_id=user.id,
-                platform="instagram",
-                platform_user_id=insta_id,
-                username=f"{page_name} (IG)",
-                access_token=page_access_token,
-                status="Connected"
-            )
-            db.add(insta_account_db)
-        saved_accounts.append(f"Instagram ID: {insta_id}")
-
-    db.commit()
-
-    return {
-        "message": "Successfully connected OrbitSocial Team and saved to database!",
-        "saved_accounts": saved_accounts
-    }
+#     return {
+#         "message": "Facebook authentication successful!",
+#         "access_token": access_token
+#     }
 
 
-@router.delete("/{account_id}")
-def disconnect_account(account_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Disconnects and deletes the current user's social account from the database."""
-    account = db.query(SocialAccount).filter(SocialAccount.id == account_id).first()
-    if not account:
-        raise HTTPException(status_code=404, detail="Social account not found")
-    if account.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to disconnect this account")
-    db.delete(account)
-    db.commit()
-    return {"message": "Account disconnected successfully"}
+
+# @router.delete("/{account_id}")
+# def disconnect_account(account_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+#     """Disconnects and deletes the current user's social account from the database."""
+#     account = db.query(SocialAccount).filter(SocialAccount.id == account_id).first()
+#     if not account:
+#         raise HTTPException(status_code=404, detail="Social account not found")
+#     if account.user_id != current_user.id:
+#         raise HTTPException(status_code=403, detail="Not authorized to disconnect this account")
+#     db.delete(account)
+#     db.commit()
+#     return {"message": "Account disconnected successfully"}
 
 # ===========================
 # LinkedIn OAuth
@@ -471,18 +545,106 @@ def linkedin_callback(request: Request, code: str = "", db: Session = Depends(ge
     except Exception as e:
         return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
 
+import os
+import shutil
+from fastapi import UploadFile, File, Form
+
+UPLOAD_DIR = settings.MEDIA_DIR
+
+
+# ─────────────────────────────────────────
+# LinkedIn — Text / Image / Video
+# ─────────────────────────────────────────
 
 @router.post("/linkedin/post")
-def linkedin_post(
-    access_token: str,
-    author_id: str,
-    message: str,
+async def linkedin_post(
+    social_account_id: int = Form(...),
+    text: str = Form(...),
+    content_type: str = Form(default="text"),
+    file: UploadFile = File(default=None),
+    db: Session = Depends(get_db),
 ):
-    return create_linkedin_post(
-        access_token,
-        author_id,
-        message,
-    )
+    account = db.query(SocialAccount).filter(
+        SocialAccount.id == social_account_id,
+        SocialAccount.platform == "linkedin",
+    ).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="LinkedIn account not found.")
+
+    author_urn = f"urn:li:person:{account.platform_user_id}"
+
+    try:
+        if content_type == "text" or file is None:
+            result = create_linkedin_post(
+                access_token=account.access_token,
+                author_id=author_urn,
+                message=text,
+            )
+
+        elif content_type == "image":
+            file_bytes = await file.read()
+            from app.services.linkedin_service import publish_image_post_from_file
+            result = publish_image_post_from_file(
+                access_token=account.access_token,
+                author_id=author_urn,
+                file_bytes=file_bytes,
+                caption=text,
+            )
+
+        elif content_type == "video":
+            file_bytes = await file.read()
+            from app.services.linkedin_service import publish_video_post_from_file
+            result = publish_video_post_from_file(
+                access_token=account.access_token,
+                author_id=author_urn,
+                file_bytes=file_bytes,
+                caption=text,
+            )
+        else:
+            raise HTTPException(status_code=400, detail="Invalid content_type. Use text, image, or video.")
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/linkedin/sync-analytics/{account_id}")
+def sync_linkedin_analytics(
+    account_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    account = db.query(SocialAccount).filter(
+        SocialAccount.id == account_id,
+        SocialAccount.user_id == current_user.id,
+        SocialAccount.platform == "linkedin",
+    ).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="LinkedIn account not found.")
+
+    # Sync audience
+    sync_audience_analytics_to_db(db, account)
+
+    # Sync all published LinkedIn posts
+    from app.models.post import Post
+    posts = db.query(Post).filter(
+        Post.user_id == current_user.id,
+        Post.status == "Published",
+        Post.platform_post_id.isnot(None),
+    ).all()
+
+    synced = 0
+    for post in posts:
+        linked_platforms = [acc.platform for acc in post.social_accounts]
+        if "linkedin" in linked_platforms:
+            sync_post_analytics_to_db(db, post, account)
+            synced += 1
+
+    return {
+        "message": f"LinkedIn analytics synced successfully.",
+        "posts_synced": synced,
+        "account_id": account_id,
+    }    
 
 # ===========================
 # YouTube OAuth
@@ -571,21 +733,93 @@ def youtube_callback(
     except Exception as e:
         return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
 
-
-@router.post("/youtube/upload")
-def youtube_upload(
-    access_token: str,
-    video_path: str,
-    title: str,
-    description: str,
+@router.post("/youtube/post")
+async def youtube_post(
+    social_account_id: int = Form(...),
+    title: str = Form(...),
+    description: str = Form(default=""),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
 ):
-    return upload_video(
-        access_token,
-        video_path,
-        title,
-        description,
-    )
-    
+    account = db.query(SocialAccount).filter(
+        SocialAccount.id == social_account_id,
+        SocialAccount.platform == "youtube",
+    ).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="YouTube account not found.")
+
+    allowed_types = ["video/mp4", "video/mpeg", "video/quicktime", "video/x-msvideo"]
+
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type '{file.content_type}'. Only video files allowed."
+        )
+
+    try:
+        # ✅ Auto-refresh token before upload
+        from app.services.youtube_service import upload_video_from_file, get_fresh_access_token
+        fresh_token = get_fresh_access_token(account)
+
+        # ✅ Save refreshed token back to DB
+        if fresh_token != account.access_token:
+            account.access_token = fresh_token
+            db.commit()
+
+        file_bytes = await file.read()
+        result = upload_video_from_file(
+            access_token=fresh_token,
+            file_bytes=file_bytes,
+            title=title,
+            description=description,
+            filename=file.filename,
+            refresh_token=account.refresh_token,
+        )
+        return {
+            "message": "Video uploaded successfully to YouTube.",
+            "video_id": result.get("id"),
+            "title": result.get("snippet", {}).get("title"),
+            "status": result.get("status", {}).get("uploadStatus"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/youtube/sync-analytics/{account_id}")
+def sync_youtube_analytics(
+    account_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    account = db.query(SocialAccount).filter(
+        SocialAccount.id == account_id,
+        SocialAccount.user_id == current_user.id,
+        SocialAccount.platform == "youtube",
+    ).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="YouTube account not found.")
+
+    yt_sync_audience(db, account)
+    yt_sync_platform(db, account)
+
+    from app.models.post import Post
+    posts = db.query(Post).filter(
+        Post.user_id == current_user.id,
+        Post.status == "Published",
+        Post.platform_post_id.isnot(None),
+    ).all()
+
+    synced = 0
+    for post in posts:
+        platforms = [acc.platform for acc in post.social_accounts]
+        if "youtube" in platforms:
+            yt_sync_post(db, post, account)
+            synced += 1
+
+    return {
+        "message": "YouTube analytics synced successfully.",
+        "posts_synced": synced,
+        "account_id": account_id,
+    }    
 # ===========================
 # Instagram OAuth
 # ===========================

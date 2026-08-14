@@ -239,33 +239,75 @@ def get_campaign_summary(db: Session, user_id: int, campaign_id: int):
     }
 
 
-def get_campaign_analytics(campaign_id: int):
-    """Retrieve campaign analytics."""
+def get_campaign_analytics(db: Session, user_id: int, campaign_id: int):
+    """Retrieve campaign analytics from DB or return calculated metrics."""
+    campaign = _get_owned_campaign(db, user_id, campaign_id)
+    posts = db.query(Post).filter(Post.campaign_id == campaign.id).all()
+
+    total = len(posts)
+    published = sum(1 for p in posts if p.status == "Published")
+
+    # Try to get real analytics from post_analytics table
+    try:
+        from app.models.post_analytics import PostAnalytics
+        from sqlalchemy import func
+
+        post_ids = [p.id for p in posts]
+        if post_ids:
+            totals = db.query(
+                func.coalesce(func.sum(PostAnalytics.likes), 0),
+                func.coalesce(func.sum(PostAnalytics.comments), 0),
+                func.coalesce(func.sum(PostAnalytics.shares), 0),
+                func.coalesce(func.sum(PostAnalytics.reach), 0),
+                func.coalesce(func.sum(PostAnalytics.impressions), 0),
+                func.coalesce(func.sum(PostAnalytics.clicks), 0),
+            ).filter(PostAnalytics.post_id.in_(post_ids)).first()
+
+            likes, comments, shares, reach, impressions, clicks = totals
+        else:
+            likes = comments = shares = reach = impressions = clicks = 0
+
+        engagement = likes + comments + shares
+        engagement_rate = f"{round((engagement / impressions) * 100, 2)}%" if impressions > 0 else "0%"
+        completion = round((published / total) * 100, 2) if total > 0 else 0.0
+
+    except Exception:
+        likes = comments = shares = reach = impressions = clicks = 0
+        engagement_rate = "0%"
+        completion = 0.0
 
     return {
         "message": "Campaign analytics retrieved successfully",
         "campaign_id": campaign_id,
+        "campaign_name": campaign.name,
         "analytics": {
-            "likes": 1200,
-            "comments": 240,
-            "shares": 150,
-            "reach": 5000,
-            "impressions": 7000,
-            "engagement_rate": "8.5%"
+            "total_posts": total,
+            "published_posts": published,
+            "completion_percentage": completion,
+            "likes": likes,
+            "comments": comments,
+            "shares": shares,
+            "reach": reach,
+            "impressions": impressions,
+            "clicks": clicks,
+            "engagement_rate": engagement_rate,
         }
     }
 
 
-def get_campaign_performance(campaign_id: int):
+def get_campaign_performance(db: Session, user_id: int, campaign_id: int):
     """Retrieve campaign performance."""
+    campaign = _get_owned_campaign(db, user_id, campaign_id)
+    posts = db.query(Post).filter(Post.campaign_id == campaign.id).all()
 
     return {
         "message": "Campaign performance retrieved successfully",
         "campaign_id": campaign_id,
         "performance": {
-            "completed_posts": 12,
-            "scheduled_posts": 4,
-            "failed_posts": 1
+            "completed_posts": sum(1 for p in posts if p.status == "Published"),
+            "scheduled_posts": sum(1 for p in posts if p.status in ("Scheduled", "Queued")),
+            "failed_posts": sum(1 for p in posts if p.status == "Failed"),
+            "draft_posts": sum(1 for p in posts if p.status == "Draft"),
         }
     }
 

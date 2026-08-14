@@ -25,13 +25,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------
 
 def process_publishing_queue(db: Session):
-    """Main entry point — polls due queue entries and processes each.
-
-    First recovers entries stuck in "Processing" by a crashed/restarted
-    worker, then processes every due entry. An unexpected exception while
-    processing a single entry marks it (and its post) Failed instead of
-    leaving them wedged forever.
-    """
     _recover_stale_processing(db)
     entries = get_due_queue_entries(db)
     for entry in entries:
@@ -39,14 +32,23 @@ def process_publishing_queue(db: Session):
             process_queue_entry(db, entry)
         except Exception:
             logger.exception("Error processing queue entry %s — marking as failed", entry.id)
-            db.rollback()
-            post = db.query(Post).filter(Post.id == entry.post_id).first()
-            entry = db.query(PublishingQueue).filter(PublishingQueue.id == entry.id).first()
-            if post and entry:
-                _mark_failed(db, post, entry, "Unexpected error while publishing.")
-            elif entry:
-                entry.processing_status = "Failed"
-                db.commit()
+            try:
+                db.rollback()
+            except Exception:
+                logger.exception("Rollback failed for entry %s", entry.id)
+                continue
+
+            # ✅ Wrap recovery in its own try/except so one failure doesn't block others
+            try:
+                post = db.query(Post).filter(Post.id == entry.post_id).first()
+                entry = db.query(PublishingQueue).filter(PublishingQueue.id == entry.id).first()
+                if post and entry:
+                    _mark_failed(db, post, entry, "Unexpected error while publishing.")
+                elif entry:
+                    entry.processing_status = "Failed"
+                    db.commit()
+            except Exception:
+                logger.exception("Failed to mark entry %s as failed after crash", entry.id)
 
 
 def _recover_stale_processing(db: Session):
@@ -129,22 +131,29 @@ def process_queue_entry(db: Session, entry: PublishingQueue):
         db.commit()
         return
 
-    # Idempotency guard: if a crashed worker published this post but never
-    # committed the queue entry to Completed, recovering the stale entry must
-    # NOT publish it a second time.
+    # Idempotency guard
     if post.status == "Published":
         entry.processing_status = "Completed"
         db.commit()
         return
 
-    entry.processing_status = "Processing"
-    post.status = "Publishing"
-    db.commit()
+    # Fetch social accounts BEFORE committing and changing state, 
+    # ensuring they are safely bound to the active session.
+    social_accounts = (
+        db.query(SocialAccount)
+        .join(Post.social_accounts)
+        .filter(Post.id == post.id)
+        .all()
+    )
 
-    social_accounts = post.social_accounts
     if not social_accounts:
         _mark_failed(db, post, entry, "No social accounts linked to this post.")
         return
+
+    # Now transition status safely
+    entry.processing_status = "Processing"
+    post.status = "Publishing"
+    db.commit()
 
     all_succeeded = True
     failure_reasons = []
@@ -162,7 +171,7 @@ def process_queue_entry(db: Session, entry: PublishingQueue):
 
         try:
             result = dispatch_publish(account.platform, post, account)
-        except Exception as exc:  # a failing platform must not wedge the entry
+        except Exception as exc:
             logger.exception("Dispatch to %s raised for post %s", account.platform, post.id)
             all_succeeded = False
             reason = str(exc) or "Unknown error"
@@ -192,10 +201,13 @@ def process_queue_entry(db: Session, entry: PublishingQueue):
         post.published_at = datetime.now(timezone.utc)
         post.failure_reason = None
         entry.processing_status = "Completed"
-        db.commit()
     else:
+        post.status = "Failed"
         post.failure_reason = "; ".join(failure_reasons)
         _handle_retry_or_fail(db, post, entry)
+
+    # FINAL ATOMIC COMMIT
+    db.commit()
 
 
 def _handle_retry_or_fail(db: Session, post: Post, entry: PublishingQueue):
@@ -266,6 +278,7 @@ def validate_account_token(account: SocialAccount) -> Optional[str]:
 def log_publishing_attempt(
     db: Session, post_id: int, platform: str, status: str, result: dict, retry_count: int
 ):
+    # ✅ Only use columns that exist in PublishingLog model
     payload = {
         "raw_response": result.get("raw_response", result),
         "platform_post_id": result.get("platform_post_id"),
@@ -275,14 +288,11 @@ def log_publishing_attempt(
         post_id=post_id,
         platform=platform,
         status=status,
-        response=json.dumps(payload, default=str),
+        response=json.dumps(payload, default=str),  # store extras in response JSON
         retry_count=retry_count,
-        failure_reason=result.get("failure_reason") if status == "Failed" else None,
-        platform_post_id=result.get("platform_post_id"),
-        api_response=json.dumps(result.get("raw_response"), default=str) if result.get("raw_response") is not None else None,
     )
     db.add(log)
-    db.commit()
+    # db.commit()
 
 
 # ---------------------------------------------------------
