@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ═══════════════════════════════════════════════════════════════════
    OrbitSocial — Unified Design System
    Tailwind v4 @theme block provides all custom tokens
@@ -1287,7 +1289,7 @@ select option:checked,
 }
 
 .animate-slide-right {
-  animation: ideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slide-left {

@@ -67,7 +67,7 @@ const navItems = [
       { label: 'Performance Trends', to: '/analytics/performance', Icon: BarChartIcon },
     ],
   },
-  { label: 'Reports',           to: '/reports',            Icon: SettingsIcon },
+  { label: 'Reports',           to: '/reports',            Icon: BarChartIcon },
   { label: 'Settings',          to: '/settings',           Icon: SettingsIcon },
 ]
 

@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react'
 import { CardSkeleton, TableSkeleton } from '../../shared/components/ui/Skeleton'
+import AttentionRequired from '../../shared/components/dashboard/AttentionRequired'
 
 function StatCard({ label, value, change, positive, icon, accent }) {
   return (
-    <div className="stat-card cursor-pointer transform hover:-translate-y-1 hover:border-indigo-500 dark:hover:border-indigo-400 hover:shadow-card-lg transition-all duration-300 ease-out group">
+    <div className="stat-card bg-card border border-default cursor-pointer transform hover:-translate-y-1 hover:border-indigo-500 dark:hover:border-indigo-400 hover:shadow-card-lg transition-all duration-300 ease-out group">
       <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110 ${accent}`}>
         <span className="text-xl">{icon}</span>
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold tracking-wide uppercase text-[10px]">{label}</p>
-        <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight">{value}</p>
+        <p className="text-secondary font-semibold tracking-wide uppercase text-[10px]">{label}</p>
+        <p className="text-2xl font-extrabold text-primary mt-1 tracking-tight">{value}</p>
         <p className={`text-xs font-semibold mt-1.5 flex items-center gap-1 ${positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
           <span>{positive ? '▲' : '▼'} {change}</span>
-          <span className="text-slate-400 dark:text-slate-500 font-normal">vs last month</span>
+          <span className="text-secondary font-normal">vs last month</span>
         </p>
       </div>
     </div>
@@ -126,7 +127,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
-      <section aria-label="Dashboard header" className="card relative overflow-hidden bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-800 dark:to-slate-800/80 border border-default shadow-card">
+      <section aria-label="Dashboard header" className="card relative overflow-hidden bg-surface border border-default shadow-card">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-primary">Admin Dashboard</h1>
@@ -139,6 +140,9 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      {/* Attention Required / Action Center */}
+      <AttentionRequired role="admin" />
 
       <section aria-label="Overview stats">
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8 gap-4">

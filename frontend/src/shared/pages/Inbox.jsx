@@ -33,8 +33,8 @@ export default function Inbox() {
               {stat.icon}
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{stat.label}</p>
-              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">{stat.value}</p>
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider">{stat.label}</p>
+              <p className="text-2xl font-bold text-primary mt-1">{stat.value}</p>
             </div>
           </Card>
         ))}
@@ -42,7 +42,7 @@ export default function Inbox() {
 
       <Card className="p-6">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Messages</h3>
+          <h3 className="text-base font-bold text-primary">Messages</h3>
           <Button variant="ghost" size="sm">Mark All Read</Button>
         </div>
         <div className="space-y-1">
@@ -51,8 +51,8 @@ export default function Inbox() {
               key={i}
               className={`flex items-center gap-4 p-3.5 rounded-xl transition-colors cursor-pointer ${
                 msg.read
-                  ? 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
-                  : 'bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-50 dark:hover:bg-indigo-950/30'
+                  ? 'hover:bg-hover'
+                  : 'bg-indigo-50/50 dark:bg-indigo-950/30 hover:bg-indigo-50 dark:hover:bg-indigo-950/50'
               }`}
             >
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
@@ -64,16 +64,16 @@ export default function Inbox() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className={`text-sm truncate ${msg.read ? 'font-medium text-slate-700 dark:text-slate-300' : 'font-bold text-slate-900 dark:text-slate-100'}`}>
+                  <p className={`text-sm truncate ${msg.read ? 'font-medium text-secondary' : 'font-bold text-primary'}`}>
                     {msg.from}
                   </p>
                   {!msg.read && (
                     <span className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" aria-label="Unread" />
                   )}
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">{msg.subject}</p>
+                <p className="text-xs text-secondary mt-0.5 truncate">{msg.subject}</p>
               </div>
-              <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap flex-shrink-0">{msg.time}</span>
+              <span className="text-xs text-secondary whitespace-nowrap flex-shrink-0">{msg.time}</span>
             </div>
           ))}
         </div>
@@ -81,8 +81,8 @@ export default function Inbox() {
 
       <Card className="p-12 flex flex-col items-center justify-center text-center min-h-[200px]">
         <InboxLargeIcon />
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-5">Unified Inbox</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-md leading-relaxed">
+        <h3 className="text-lg font-bold text-primary mt-5">Unified Inbox</h3>
+        <p className="text-sm text-secondary mt-2 max-w-md leading-relaxed">
           All comments, mentions, and direct messages from your connected platforms in one place.
         </p>
         <Button variant="primary" size="md" className="mt-6">Compose Message</Button>

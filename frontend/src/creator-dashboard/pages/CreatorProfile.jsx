@@ -161,7 +161,7 @@ export default function CreatorProfile() {
 
       {/* SECTION 1 — PROFILE HEADER CARD */}
       <section aria-label="Profile Card">
-        <Card className="p-6 border border-slate-200/80 dark:border-slate-800">
+        <Card className="p-6 border border-default bg-card">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               <div className="relative group">
@@ -177,7 +177,7 @@ export default function CreatorProfile() {
 
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">{profile.name}</h2>
+                  <h2 className="text-xl md:text-2xl font-extrabold tracking-tight text-primary">{profile.name}</h2>
                   {profile.isVerified && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-200/60 dark:border-indigo-800/40">
                       <CheckCircle2 size={12} className="text-indigo-500" />
@@ -186,23 +186,23 @@ export default function CreatorProfile() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 text-xs md:text-sm text-slate-500 dark:text-slate-400 flex-wrap">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">@{profile.username}</span>
+                <div className="flex items-center gap-3 text-xs md:text-sm text-secondary flex-wrap">
+                  <span className="font-semibold text-primary">@{profile.username}</span>
                   <span>•</span>
-                  <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-xs font-bold text-slate-600 dark:text-slate-300">ID: {profile.id}</span>
+                  <span className="bg-surface border border-default px-2 py-0.5 rounded text-xs font-bold text-secondary">ID: {profile.id}</span>
                   <span>•</span>
                   <span className="text-indigo-600 dark:text-indigo-400 font-bold">{profile.category}</span>
                 </div>
 
-                <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 max-w-2xl mt-2 leading-relaxed font-medium">
+                <p className="text-xs md:text-sm text-secondary max-w-2xl mt-2 leading-relaxed font-medium">
                   {profile.bio}
                 </p>
 
-                <div className="flex items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400 pt-2 flex-wrap">
-                  <span className="flex items-center gap-1"><MapPin size={14} className="text-slate-400" />{profile.location}</span>
-                  <span className="flex items-center gap-1"><Mail size={14} className="text-slate-400" />{profile.email}</span>
-                  <span className="flex items-center gap-1"><Phone size={14} className="text-slate-400" />{profile.phone}</span>
-                  <span className="flex items-center gap-1"><Globe size={14} className="text-slate-400" /><a href={profile.website} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">{profile.website}</a></span>
+                <div className="flex items-center gap-4 text-xs font-medium text-secondary pt-2 flex-wrap">
+                  <span className="flex items-center gap-1"><MapPin size={14} className="text-secondary" />{profile.location}</span>
+                  <span className="flex items-center gap-1"><Mail size={14} className="text-secondary" />{profile.email}</span>
+                  <span className="flex items-center gap-1"><Phone size={14} className="text-secondary" />{profile.phone}</span>
+                  <span className="flex items-center gap-1"><Globe size={14} className="text-secondary" /><a href={profile.website} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">{profile.website}</a></span>
                 </div>
               </div>
             </div>
@@ -216,7 +216,7 @@ export default function CreatorProfile() {
                 <Share2 size={16} />
                 <span>Share Profile</span>
               </Button>
-              <Button variant="ghost" size="md" fullWidth onClick={handleDownloadPortfolio} className="border border-slate-200/80 dark:border-slate-800">
+              <Button variant="ghost" size="md" fullWidth onClick={handleDownloadPortfolio} className="border border-default">
                 <Download size={16} />
                 <span>Download Portfolio</span>
               </Button>
@@ -227,19 +227,19 @@ export default function CreatorProfile() {
 
       {/* SECTION 2 — PROFILE STATISTICS */}
       <section aria-label="Profile Statistics">
-        <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+        <h2 className="text-sm md:text-base font-bold text-primary mb-3 flex items-center gap-2">
           <Zap size={18} className="text-indigo-500" strokeWidth={2} />
           <span>Profile Statistics</span>
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {initialStats.map((stat, idx) => (
-            <div key={idx} className="stat-card cursor-pointer group hover:border-indigo-500/40 transition-all duration-200">
+            <div key={idx} className="stat-card bg-card border border-default cursor-pointer group hover:border-indigo-500/40 transition-all duration-200">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-105 transition-transform ${stat.color}`}>
                 <span>{stat.icon}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{stat.label}</p>
-                <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-50 mt-0.5 tracking-tight">{stat.value}</p>
+                <p className="text-[11px] font-semibold text-secondary uppercase tracking-wider">{stat.label}</p>
+                <p className="text-2xl font-extrabold text-primary mt-0.5 tracking-tight">{stat.value}</p>
                 <p className={`text-[11px] font-semibold mt-1 ${stat.positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
                   {stat.change}
                 </p>
@@ -251,33 +251,33 @@ export default function CreatorProfile() {
 
       {/* SECTION 3 — SOCIAL ACCOUNTS */}
       <section aria-label="Social Accounts">
-        <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+        <h2 className="text-base font-bold text-primary mb-3 flex items-center gap-2">
           <Globe size={18} className="text-indigo-500" />
           <span>Connected Social Accounts</span>
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {socials.map((social) => (
-            <Card key={social.id} className="p-5 flex flex-col justify-between space-y-4 hover:border-indigo-400/50 transition-all">
+            <Card key={social.id} className="p-5 flex flex-col justify-between space-y-4 border border-default bg-card hover:border-indigo-400/50 transition-all">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xl">
+                  <div className="w-10 h-10 rounded-xl bg-surface border border-default flex items-center justify-center text-xl">
                     {social.icon}
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{social.platform}</h3>
+                      <h3 className="font-bold text-primary text-sm">{social.platform}</h3>
                       {social.verified && <CheckCircle2 size={13} className="text-indigo-500" />}
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">{social.handle}</p>
+                    <p className="text-xs text-secondary font-semibold">{social.handle}</p>
                   </div>
                 </div>
                 <StatusBadge status={social.connected ? 'active' : 'inactive'} dot />
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
+              <div className="flex items-center justify-between pt-2 border-t border-default text-xs">
                 <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Followers</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{social.followers}</span>
+                  <span className="text-secondary block text-[10px] uppercase font-bold">Followers</span>
+                  <span className="font-bold text-primary text-sm">{social.followers}</span>
                 </div>
                 <Button 
                   variant={social.connected ? 'outline' : 'primary'} 
@@ -294,10 +294,10 @@ export default function CreatorProfile() {
 
       {/* SECTION 4 — PERSONAL INFORMATION FORM */}
       <section aria-label="Personal Information">
-        <Card className="p-6 space-y-6">
-          <div className="border-b border-slate-100 dark:border-slate-700 pb-4">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Personal Information</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Update your creator personal details and contact settings.</p>
+        <Card className="p-6 space-y-6 border border-default bg-card">
+          <div className="border-b border-default pb-4">
+            <h2 className="text-base font-bold text-primary">Personal Information</h2>
+            <p className="text-xs text-secondary mt-1">Update your creator personal details and contact settings.</p>
           </div>
 
           <form onSubmit={handleSaveProfile} className="space-y-4">
@@ -315,6 +315,16 @@ export default function CreatorProfile() {
                 required 
               />
               <Input 
+                label="Category" 
+                value={form.category} 
+                onChange={(e) => setForm({ ...form, category: e.target.value })} 
+              />
+              <Input 
+                label="Location" 
+                value={form.location} 
+                onChange={(e) => setForm({ ...form, location: e.target.value })} 
+              />
+              <Input 
                 label="Email Address" 
                 type="email" 
                 value={form.email} 
@@ -325,11 +335,6 @@ export default function CreatorProfile() {
                 label="Phone Number" 
                 value={form.phone} 
                 onChange={(e) => setForm({ ...form, phone: e.target.value })} 
-              />
-              <Input 
-                label="Location" 
-                value={form.location} 
-                onChange={(e) => setForm({ ...form, location: e.target.value })} 
               />
               <Input 
                 label="Website URL" 
@@ -385,7 +390,7 @@ export default function CreatorProfile() {
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-default">
               <Button type="button" variant="outline" size="md" onClick={handleCancelForm}>
                 Cancel
               </Button>
@@ -400,13 +405,13 @@ export default function CreatorProfile() {
       {/* SECTION 5 & 6 — SPECIALIZATION & CONTENT PREFERENCES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* SECTION 5 — CREATOR SPECIALIZATION */}
-        <Card className="p-6 space-y-4">
+        <Card className="p-6 space-y-4 border border-default bg-card">
           <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <h2 className="text-base font-bold text-primary flex items-center gap-2">
               <Sparkles size={18} className="text-indigo-500" />
               <span>Creator Specialization Tags</span>
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Select the categories that best define your content portfolio.</p>
+            <p className="text-xs text-secondary mt-1">Select the categories that best define your content portfolio.</p>
           </div>
 
           <div className="flex flex-wrap gap-2 pt-2">
@@ -417,10 +422,10 @@ export default function CreatorProfile() {
                   key={tag}
                   type="button"
                   onClick={() => handleToggleTag(tag)}
-                  className={`px-3.5 py-1.5 text-xs font-bold rounded-xl border transition-all duration-200 flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-xl border transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
                     isSelected
                       ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                      : 'bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                      : 'bg-surface text-secondary border-default hover:bg-hover'
                   }`}
                 >
                   {isSelected && <Check size={12} />}
@@ -432,13 +437,13 @@ export default function CreatorProfile() {
         </Card>
 
         {/* SECTION 6 — CONTENT PREFERENCES */}
-        <Card className="p-6 space-y-4">
+        <Card className="p-6 space-y-4 border border-default bg-card">
           <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <h2 className="text-base font-bold text-primary flex items-center gap-2">
               <Zap size={18} className="text-indigo-500" />
               <span>Content Preferences & Types</span>
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Select content types you regularly publish.</p>
+            <p className="text-xs text-secondary mt-1">Select content types you regularly publish.</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
@@ -447,10 +452,10 @@ export default function CreatorProfile() {
                 key={type.id}
                 type="button"
                 onClick={() => handleToggleContentType(type.id)}
-                className={`p-3 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between space-y-2 ${
+                className={`p-3 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between space-y-2 cursor-pointer ${
                   type.selected
                     ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300'
-                    : 'bg-slate-50 dark:bg-slate-700/30 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                    : 'bg-surface border-default text-secondary hover:bg-hover'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -462,29 +467,29 @@ export default function CreatorProfile() {
             ))}
           </div>
 
-          <div className="pt-2 text-xs space-y-1 text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700">
-            <p><strong className="text-slate-700 dark:text-slate-200">Posting Frequency:</strong> {frequency}</p>
-            <p><strong className="text-slate-700 dark:text-slate-200">Preferred Platforms:</strong> {prefPlatforms.join(', ')}</p>
+          <div className="pt-2 text-xs space-y-1 text-secondary border-t border-default">
+            <p><strong className="text-primary">Posting Frequency:</strong> {frequency}</p>
+            <p><strong className="text-primary">Preferred Platforms:</strong> {prefPlatforms.join(', ')}</p>
           </div>
         </Card>
       </div>
 
       {/* SECTION 7 — ACCOUNT SETTINGS */}
       <section aria-label="Account Settings">
-        <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+        <h2 className="text-base font-bold text-primary mb-3 flex items-center gap-2">
           <ShieldCheck size={18} className="text-indigo-500" />
           <span>Account & Security Settings</span>
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-5 flex flex-col justify-between space-y-4">
+          <Card className="p-5 flex flex-col justify-between space-y-4 border border-default bg-card">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
                 <Lock size={20} />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Password</h3>
-                <p className="text-xs text-slate-400">Last changed 30 days ago</p>
+                <h3 className="font-bold text-sm text-primary">Password</h3>
+                <p className="text-xs text-secondary">Last changed 30 days ago</p>
               </div>
             </div>
             <Button variant="outline" size="sm" fullWidth onClick={() => showToast('Password reset link sent to your email.')}>
@@ -492,14 +497,14 @@ export default function CreatorProfile() {
             </Button>
           </Card>
 
-          <Card className="p-5 flex flex-col justify-between space-y-4">
+          <Card className="p-5 flex flex-col justify-between space-y-4 border border-default bg-card">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
                   <ShieldCheck size={20} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">2-Factor Auth</h3>
+                  <h3 className="font-bold text-sm text-primary">2-Factor Auth</h3>
                   <p className="text-xs text-emerald-500 font-semibold">{twoFactor ? 'Enabled' : 'Disabled'}</p>
                 </div>
               </div>
@@ -517,14 +522,14 @@ export default function CreatorProfile() {
             </Button>
           </Card>
 
-          <Card className="p-5 flex flex-col justify-between space-y-4">
+          <Card className="p-5 flex flex-col justify-between space-y-4 border border-default bg-card">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400">
                 <Bell size={20} />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Notifications</h3>
-                <p className="text-xs text-slate-400">Email & Push Digests</p>
+                <h3 className="font-bold text-sm text-primary">Notifications</h3>
+                <p className="text-xs text-secondary">Email & Push Digests</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -545,14 +550,14 @@ export default function CreatorProfile() {
             </div>
           </Card>
 
-          <Card className="p-5 flex flex-col justify-between space-y-4 border-rose-200 dark:border-rose-900/50">
+          <Card className="p-5 flex flex-col justify-between space-y-4 border border-rose-200 dark:border-rose-900/50 bg-card">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
                 <Trash2 size={20} />
               </div>
               <div>
                 <h3 className="font-bold text-sm text-rose-600 dark:text-rose-400">Danger Zone</h3>
-                <p className="text-xs text-slate-400">Permanently delete profile</p>
+                <p className="text-xs text-secondary">Permanently delete profile</p>
               </div>
             </div>
             <Button 
@@ -570,9 +575,9 @@ export default function CreatorProfile() {
       {/* SECTION 8 & 9 — RECENT ACTIVITY & ACHIEVEMENTS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* SECTION 8 — RECENT ACTIVITY */}
-        <Card className="p-6 space-y-4">
-          <div className="border-b border-slate-100 dark:border-slate-700 pb-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+        <Card className="p-6 space-y-4 border border-default bg-card">
+          <div className="border-b border-default pb-3">
+            <h2 className="text-base font-bold text-primary flex items-center gap-2">
               <Zap size={18} className="text-indigo-500" />
               <span>Recent Activity Timeline</span>
             </h2>
@@ -580,16 +585,16 @@ export default function CreatorProfile() {
 
           <div className="space-y-3">
             {recentActivities.map((act) => (
-              <div key={act.id} className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+              <div key={act.id} className="flex items-center gap-3.5 p-3 rounded-xl hover:bg-hover transition-colors">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${act.color}`}>
                   <span>{act.icon}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{act.type}</p>
-                    <span className="text-[10px] font-semibold text-slate-400">{act.time}</span>
+                    <p className="text-sm font-bold text-primary truncate">{act.type}</p>
+                    <span className="text-[10px] font-semibold text-secondary">{act.time}</span>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{act.details}</p>
+                  <p className="text-xs text-secondary truncate mt-0.5">{act.details}</p>
                 </div>
               </div>
             ))}
@@ -597,9 +602,9 @@ export default function CreatorProfile() {
         </Card>
 
         {/* SECTION 9 — ACHIEVEMENTS */}
-        <Card className="p-6 space-y-4">
-          <div className="border-b border-slate-100 dark:border-slate-700 pb-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+        <Card className="p-6 space-y-4 border border-default bg-card">
+          <div className="border-b border-default pb-3">
+            <h2 className="text-base font-bold text-primary flex items-center gap-2">
               <Award size={18} className="text-indigo-500" />
               <span>Achievements & Badges</span>
             </h2>
@@ -607,10 +612,10 @@ export default function CreatorProfile() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {achievements.map((ach) => (
-              <div key={ach.id} className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-700/30 text-center space-y-1.5 flex flex-col items-center justify-center hover:scale-[1.02] transition-transform">
+              <div key={ach.id} className="p-3.5 rounded-xl border border-default bg-surface text-center space-y-1.5 flex flex-col items-center justify-center hover:scale-[1.02] transition-transform">
                 <span className="text-2xl">{ach.icon}</span>
-                <p className="text-xs font-bold text-slate-900 dark:text-slate-100">{ach.title}</p>
-                <p className="text-[10px] text-slate-400 leading-tight">{ach.subtitle}</p>
+                <p className="text-xs font-bold text-primary">{ach.title}</p>
+                <p className="text-[10px] text-secondary leading-tight">{ach.subtitle}</p>
               </div>
             ))}
           </div>
@@ -619,7 +624,7 @@ export default function CreatorProfile() {
 
       {/* SECTION 10 — QUICK ACTIONS */}
       <section aria-label="Quick Actions">
-        <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+        <h2 className="text-base font-bold text-primary mb-3 flex items-center gap-2">
           <Sparkles size={18} className="text-indigo-500" />
           <span>Quick Actions & Shortcuts</span>
         </h2>
@@ -629,15 +634,15 @@ export default function CreatorProfile() {
               key={i}
               type="button"
               onClick={() => navigate(qa.link)}
-              className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-card-lg hover:-translate-y-1 transition-all duration-200 text-left flex flex-col justify-between space-y-2 group cursor-pointer"
+              className="p-4 rounded-xl border border-default bg-card hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-card-lg hover:-translate-y-1 transition-all duration-200 text-left flex flex-col justify-between space-y-2 group cursor-pointer"
             >
               <span className="text-2xl transition-transform group-hover:scale-110">{qa.icon}</span>
               <div>
-                <p className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center justify-between">
+                <p className="text-xs font-bold text-primary group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center justify-between">
                   <span>{qa.title}</span>
                   <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                 </p>
-                <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2 leading-tight">{qa.desc}</p>
+                <p className="text-[10px] text-secondary mt-0.5 line-clamp-2 leading-tight">{qa.desc}</p>
               </div>
             </button>
           ))}
@@ -659,7 +664,7 @@ export default function CreatorProfile() {
             <label className="label-base">Biography</label>
             <textarea rows={3} className="input-base" value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} />
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+          <div className="flex justify-end gap-3 pt-4 border-t border-default">
             <Button type="button" variant="outline" size="md" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
             <Button type="submit" variant="primary" size="md">Save Profile</Button>
           </div>
@@ -672,8 +677,8 @@ export default function CreatorProfile() {
           <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 mx-auto flex items-center justify-center text-xl">
             ⚠️
           </div>
-          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">Are you absolutely sure?</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+          <h3 className="font-bold text-primary text-base">Are you absolutely sure?</h3>
+          <p className="text-xs text-secondary leading-relaxed">
             This action cannot be undone. All your creator portfolio details, scheduled posts, and connected accounts will be permanently removed.
           </p>
           <div className="flex items-center gap-3 pt-3">

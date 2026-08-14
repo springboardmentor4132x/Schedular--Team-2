@@ -16,8 +16,9 @@ import PublishingLogs from '../pages/Publishing/PublishingLogs'
 import FailedPosts from '../pages/Publishing/FailedPosts'
 import PlatformHistory from '../pages/Publishing/PlatformHistory'
 
-// Module 6: Analytics Sub-Routes
 import { analyticsRoutes } from './analyticsRoutes'
+import NotificationsPage from '../../shared/pages/NotificationsPage'
+import ReportsPage from '../../shared/pages/ReportsPage'
 
 export const creatorRoutes = (
   <Route element={<CreatorLayout />}>
@@ -42,7 +43,8 @@ export const creatorRoutes = (
     {analyticsRoutes}
 
     <Route path="/creator/campaigns"            element={<CreatorPlaceholder title="Campaigns" description="Manage sponsored brand promotions, tracking client requests, briefs, guidelines, and asset hand-ins." />} />
-    <Route path="/creator/notifications"        element={<CreatorPlaceholder title="Notifications" description="Manage all notifications, direct reviewer feedback comments, and follower activities." />} />
+    <Route path="/creator/notifications"        element={<NotificationsPage role="creator" />} />
+    <Route path="/creator/reports"              element={<ReportsPage role="creator" />} />
     <Route path="/creator/profile"              element={<CreatorProfile />} />
     <Route path="/creator/settings"             element={<CreatorSettings />} />
   </Route>

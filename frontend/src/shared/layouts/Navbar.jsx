@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTheme } from '../hooks/useTheme'
 import { useSidebar } from '../hooks/useSidebar'
+import NotificationCenter from '../components/notifications/NotificationCenter'
+import CommandPalette from '../components/navigation/CommandPalette'
 
 const pageTitles = {
   '/admin/dashboard': { label: 'Admin Dashboard', sub: 'Manage the OrbitSocial platform, creators, campaigns, analytics, and system operations.' },
@@ -19,6 +21,12 @@ const pageTitles = {
   '/profile':   { label: 'My Profile', sub: 'Manage your personal information' },
   '/settings':  { label: 'Account Settings', sub: 'Manage your OrbitSocial account preferences and security' },
   '/social-accounts': { label: 'Social Accounts', sub: 'Manage all connected social media platforms from one place' },
+  '/business-accounts': { label: 'Business Accounts', sub: 'Manage business accounts, connected platforms, campaigns, and account activity.' },
+  '/admin/business-accounts': { label: 'Business Accounts', sub: 'Manage business accounts, connected platforms, campaigns, and account activity.' },
+  '/marketing-teams': { label: 'Marketing Teams', sub: 'Manage teams, members, business accounts, and campaign responsibilities.' },
+  '/admin/marketing-teams': { label: 'Marketing Teams', sub: 'Manage teams, members, business accounts, and campaign responsibilities.' },
+  '/content-creators': { label: 'Content Creators', sub: 'Manage creators, performance, campaigns, and connected social platforms.' },
+  '/admin/content-creators': { label: 'Content Creators', sub: 'Manage creators, performance, campaigns, and connected social platforms.' },
   '/creator/dashboard': { label: 'Creator Dashboard', sub: 'Welcome back, Creator 👋' },
   '/creator/my-posts': { label: 'My Posts', sub: 'Manage your created posts and drafts' },
   '/creator/posts': { label: 'My Posts', sub: 'Manage your created posts and drafts' },
@@ -28,6 +36,9 @@ const pageTitles = {
   '/creator/campaigns': { label: 'Campaigns', sub: 'Track campaign collaborations' },
   '/creator/publishing-calendar': { label: 'Publishing Calendar', sub: 'Visual schedule of posts' },
   '/creator/calendar': { label: 'Publishing Calendar', sub: 'Visual schedule of posts' },
+  '/reports': { label: 'Reports & Export', sub: 'Generate, inspect, and export system-wide analytics, campaigns, and audience reports' },
+  '/admin/reports': { label: 'Admin Reports & Export', sub: 'Generate, inspect, and export system-wide analytics, campaigns, and audience reports' },
+  '/creator/reports': { label: 'Creator Reports & Export', sub: 'Generate, inspect, and export content engagement, campaign deliverables, and growth reports' },
   '/creator/notifications': { label: 'Notifications', sub: 'Stay updated with your audience and reviewer feedback' },
   '/creator/profile': { label: 'Creator Profile', sub: 'Manage your creator profile details' },
   '/creator/settings': { label: 'Creator Settings', sub: 'Manage your creator preference settings' },
@@ -36,7 +47,15 @@ const pageTitles = {
   '/creator/analytics/audience': { label: 'Audience Analytics', sub: 'Follower growth, demographics, and active times' },
   '/creator/analytics/campaigns': { label: 'Campaign Analytics', sub: 'Sponsored promotions, ROI tracking, and campaign benchmarks' },
   '/creator/analytics/platforms': { label: 'Platform Comparison', sub: 'Comparative analytics across all connected platforms' },
-  '/creator/analytics/performance': { label: 'Performance Trends', sub: 'Historical performance trends across timeframe granularities' },
+  '/users': { label: 'User Management', sub: 'Manage user profiles, roles, authentication status, and platform access permissions.' },
+  '/admin/users': { label: 'User Management', sub: 'Manage user profiles, roles, authentication status, and platform access permissions.' },
+  '/admin/notifications': { label: 'System Notifications', sub: 'Stay informed about platform events, user activity, and critical system alerts.' },
+  '/notifications': { label: 'System Notifications', sub: 'Stay informed about platform events, user activity, and critical system alerts.' },
+  '/creator/publishing': { label: 'Publishing Dashboard', sub: 'Manage your publishing workflow, queue status, and platform activity.' },
+  '/creator/publishing/queue': { label: 'Publishing Queue', sub: 'Inspect scheduled posts, upcoming publishing windows, and priority dispatch.' },
+  '/creator/publishing/logs': { label: 'Publishing Logs', sub: 'Review live publishing audit trails, platform response codes, and timestamps.' },
+  '/creator/publishing/failed': { label: 'Failed Posts', sub: 'Diagnose publishing errors, inspect API messages, and retry failed transmissions.' },
+  '/creator/publishing/history': { label: 'Platform History', sub: 'Historical records of all successful and dispatched multi-platform posts.' },
 }
 
 const getPageMeta = (pathname) => {
@@ -55,15 +74,6 @@ const MenuIcon = () => (
     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
     className="w-5 h-5">
     <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
-  </svg>
-)
-
-const BellIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-    className="w-5 h-5">
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
   </svg>
 )
 
@@ -105,27 +115,11 @@ export default function Navbar() {
 
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
-
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: 'comment', title: 'Sarah Miller', message: 'commented on product launch copy', time: '10 min ago', read: false },
-    { id: 2, type: 'access', title: 'Alex Johnson', message: 'requested workspace access', time: '1 hour ago', read: false },
-    { id: 3, type: 'facebook', title: 'Facebook Sync', message: 'connection updated successfully', time: '5 hours ago', read: true },
-    { id: 4, type: 'alert', title: 'Instagram Token', message: 'expires in 3 days', time: '2 days ago', read: true },
-  ])
 
   const notifRef = useRef(null)
   const userMenuRef = useRef(null)
-
-  const unreadCount = notifications.filter(n => !n.read).length
-
-  const handleMarkAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })))
-  }
-
-  const handleNotificationClick = (id) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n))
-  }
 
   const handleLogout = () => {
     setShowUserMenu(false)
@@ -134,7 +128,10 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setIsCommandPaletteOpen(prev => !prev)
+      } else if (e.key === 'Escape') {
         setShowNotifications(false)
         setShowUserMenu(false)
       }
@@ -169,47 +166,59 @@ export default function Navbar() {
 
   return (
     <header className="relative flex items-center justify-between px-6 py-4
-                       bg-white dark:bg-slate-900
-                       border-b border-slate-200/80 dark:border-slate-800 z-20">
+                       bg-card
+                       border-b border-default z-20">
       <div className="flex items-center gap-3">
         {sidebarCtx && (
           <button
             type="button"
             onClick={sidebarCtx.toggleMobile}
-            className="p-2 -ml-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden focus:outline-none"
+            className="p-2 -ml-2 rounded-lg text-secondary hover:bg-hover md:hidden focus:outline-none"
             aria-label="Open mobile menu"
           >
             <MenuIcon />
           </button>
         )}
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
+          <h1 className="text-xl font-bold text-primary leading-tight">
             {page.label}
           </h1>
           {page.sub && (
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{page.sub}</p>
+            <p className="text-sm text-secondary mt-0.5">{page.sub}</p>
           )}
         </div>
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="relative hidden sm:flex items-center">
-          <span className="absolute left-3 pointer-events-none">
+        {/* Global Command Palette Trigger */}
+        <div 
+          onClick={() => setIsCommandPaletteOpen(true)}
+          className="relative hidden sm:flex items-center cursor-pointer group"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsCommandPaletteOpen(true); } }}
+          title="Open Command Palette (Ctrl+K / ⌘K)"
+        >
+          <span className="absolute left-3 pointer-events-none text-secondary group-hover:text-primary transition-colors">
             <SearchIcon />
           </span>
           <input
             id="navbar-search"
-            type="search"
-            placeholder="Search…"
-            className="pl-9 pr-4 py-2 text-sm
-                       bg-slate-50 dark:bg-slate-700
-                       border border-slate-200 dark:border-slate-600
-                       text-slate-800 dark:text-slate-100
-                       placeholder:text-slate-400 dark:placeholder:text-slate-500
+            type="text"
+            readOnly
+            placeholder="Search or press ⌘K…"
+            className="pl-9 pr-14 py-2 text-xs md:text-sm
+                       bg-surface
+                       border border-default
+                       text-primary
+                       placeholder:text-secondary
                        rounded-lg focus:outline-none focus:ring-2
                        focus:ring-indigo-300 focus:border-indigo-400
-                       w-52 transition-all duration-150"
+                       w-56 transition-all duration-150 cursor-pointer group-hover:border-indigo-400/50"
           />
+          <kbd className="absolute right-2.5 px-1.5 py-0.5 rounded text-[10px] font-bold text-secondary bg-card border border-default shadow-xs pointer-events-none">
+            ⌘K
+          </kbd>
         </div>
 
         <button
@@ -217,9 +226,9 @@ export default function Navbar() {
           type="button"
           onClick={toggleTheme}
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          className="p-2 rounded-lg text-slate-500 dark:text-slate-400
-                     hover:bg-slate-100 dark:hover:bg-slate-700
-                     hover:text-slate-800 dark:hover:text-slate-200
+          className="p-2 rounded-lg text-secondary
+                     hover:bg-hover
+                     hover:text-primary
                      transition-colors duration-150
                      focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
         >
@@ -227,93 +236,11 @@ export default function Navbar() {
         </button>
 
         <div className="relative" ref={notifRef}>
-          <button
-            id="navbar-notifications"
-            type="button"
-            onClick={() => {
-              setShowNotifications(!showNotifications)
-              setShowUserMenu(false)
-            }}
-            className={`relative p-2 rounded-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
-              showNotifications
-                ? 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
-                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-            aria-label="Notifications"
-            aria-expanded={showNotifications}
-            aria-haspopup="true"
-          >
-            <BellIcon />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 px-1.5 py-0.5 text-[10px] font-bold text-white bg-indigo-600 rounded-full leading-none ring-2 ring-white dark:ring-slate-800 min-w-[16px] h-[16px] flex items-center justify-center">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-card-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-slate-200/80 dark:border-slate-800 overflow-hidden transform origin-top-right transition-all duration-200 ease-out z-50">
-              <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Notifications</span>
-                {unreadCount > 0 && (
-                  <button
-                    onClick={handleMarkAllRead}
-                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline focus:outline-none"
-                  >
-                    Mark all as read
-                  </button>
-                )}
-              </div>
-              <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
-                {notifications.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                    No new notifications
-                  </div>
-                ) : (
-                  notifications.map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => handleNotificationClick(item.id)}
-                      className={`flex gap-3 p-4 cursor-pointer transition-colors duration-150 ${
-                        item.read
-                          ? 'bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800'
-                          : 'bg-indigo-50/30 hover:bg-indigo-50/50 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40'
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${
-                        item.type === 'comment' ? 'bg-indigo-500' :
-                        item.type === 'access' ? 'bg-emerald-500' :
-                        item.type === 'facebook' ? 'bg-blue-600' : 'bg-amber-500'
-                      }`}>
-                        {item.title.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-snug">
-                          <span className="font-bold text-slate-800 dark:text-slate-100">{item.title}</span> {item.message}
-                        </p>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">{item.time}</span>
-                      </div>
-                      {!item.read && (
-                        <div className="w-2 h-2 rounded-full bg-indigo-600 self-center flex-shrink-0" />
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="border-t border-slate-100 dark:border-slate-800 p-2 text-center bg-slate-50 dark:bg-slate-800/80">
-                <button
-                  type="button"
-                  onClick={() => setShowNotifications(false)}
-                  className="w-full text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 py-1.5 focus:outline-none"
-                >
-                  View all notifications
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Notification Center Popover */}
+          <NotificationCenter />
         </div>
 
-        <div className="w-px h-6 bg-slate-200 dark:bg-slate-800" />
+        <div className="w-px h-6 bg-surface border-r border-default" />
 
         <div className="relative" ref={userMenuRef}>
           <button
@@ -325,8 +252,8 @@ export default function Navbar() {
             }}
             className={`flex items-center gap-2 rounded-lg p-1 transition-colors duration-150 focus:outline-none ${
               showUserMenu
-                ? 'bg-slate-100 dark:bg-slate-800'
-                : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                ? 'bg-hover'
+                : 'hover:bg-hover'
             }`}
             aria-label="User menu"
             aria-expanded={showUserMenu}
@@ -338,20 +265,20 @@ export default function Navbar() {
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              className={`w-4 h-4 text-slate-400 dark:text-slate-500 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`}>
+              className={`w-4 h-4 text-secondary transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`}>
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
 
           {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-card-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-slate-200/80 dark:border-slate-800 overflow-hidden transform origin-top-right transition-all duration-200 ease-out z-50">
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+            <div className="absolute right-0 mt-2 w-72 bg-card rounded-2xl shadow-card-lg border border-default overflow-hidden transform origin-top-right transition-all duration-200 ease-out z-50">
+              <div className="p-4 bg-surface border-b border-default flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
                   JD
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">John Doe</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">john@orbitsocial.com</p>
+                  <p className="text-sm font-bold text-primary truncate">John Doe</p>
+                  <p className="text-xs text-secondary truncate">john@orbitsocial.com</p>
                   <span className="inline-block mt-1 text-[10px] font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full">
                     Pro Plan
                   </span>
@@ -370,7 +297,7 @@ export default function Navbar() {
                       setShowUserMenu(false)
                       navigate(item.to)
                     }}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-slate-900 dark:hover:text-slate-100 rounded-xl transition-all duration-150 font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                    className="w-full text-left px-3 py-2 text-sm text-primary hover:bg-hover rounded-xl transition-all duration-150 font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer"
                   >
                     {item.label}
                   </button>
@@ -380,14 +307,14 @@ export default function Navbar() {
                     setShowUserMenu(false)
                     setToastMessage('Help documentation is coming soon!')
                   }}
-                  className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-slate-900 dark:hover:text-slate-100 rounded-xl transition-all duration-150 font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  className="w-full text-left px-3 py-2 text-sm text-primary hover:bg-hover rounded-xl transition-all duration-150 font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer"
                 >
                   Help
                 </button>
-                <div className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
+                <div className="h-px bg-surface border-t border-default my-1" />
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition-all duration-150 font-semibold focus:outline-none focus:ring-1 focus:ring-rose-400"
+                  className="w-full text-left px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition-all duration-150 font-semibold focus:outline-none focus:ring-1 focus:ring-rose-400 cursor-pointer"
                 >
                   Logout
                 </button>
@@ -397,12 +324,18 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Global Role-Aware Command Palette */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+      />
+
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 z-50 text-sm font-semibold transition-all duration-300 animate-slide-in">
+        <div className="fixed bottom-5 right-5 bg-card border border-default text-primary px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 z-50 text-sm font-semibold transition-all duration-300 animate-slide-in">
           <span>{toastMessage}</span>
           <button
             onClick={() => setToastMessage('')}
-            className="text-xs font-bold opacity-80 hover:opacity-100 ml-2"
+            className="text-xs font-bold opacity-80 hover:opacity-100 ml-2 text-secondary"
           >
             ✕
           </button>

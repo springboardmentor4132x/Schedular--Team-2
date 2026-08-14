@@ -32,6 +32,15 @@ export * from './context/ThemeContext'
 export * from './context/SidebarContext'
 export * from './hooks/useTheme'
 
+// Notifications & Reports
+export { default as NotificationCenter } from './components/notifications/NotificationCenter'
+export { default as NotificationItem } from './components/notifications/NotificationItem'
+export { default as NotificationsPage } from './pages/NotificationsPage'
+export { default as ReportHeader } from './components/reports/ReportHeader'
+export { default as ReportFilters } from './components/reports/ReportFilters'
+export { default as ReportTable } from './components/reports/ReportTable'
+export { default as ReportsPage } from './pages/ReportsPage'
+
 // Pages
 export { default as Inbox } from './pages/Inbox'
 export { default as Profile } from './pages/Profile'
@@ -40,3 +49,7 @@ export { default as Settings } from './pages/Settings'
 // Services & Mock
 export * from './services/profileService'
 export * from './services/settingsService'
+export * from './services/notificationService'
+export * from './services/reportService'
+export * from './constants/notificationMockData'
+export * from './constants/reportMockData'

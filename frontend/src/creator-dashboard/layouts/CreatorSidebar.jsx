@@ -14,7 +14,8 @@ import {
   ScrollText,
   AlertCircle,
   History,
-  BarChart3
+  BarChart3,
+  FileSpreadsheet
 } from 'lucide-react'
 
 const navItems = [
@@ -40,7 +41,19 @@ const navItems = [
       { label: 'Platform History', to: '/creator/publishing/history', Icon: History },
     ],
   },
-  { label: 'Analytics', to: '/creator/analytics', Icon: BarChart3 },
+  {
+    label: 'Analytics',
+    Icon: BarChart3,
+    children: [
+      { label: 'Overview', to: '/creator/analytics', Icon: LayoutDashboard },
+      { label: 'Content', to: '/creator/analytics/content', Icon: FileText },
+      { label: 'Audience', to: '/creator/analytics/audience', Icon: User },
+      { label: 'Campaigns', to: '/creator/analytics/campaigns', Icon: Calendar },
+      { label: 'Platforms', to: '/creator/analytics/platforms', Icon: BarChart3 },
+      { label: 'Trends', to: '/creator/analytics/performance', Icon: History },
+    ],
+  },
+  { label: 'Reports', to: '/creator/reports', Icon: FileSpreadsheet },
   { label: 'Notifications', to: '/creator/notifications', Icon: Bell },
   { label: 'Profile', to: '/creator/profile', Icon: User },
   { label: 'Settings', to: '/creator/settings', Icon: Settings },

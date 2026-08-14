@@ -518,20 +518,20 @@ export default function PublishingCalendar() {
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 transition-opacity"
           />
 
-          <aside className="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-white dark:bg-slate-800 shadow-2xl z-50 border-l border-slate-100 dark:border-slate-700/60 p-6 space-y-6 overflow-y-auto flex flex-col justify-between animate-slide-in">
+          <aside className="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-white dark:bg-slate-800 shadow-2xl z-50 border-l border-default p-6 space-y-6 overflow-y-auto flex flex-col justify-between animate-slide-in">
             <div className="space-y-5">
               
-              <div className="flex justify-between items-center border-b pb-3">
+              <div className="flex justify-between items-center border-b border-default pb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">{selectedEvent.thumb}</span>
                   <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-sm">{selectedEvent.platform}</h3>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Post Info Drawer</span>
+                    <h3 className="font-bold text-primary text-sm">{selectedEvent.platform}</h3>
+                    <span className="text-[9px] font-bold text-secondary uppercase tracking-wide">Post Info Drawer</span>
                   </div>
                 </div>
                 <button 
                   onClick={() => setSelectedEvent(null)}
-                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-500"
+                  className="p-1.5 hover:bg-hover rounded-lg text-secondary"
                 >
                   <X size={16} />
                 </button>
@@ -545,19 +545,19 @@ export default function PublishingCalendar() {
               </div>
 
               <div className="space-y-2">
-                <h4 className="text-base font-extrabold text-slate-900 dark:text-white leading-snug">{selectedEvent.title}</h4>
-                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-700/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700/60 font-medium">
+                <h4 className="text-base font-extrabold text-primary leading-snug">{selectedEvent.title}</h4>
+                <p className="text-xs text-primary leading-relaxed bg-surface p-3.5 rounded-2xl border border-default font-medium">
                   {selectedEvent.caption}
                 </p>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Media Content Preview</label>
-                <div className="aspect-video w-full rounded-2xl bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center text-slate-400 border border-slate-100 dark:border-slate-700">
+                <label className="text-[10px] font-bold text-secondary uppercase">Media Content Preview</label>
+                <div className="aspect-video w-full rounded-2xl bg-surface flex items-center justify-center text-secondary border border-default">
                   {selectedEvent.platform.includes('Instagram') || selectedEvent.platform.includes('Facebook') ? (
                     <div className="flex flex-col items-center justify-center p-4">
                       <span className="text-4xl mb-1">{selectedEvent.thumb}</span>
-                      <span className="text-[9px] text-slate-500">sneaker_product_shot.png</span>
+                      <span className="text-[9px] text-secondary">sneaker_product_shot.png</span>
                     </div>
                   ) : (
                     <span className="text-xs">No media attachment configured</span>

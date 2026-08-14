@@ -45,23 +45,23 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
 
       <div
         className={`relative z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full ${sizes[size] ?? sizes.md}
-                    flex flex-col max-h-[90vh] overflow-hidden border border-slate-200/80 dark:border-slate-700/60`}
+                    flex flex-col max-h-[90vh] overflow-hidden border border-default`}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
-          <h2 id="modal-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-default flex-shrink-0">
+          <h2 id="modal-title" className="text-lg font-bold text-primary">{title}</h2>
           <button
             type="button"
             id="modal-close-btn"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800
-                       transition-colors"
+            className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-hover
+                       transition-colors cursor-pointer"
             aria-label="Close"
           >
             <XIcon />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 text-slate-800 dark:text-slate-200">
+        <div className="flex-1 overflow-y-auto px-6 py-5 text-primary">
           {children}
         </div>
       </div>

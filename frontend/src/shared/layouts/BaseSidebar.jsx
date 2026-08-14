@@ -104,10 +104,10 @@ export default function BaseSidebar({
                     onClick={closeMobile}
                     id={`nav-${child.label.toLowerCase().replace(/\s+/g, '-')}`}
                     className={({ isActive }) => `
-                      sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-[13px] transition-all duration-200
+                      sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg font-semibold text-[13px] transition-all duration-200
                       ${isActive
-                        ? 'text-white bg-indigo-600/20'
-                        : 'text-slate-500 hover:text-slate-200 hover:bg-sidebar-hover'
+                        ? 'text-white bg-indigo-600/30 text-indigo-200 shadow-xs'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-sidebar-hover'
                       }
                     `}
                   >

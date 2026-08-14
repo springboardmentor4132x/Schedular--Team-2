@@ -1,17 +1,19 @@
-import React from 'react'
-import { NavLink } from 'react-router-dom'
+import { useLocation, NavLink } from 'react-router-dom'
 import { LayoutDashboard, Users, Target, Layers, PieChart, TrendingUp } from 'lucide-react'
 
-const tabs = [
-  { label: 'Overview', to: '/analytics', icon: LayoutDashboard, end: true },
-  { label: 'Creator Performance', to: '/analytics/creators', icon: Users, end: false },
-  { label: 'Campaign Analytics', to: '/analytics/campaigns', icon: Target, end: false },
-  { label: 'Platform Analytics', to: '/analytics/platforms', icon: Layers, end: false },
-  { label: 'Audience Analytics', to: '/analytics/audience', icon: PieChart, end: false },
-  { label: 'Performance Trends', to: '/analytics/performance', icon: TrendingUp, end: false },
-]
-
 export default function AdminAnalyticsTabs() {
+  const location = useLocation()
+  const base = location.pathname.startsWith('/admin') ? '/admin/analytics' : '/analytics'
+
+  const tabs = [
+    { label: 'Overview', to: base, icon: LayoutDashboard, end: true },
+    { label: 'Creator Performance', to: `${base}/creators`, icon: Users, end: false },
+    { label: 'Campaign Analytics', to: `${base}/campaigns`, icon: Target, end: false },
+    { label: 'Platform Analytics', to: `${base}/platforms`, icon: Layers, end: false },
+    { label: 'Audience Analytics', to: `${base}/audience`, icon: PieChart, end: false },
+    { label: 'Performance Trends', to: `${base}/performance`, icon: TrendingUp, end: false },
+  ]
+
   return (
     <div className="border-b border-slate-200/80 dark:border-slate-800 mb-6">
       <nav className="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar py-1">

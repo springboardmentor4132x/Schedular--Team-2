@@ -280,9 +280,9 @@ function UserDetailsCard({ profile, isEditing, onEdit, onSave, onCancel }) {
   }
 
   return (
-    <Card id="profile-details-card" className="p-5 sm:p-7">
+    <Card id="profile-details-card" className="p-5 sm:p-7 border border-default bg-card">
       <div className="flex items-center justify-between mb-5">
-        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">User Details</h3>
+        <h3 className="text-base font-bold text-primary">User Details</h3>
         {!isEditing && (
           <Button
             id="profile-details-edit-btn"
@@ -370,7 +370,7 @@ function UserDetailsCard({ profile, isEditing, onEdit, onSave, onCancel }) {
           <div className="space-y-1.5">
             <label
               htmlFor="edit-bio"
-              className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+              className="label-base"
             >
               Bio
             </label>
@@ -380,12 +380,7 @@ function UserDetailsCard({ profile, isEditing, onEdit, onSave, onCancel }) {
               value={form.bio}
               onChange={e => set('bio', e.target.value)}
               placeholder="Tell the world about yourself…"
-              className="w-full px-4 py-2.5 text-sm rounded-xl border resize-none transition-all
-                         bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100
-                         placeholder:text-slate-400 dark:placeholder:text-slate-500
-                         border-slate-200 dark:border-slate-600
-                         focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400
-                         focus-visible:border-indigo-400"
+              className="input-base w-full"
             />
           </div>
 
@@ -397,7 +392,7 @@ function UserDetailsCard({ profile, isEditing, onEdit, onSave, onCancel }) {
           </div>
         </form>
       ) : (
-        <dl className="divide-y divide-slate-100 dark:divide-slate-700/60">
+        <dl className="divide-y divide-default">
           <ViewRow id="view-full-name"  label="Full Name"      value={`${profile.firstName} ${profile.lastName}`} />
           <ViewRow id="view-username"   label="Username"       value={`@${profile.username}`} />
           <ViewRow id="view-email"      label="Email"          value={profile.email} />
@@ -413,11 +408,11 @@ function UserDetailsCard({ profile, isEditing, onEdit, onSave, onCancel }) {
 function PasswordRuleItem({ pass, label }) {
   return (
     <li className={`flex items-center gap-1.5 text-xs transition-colors duration-200
-                    ${pass ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                    ${pass ? 'text-emerald-600 dark:text-emerald-400' : 'text-secondary'}`}>
       <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0
                         transition-colors duration-200
                         ${pass ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
-                               : 'bg-slate-100 dark:bg-slate-700 text-slate-300 dark:text-slate-600'}`}>
+                               : 'bg-surface text-secondary'}`}>
         {pass ? <CheckIcon /> : <XSmallIcon />}
       </span>
       {label}
@@ -453,14 +448,14 @@ function ChangePasswordCard() {
   }
 
   return (
-    <Card id="profile-password-card" className="p-5 sm:p-7">
+    <Card id="profile-password-card" className="p-5 sm:p-7 border border-default bg-card">
       <div className="flex items-center gap-2.5 mb-6">
         <span className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-900/50
                          flex items-center justify-center text-indigo-600 dark:text-indigo-400"
               aria-hidden="true">
           <ShieldIcon />
         </span>
-        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Change Password</h3>
+        <h3 className="text-base font-bold text-primary">Change Password</h3>
       </div>
 
       <form

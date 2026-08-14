@@ -280,37 +280,37 @@ export default function SocialAccounts() {
           { label: 'Failed Connections', value: failedCount, icon: '⚠️', color: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400' },
           { label: 'Posts Scheduled', value: postsScheduled, icon: '🗓️', color: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400' },
         ].map((stat, idx) => (
-          <Card key={idx} className="p-5 flex items-center gap-4 border border-slate-100 dark:border-slate-700/60 transition-all duration-300 hover:shadow-card-lg dark:hover:shadow-[0_2px_16px_rgba(0,0,0,0.35)] min-h-[96px]">
+          <Card key={idx} className="p-5 flex items-center gap-4 border border-default transition-all duration-300 hover:shadow-card-lg min-h-[96px]">
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${stat.color}`}>
               {stat.icon}
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{stat.label}</p>
-              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">{stat.value}</p>
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider">{stat.label}</p>
+              <p className="text-2xl font-bold text-primary mt-1">{stat.value}</p>
             </div>
           </Card>
         ))}
       </section>
 
       <section aria-label="Social connection accounts">
-        <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4">Connection Channels</h3>
+        <h3 className="text-base font-bold text-primary mb-4">Connection Channels</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {accounts.map((acc) => {
             const statusProps = getStatusProps(acc.status)
             const isConnected = acc.status !== 'Not Connected'
-            const LogoConfig = platformLogos[acc.id] || { component: GlobeIcon, brandColor: 'text-slate-500', iconColor: 'bg-slate-100 text-slate-500' }
+            const LogoConfig = platformLogos[acc.id] || { component: GlobeIcon, brandColor: 'text-slate-500', iconColor: 'bg-slate-100 dark:bg-slate-800 text-slate-500' }
             const LogoComponent = LogoConfig.component
 
             return (
-              <Card key={acc.id} id={`account-card-${acc.id}`} className="p-5 flex flex-col justify-between gap-5 border border-slate-100 dark:border-slate-700/60 shadow-[0_2px_16px_rgba(36,59,107,0.07)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.35)] transition-all duration-300 hover:shadow-card-lg dark:hover:shadow-[0_4px_24px_rgba(0,0,0,0.45)] hover:-translate-y-0.5">
+              <Card key={acc.id} id={`account-card-${acc.id}`} className="p-5 flex flex-col justify-between gap-5 border border-default transition-all duration-300 hover:shadow-card-lg hover:-translate-y-0.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0 ${LogoConfig.iconColor}`}>
                       <LogoComponent />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">{acc.platform}</h4>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-[120px] sm:max-w-[150px]">
+                      <h4 className="text-sm font-bold text-primary">{acc.platform}</h4>
+                      <p className="text-xs text-secondary mt-0.5 truncate max-w-[120px] sm:max-w-[150px]">
                         {acc.username}
                       </p>
                     </div>
@@ -320,21 +320,21 @@ export default function SocialAccounts() {
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 py-3 border-y border-slate-100 dark:border-slate-700/60 text-xs">
+                <div className="grid grid-cols-2 gap-4 py-3 border-y border-default text-xs">
                   <div className="space-y-1">
-                    <span className="text-slate-400 dark:text-slate-500 font-semibold block uppercase tracking-wider">Followers</span>
-                    <span className="text-slate-800 dark:text-slate-200 font-bold text-sm">{acc.followers}</span>
+                    <span className="text-secondary font-semibold block uppercase tracking-wider">Followers</span>
+                    <span className="text-primary font-bold text-sm">{acc.followers}</span>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-slate-400 dark:text-slate-500 font-semibold block uppercase tracking-wider">Connected Since</span>
-                    <span className="text-slate-800 dark:text-slate-200 font-medium">{acc.connectedSince}</span>
+                    <span className="text-secondary font-semibold block uppercase tracking-wider">Connected Since</span>
+                    <span className="text-primary font-medium">{acc.connectedSince}</span>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-slate-400 dark:text-slate-500 font-semibold block uppercase tracking-wider">Last Sync</span>
-                    <span className="text-slate-800 dark:text-slate-200 font-medium">{acc.lastSync}</span>
+                    <span className="text-secondary font-semibold block uppercase tracking-wider">Last Sync</span>
+                    <span className="text-primary font-medium">{acc.lastSync}</span>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-slate-400 dark:text-slate-500 font-semibold block uppercase tracking-wider">Health Status</span>
+                    <span className="text-secondary font-semibold block uppercase tracking-wider">Health Status</span>
                     <span className={getHealthClass(acc.health)}>{acc.health}</span>
                   </div>
                 </div>
@@ -382,8 +382,8 @@ export default function SocialAccounts() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
         <section aria-label="Platform connection actions" className="lg:col-span-1">
-          <Card className="p-5 flex flex-col gap-4 border border-slate-100 dark:border-slate-700/60 shadow-[0_2px_16px_rgba(36,59,107,0.07)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.35)]">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-700/60">
+          <Card className="p-5 flex flex-col gap-4 border border-default">
+            <h3 className="text-sm font-bold text-primary uppercase tracking-wider pb-2 border-b border-default">
               Control Panel
             </h3>
             <div className="flex flex-col gap-2.5">
@@ -404,11 +404,11 @@ export default function SocialAccounts() {
         </section>
 
         <section aria-label="Recent activity logs" className="lg:col-span-2">
-          <Card className="p-5 flex flex-col gap-4 border border-slate-100 dark:border-slate-700/60 shadow-[0_2px_16px_rgba(36,59,107,0.07)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.35)]">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-700/60">
+          <Card className="p-5 flex flex-col gap-4 border border-default">
+            <h3 className="text-sm font-bold text-primary uppercase tracking-wider pb-2 border-b border-default">
               Recent Connection Activity
             </h3>
-            <div className="relative pl-6 border-l border-slate-100 dark:border-slate-700/80 space-y-5 max-h-[260px] overflow-y-auto pr-1">
+            <div className="relative pl-6 border-l border-default space-y-5 max-h-[260px] overflow-y-auto pr-1">
               {activities.map((act) => (
                 <div key={act.id} className="relative flex flex-col gap-1">
                   <span className={[
@@ -420,10 +420,10 @@ export default function SocialAccounts() {
                   ].join(' ')} aria-hidden="true" />
                   
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    <span className="text-xs font-semibold text-primary">
                       {act.text}
                     </span>
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                    <span className="text-[10px] text-secondary whitespace-nowrap">
                       {act.time}
                     </span>
                   </div>

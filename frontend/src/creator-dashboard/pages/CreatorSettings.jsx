@@ -48,14 +48,14 @@ import {
 // Settings Card Wrapper matching OrbitSocial Settings style
 function SettingsCard({ title, icon: IconComponent, children }) {
   return (
-    <Card className="p-6 space-y-6 border border-slate-200/80 dark:border-slate-800">
-      <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+    <Card className="p-6 space-y-6 border border-default bg-card">
+      <div className="flex items-center gap-3 border-b border-default pb-4">
         {IconComponent && (
           <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
             <IconComponent size={20} strokeWidth={2} />
           </div>
         )}
-        <h3 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100">{title}</h3>
+        <h3 className="text-sm md:text-base font-bold text-primary">{title}</h3>
       </div>
       {children}
     </Card>
@@ -90,11 +90,11 @@ function ToggleSwitch({ checked, onChange, label, description, id }) {
   return (
     <div className="flex items-center justify-between py-2 gap-4">
       <div>
-        <label htmlFor={id} className="text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 cursor-pointer block">
+        <label htmlFor={id} className="text-xs md:text-sm font-bold text-primary cursor-pointer block">
           {label}
         </label>
         {description && (
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>
+          <p className="text-[11px] text-secondary mt-0.5">{description}</p>
         )}
       </div>
       <button
@@ -104,7 +104,7 @@ function ToggleSwitch({ checked, onChange, label, description, id }) {
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 ${
-          checked ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-800'
+          checked ? 'bg-indigo-600' : 'bg-surface border border-default'
         }`}
       >
         <span
@@ -474,56 +474,52 @@ export default function CreatorSettings() {
                 <ToggleSwitch 
                   id="notif-email"
                   label="Email Notifications"
-                  description="Weekly digests, major workspace updates, and account alerts"
-                  checked={notifications.emailNotifications}
+                  description="Weekly digests, major workspace updates, and email reports"
+                  checked={notifications.emailNotifications ?? true}
                   onChange={() => handleToggleNotification('emailNotifications')}
                 />
                 <ToggleSwitch 
                   id="notif-push"
                   label="Push Notifications"
-                  description="Real-time browser pop-up alerts for urgent comments and publishing status"
-                  checked={notifications.pushNotifications}
+                  description="Real-time browser pop-up alerts for urgent comments and status updates"
+                  checked={notifications.pushNotifications ?? true}
                   onChange={() => handleToggleNotification('pushNotifications')}
                 />
                 <ToggleSwitch 
-                  id="notif-content-review"
-                  label="Content Review Alerts"
-                  description="Notifications when brand reviewers comment or approve post drafts"
-                  checked={notifications.contentReviewAlerts}
-                  onChange={() => handleToggleNotification('contentReviewAlerts')}
-                />
-                <ToggleSwitch 
                   id="notif-publishing"
-                  label="Publishing Alerts"
+                  label="Publishing Status Notifications"
                   description="Instant notification when scheduled content publishes or encounters errors"
-                  checked={notifications.publishingAlerts}
+                  checked={notifications.publishingAlerts ?? true}
                   onChange={() => handleToggleNotification('publishingAlerts')}
                 />
                 <ToggleSwitch 
-                  id="notif-weekly-summary"
-                  label="Weekly Summary"
-                  description="Comprehensive weekly content analytics delivered every Monday morning"
-                  checked={notifications.weeklySummary}
-                  onChange={() => handleToggleNotification('weeklySummary')}
+                  id="notif-scheduled-reminders"
+                  label="Scheduled Post Reminders"
+                  description="Alerts and reminders before posts publish according to schedule"
+                  checked={notifications.scheduledReminders ?? true}
+                  onChange={() => handleToggleNotification('scheduledReminders')}
                 />
                 <ToggleSwitch 
-                  id="notif-followers"
-                  label="New Followers"
-                  description="Alerts when new followers engage with your creator profile"
-                  checked={notifications.newFollowers}
-                  onChange={() => handleToggleNotification('newFollowers')}
+                  id="notif-campaign-alerts"
+                  label="Campaign Alerts"
+                  description="Notifications regarding brand brief deadlines, guidelines, and ROI"
+                  checked={notifications.campaignAlerts ?? true}
+                  onChange={() => handleToggleNotification('campaignAlerts')}
                 />
-
-                {/* Campaign Invitations (keep hidden/commented for future use as per rules) */}
-                {/* 
                 <ToggleSwitch 
-                  id="notif-campaign-invites"
-                  label="Campaign Invitations"
-                  description="Direct brand brief proposals and campaign collaboration invites"
-                  checked={false}
-                  onChange={() => {}}
-                /> 
-                */}
+                  id="notif-account-activity"
+                  label="Account Activity Updates"
+                  description="Alerts for security logins, connected social account token renewals, and settings"
+                  checked={notifications.accountActivity ?? true}
+                  onChange={() => handleToggleNotification('accountActivity')}
+                />
+                <ToggleSwitch 
+                  id="notif-team-collab"
+                  label="Team Collaboration Alerts"
+                  description="Notifications when team members assign content drafts, comment, or update posts"
+                  checked={notifications.teamCollaboration ?? true}
+                  onChange={() => handleToggleNotification('teamCollaboration')}
+                />
               </div>
             </SettingsCard>
           )}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CardSkeleton, TableSkeleton } from '../../shared/components/ui/Skeleton'
+import AttentionRequired from '../../shared/components/dashboard/AttentionRequired'
 import { 
   FileEdit, 
   Calendar, 
@@ -49,21 +50,21 @@ const Youtube = (props) => (
 
 function MetricCard({ icon: Icon, count, label, trend, trendPositive, badgeColor, badgeText }) {
   return (
-    <div className="stat-card cursor-pointer group hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all duration-200">
+    <div className="stat-card bg-card border border-default cursor-pointer group hover:border-indigo-500/40 transition-all duration-200">
       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform duration-200">
         <Icon size={18} strokeWidth={2} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-1.5">
-          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">{label}</p>
+          <p className="text-[11px] font-semibold text-secondary uppercase tracking-wider truncate">{label}</p>
           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${badgeColor}`}>
             {badgeText}
           </span>
         </div>
-        <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-50 mt-1 tracking-tight">{count}</p>
+        <p className="text-2xl font-extrabold text-primary mt-1 tracking-tight">{count}</p>
         <p className={`text-xs font-semibold mt-1 flex items-center gap-1 ${trendPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
           <span>{trendPositive ? '▲' : '▼'} {trend}</span>
-          <span className="text-slate-400 dark:text-slate-500 font-normal">this week</span>
+          <span className="text-secondary font-normal">this week</span>
         </p>
       </div>
     </div>
@@ -75,19 +76,19 @@ function QuickActionCard({ icon: Icon, label, desc, bgAccent, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-col justify-between h-full p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900
-                 hover:border-indigo-500/40 dark:hover:border-indigo-500/40 hover:-translate-y-0.5 transition-all duration-200 text-left group focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer"
+      className="flex flex-col justify-between h-full p-4 rounded-xl border border-default bg-card
+                 hover:border-indigo-500/40 hover:-translate-y-0.5 transition-all duration-200 text-left group focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer"
     >
       <div>
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${bgAccent} text-white transition-transform duration-200 group-hover:scale-105 shadow-xs`}>
           <Icon size={18} strokeWidth={2} />
         </div>
         <div className="mt-3">
-          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1">
+          <span className="text-xs font-bold text-primary group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1">
             {label}
             <ArrowUpRight size={13} className="opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-0.5 group-hover:translate-y-0" />
           </span>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block leading-normal line-clamp-2">{desc}</span>
+          <span className="text-[11px] text-secondary mt-1 block leading-normal line-clamp-2">{desc}</span>
         </div>
       </div>
     </button>
@@ -118,8 +119,13 @@ const initialCampaigns = [
 
 const initialDrafts = [
   { title: 'Top 5 Tech Productivity Hacks', platform: 'LinkedIn', campaign: 'None', status: 'Draft', edited: '2 hours ago', icon: Linkedin },
-  { title: 'Nike Run Club Review Video', platform: 'Instagram', campaign: 'Nike Summer Launch', status: 'In Review', edited: '5 hours ago', icon: Instagram },
-  { title: 'We built a SaaS in 24 hours!', platform: 'YouTube', campaign: 'None', status: 'Draft', edited: '1 day ago', icon: Youtube },
+  { title: 'Summer Workout Motivation Reel', platform: 'Instagram', campaign: 'Nike Summer Launch', status: 'In Review', edited: '5 hours ago', icon: Instagram },
+  { title: 'Weekly AI Innovations Breakdown', platform: 'YouTube', campaign: 'None', status: 'Draft', edited: 'Yesterday', icon: Youtube },
+]
+
+const initialFeedback = [
+  { title: 'Nike Summer Launch', note: 'Please boost the intro pacing by 2s and refine color grade.', reviewer: 'Sarah M. (Brand Lead)', time: '10 mins ago', actionRequired: true, icon: AlertCircle },
+  { title: 'Adidas Sports Week', note: 'Approved! Ready for schedule publishing queue.', reviewer: 'Mark T. (Manager)', time: '1 hour ago', actionRequired: false, icon: CheckCircle },
 ]
 
 const upcomingPosts = [
@@ -129,24 +135,21 @@ const upcomingPosts = [
   { title: 'How to edit like a pro', platform: 'YouTube Short', time: 'July 25, 9:00 AM', campaign: 'None', icon: Youtube },
 ]
 
-const initialFeedback = [
-  { id: 1, type: 'warning', title: 'Feedback on Nike Reel', time: '10 min ago', text: '"Please shorten the intro by 2 seconds and verify alignment of brand logo." - Sarah (Brand Manager)' },
-  { id: 2, type: 'success', title: 'Campaign Approved', time: '2 hours ago', text: 'Adidas Sports Week campaign draft approved. Post is set to auto-publish on August 05.' }
-]
-
 const calendarHighlightedDays = [1, 5, 8, 14, 15, 20, 21, 23, 25]
 
 export default function CreatorDashboard() {
   const navigate = useNavigate()
-  const [isLoading, setIsLoading] = useState(true)
   const [drafts, setDrafts] = useState(initialDrafts)
   const [feedbackList, setFeedbackList] = useState(initialFeedback)
   const [campaigns, setCampaigns] = useState(initialCampaigns)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const today = new Date()
+  const today = new Date(2026, 6, 22)
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 600)
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 400)
     return () => clearTimeout(timer)
   }, [])
 
@@ -161,8 +164,8 @@ export default function CreatorDashboard() {
     return (
       <div className="space-y-6 max-w-7xl mx-auto">
         <div className="card animate-pulse space-y-3 bg-gradient-to-r from-indigo-50/20 to-purple-50/20">
-          <div className="w-72 h-8 rounded bg-slate-200 dark:bg-slate-700"></div>
-          <div className="w-96 h-4 rounded bg-slate-200 dark:bg-slate-700"></div>
+          <div className="w-72 h-8 rounded bg-surface"></div>
+          <div className="w-96 h-4 rounded bg-surface"></div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -181,27 +184,27 @@ export default function CreatorDashboard() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
-      <section aria-label="Welcome section" className="card relative overflow-hidden bg-gradient-to-r from-indigo-50/50 via-white to-purple-50/40 dark:from-indigo-950/30 dark:via-slate-900 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 p-6">
+      <section aria-label="Welcome section" className="card relative overflow-hidden bg-gradient-to-r from-indigo-50/50 via-white to-purple-50/40 dark:from-indigo-950/30 dark:via-slate-900 dark:to-slate-900 border border-default p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 z-10 relative">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-primary">
               Welcome back, Creator 👋
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1 text-xs md:text-sm font-medium">
+            <p className="text-secondary mt-1 text-xs md:text-sm font-medium">
               Create, schedule and manage your content efficiently.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
-            <div className="bg-white/80 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex items-center">
-              <span className="text-slate-400 mr-1.5 font-normal">Date:</span>
+          <div className="flex flex-wrap gap-2.5 text-xs font-semibold text-secondary">
+            <div className="bg-surface border border-default px-3 py-1.5 rounded-lg shadow-xs flex items-center">
+              <span className="text-secondary mr-1.5 font-normal">Date:</span>
               {today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
-            <div className="bg-white/80 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex items-center">
-              <span className="text-slate-400 mr-1.5 font-normal">Next Post:</span>
+            <div className="bg-surface border border-default px-3 py-1.5 rounded-lg shadow-xs flex items-center">
+              <span className="text-secondary mr-1.5 font-normal">Next Post:</span>
               <span className="text-indigo-600 dark:text-indigo-400 font-semibold">4:30 PM (Instagram)</span>
             </div>
-            <div className="bg-white/80 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex items-center gap-1.5">
-              <span className="text-slate-400 font-normal">Productivity:</span>
+            <div className="bg-surface border border-default px-3 py-1.5 rounded-lg shadow-xs flex items-center gap-1.5">
+              <span className="text-secondary font-normal">Productivity:</span>
               <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 px-2 py-0.5 rounded-md text-[10px] font-bold">
                 94% Very Good
               </span>
@@ -210,14 +213,17 @@ export default function CreatorDashboard() {
         </div>
       </section>
 
+      {/* Attention Required / Action Center */}
+      <AttentionRequired role="creator" />
+
       <section aria-label="Creator metric cards" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {creatorMetrics.map((metric, i) => (
           <MetricCard key={i} {...metric} />
         ))}
       </section>
 
-      <section aria-label="Quick action panel" className="card border border-slate-200/80 dark:border-slate-800">
-        <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+      <section aria-label="Quick action panel" className="card border border-default bg-card">
+        <h2 className="text-sm md:text-base font-bold text-primary mb-4 flex items-center gap-2 border-b border-default pb-3">
           <Sparkles className="text-indigo-500" size={18} strokeWidth={2} />
           Creator Command Center
         </h2>
@@ -229,8 +235,8 @@ export default function CreatorDashboard() {
       </section>
 
       <section aria-label="Today's Workspace" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
-          <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+        <div className="card space-y-4 border border-default bg-card">
+          <h2 className="text-sm md:text-base font-bold text-primary border-b border-default pb-3 flex items-center gap-2">
             <CheckCircle className="text-indigo-500" size={18} strokeWidth={2} />
             Today's Workspace Tasks
           </h2>
@@ -430,8 +436,8 @@ export default function CreatorDashboard() {
           )}
         </div>
 
-        <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
-          <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+        <div className="card space-y-4 border border-default bg-card">
+          <h2 className="text-sm md:text-base font-bold text-primary border-b border-default pb-3 flex items-center gap-2">
             <Clock className="text-indigo-500" size={18} strokeWidth={2} />
             Upcoming Publishing Schedule
           </h2>
@@ -445,8 +451,8 @@ export default function CreatorDashboard() {
                     <PlatformIcon size={14} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{up.title}</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">{up.time} · {up.platform}</p>
+                    <h4 className="text-xs md:text-sm font-bold text-primary truncate">{up.title}</h4>
+                    <p className="text-[11px] text-secondary mt-0.5 font-medium">{up.time} · {up.platform}</p>
                     {up.campaign !== 'None' && (
                       <span className="inline-block mt-1 text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 px-2 py-0.5 rounded">
                         {up.campaign}
@@ -461,9 +467,9 @@ export default function CreatorDashboard() {
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6" aria-label="Calendar and analytics snapshot">
-        <div className="card space-y-4 border border-slate-200/80 dark:border-slate-800">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-            <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+        <div className="card space-y-4 border border-default bg-card">
+          <div className="flex items-center justify-between border-b border-default pb-3">
+            <h2 className="text-sm md:text-base font-bold text-primary flex items-center gap-2">
               <Calendar className="text-indigo-500" size={18} strokeWidth={2} />
               Publishing Calendar
             </h2>
@@ -474,7 +480,7 @@ export default function CreatorDashboard() {
 
           <div className="grid grid-cols-7 gap-1.5 text-center text-xs">
             {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, i) => (
-              <div key={i} className="text-slate-400 font-bold py-1 uppercase text-[10px]">{day}</div>
+              <div key={i} className="text-secondary font-bold py-1 uppercase text-[10px]">{day}</div>
             ))}
             
             {Array.from({ length: 31 }, (_, i) => {
@@ -487,7 +493,7 @@ export default function CreatorDashboard() {
                   className={`py-1.5 rounded-lg flex flex-col items-center justify-center relative cursor-pointer font-semibold transition-colors ${
                     isToday ? 'bg-indigo-600 text-white font-bold shadow-xs' : 
                     hasPost ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400' :
-                    'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    'text-secondary hover:bg-hover hover:text-primary'
                   }`}
                 >
                   <span>{dayNum}</span>
@@ -500,17 +506,17 @@ export default function CreatorDashboard() {
           </div>
         </div>
 
-        <div className="card lg:col-span-2 space-y-4 border border-slate-200/80 dark:border-slate-800">
-          <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+        <div className="card lg:col-span-2 space-y-4 border border-default bg-card">
+          <h2 className="text-sm md:text-base font-bold text-primary border-b border-default pb-3 flex items-center gap-2">
             <Share2 className="text-indigo-500" size={18} strokeWidth={2} />
             Creator Performance Metrics
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-2">
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Weekly Content Created</p>
+            <div className="p-4 rounded-xl border border-default bg-surface space-y-2">
+              <p className="text-xs text-secondary font-medium">Weekly Content Created</p>
               <div className="flex justify-between items-end">
-                <span className="text-xl font-extrabold text-slate-900 dark:text-slate-100">14 Posts</span>
+                <span className="text-xl font-extrabold text-primary">14 Posts</span>
                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">▲ +12%</span>
               </div>
               <div className="flex gap-1 h-8 items-end pt-2">
@@ -522,10 +528,10 @@ export default function CreatorDashboard() {
               </div>
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-2">
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Engagement Rate</p>
+            <div className="p-4 rounded-xl border border-default bg-surface space-y-2">
+              <p className="text-xs text-secondary font-medium">Engagement Rate</p>
               <div className="flex justify-between items-end">
-                <span className="text-xl font-extrabold text-slate-900 dark:text-slate-100">6.8% Average</span>
+                <span className="text-xl font-extrabold text-primary">6.8% Average</span>
                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">▲ +0.5%</span>
               </div>
               <div className="flex gap-1 h-8 items-end pt-2">
@@ -537,24 +543,24 @@ export default function CreatorDashboard() {
               </div>
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-3">
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Platform Distribution</p>
+            <div className="p-4 rounded-xl border border-default bg-surface space-y-3">
+              <p className="text-xs text-secondary font-medium">Platform Distribution</p>
               <div className="space-y-2 pt-1">
                 <div>
-                  <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-1">
+                  <div className="flex justify-between text-[10px] text-secondary font-semibold mb-1">
                     <span>Instagram</span>
-                    <span>45%</span>
+                    <span className="text-primary font-bold">45%</span>
                   </div>
-                  <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-surface rounded-full overflow-hidden border border-default">
                     <div className="bg-pink-500 h-full rounded-full" style={{ width: '45%' }}></div>
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-1">
+                  <div className="flex justify-between text-[10px] text-secondary font-semibold mb-1">
                     <span>LinkedIn</span>
-                    <span>35%</span>
+                    <span className="text-primary font-bold">35%</span>
                   </div>
-                  <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-surface rounded-full overflow-hidden border border-default">
                     <div className="bg-indigo-600 h-full rounded-full" style={{ width: '35%' }}></div>
                   </div>
                 </div>

@@ -14,6 +14,14 @@ import AdminAudienceAnalytics from '../pages/Analytics/AdminAudienceAnalytics'
 import AdminPerformanceTrends from '../pages/Analytics/AdminPerformanceTrends'
 import { Inbox, Profile, Settings } from '../../shared'
 
+import NotificationsPage from '../../shared/pages/NotificationsPage'
+import ReportsPage from '../../shared/pages/ReportsPage'
+
+import UsersManagement from '../pages/UsersManagement'
+import BusinessAccountsManagement from '../pages/BusinessAccountsManagement'
+import MarketingTeamsManagement from '../pages/MarketingTeamsManagement'
+import ContentCreatorsManagement from '../pages/ContentCreatorsManagement'
+
 export const adminRoutes = (
   <Route element={<DashboardLayout />}>
     {/* Admin Dashboard Core Routes */}
@@ -40,16 +48,35 @@ export const adminRoutes = (
       <Route path="/analytics/performance" element={<AdminPerformanceTrends />} />
     </Route>
 
+    {/* Admin Notifications Routes */}
+    <Route path="/admin/notifications" element={<NotificationsPage role="admin" />} />
+    <Route path="/notifications"       element={<NotificationsPage role="admin" />} />
+
+    {/* Admin Reports Routes */}
+    <Route path="/admin/reports"       element={<ReportsPage role="admin" />} />
+    <Route path="/reports"             element={<ReportsPage role="admin" />} />
+
+    {/* Admin User Management Routes */}
+    <Route path="/admin/users"         element={<UsersManagement />} />
+    <Route path="/users"               element={<UsersManagement />} />
+
+    {/* Admin Business Accounts Routes */}
+    <Route path="/admin/business-accounts" element={<BusinessAccountsManagement />} />
+    <Route path="/business-accounts"       element={<BusinessAccountsManagement />} />
+
+    {/* Admin Marketing Teams Routes */}
+    <Route path="/admin/marketing-teams"   element={<MarketingTeamsManagement />} />
+    <Route path="/marketing-teams"         element={<MarketingTeamsManagement />} />
+
+    {/* Admin Content Creators Routes */}
+    <Route path="/admin/content-creators"  element={<ContentCreatorsManagement />} />
+    <Route path="/content-creators"        element={<ContentCreatorsManagement />} />
+
     {/* Admin Features & Shared Pages */}
     <Route path="/team"               element={<Team />} />
     <Route path="/inbox"              element={<Inbox />} />
     <Route path="/profile"            element={<Profile />} />
     <Route path="/settings"           element={<Settings />} />
     <Route path="/social-accounts"    element={<SocialAccounts />} />
-    <Route path="/users"              element={<AdminPlaceholder title="Users"            description="Manage platform users here." />} />
-    <Route path="/business-accounts"  element={<AdminPlaceholder title="Business Accounts" description="Manage business accounts here." />} />
-    <Route path="/marketing-teams"    element={<AdminPlaceholder title="Marketing Teams"  description="Manage marketing teams here." />} />
-    <Route path="/content-creators"   element={<AdminPlaceholder title="Content Creators" description="Manage content creators here." />} />
-    <Route path="/reports"            element={<AdminPlaceholder title="Reports"          description="View reports here." />} />
   </Route>
 )
