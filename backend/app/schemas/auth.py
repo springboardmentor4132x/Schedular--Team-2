@@ -20,6 +20,14 @@ class LoginRequest(BaseModel):
 
 
 # ----------------------------
+# Change Password Schema
+# ----------------------------
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+# ----------------------------
 # JWT Token Response Schema
 # ----------------------------
 class TokenResponse(BaseModel):

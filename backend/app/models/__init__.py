@@ -7,3 +7,12 @@ from .workspace_member import WorkspaceMember
 from .campaign import Campaign
 from .post import Post
 from .support_ticket import SupportTicket
+from .notification import Notification
+from .work_request import WorkRequest
+from .team_request import TeamRequest
+from .publishing_queue import PublishingQueue
+from .publishing_log import PublishingLog
+from .post_analytics import PostAnalytics
+from .campaign_analytics import CampaignAnalytics
+from .platform_analytics import PlatformAnalytics
+from .audience_analytics import AudienceAnalytics

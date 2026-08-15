@@ -15,3 +15,4 @@ class Workspace(Base):
     owner = relationship("User", back_populates="workspaces")
     members = relationship("WorkspaceMember", back_populates="workspace", cascade="all, delete-orphan")
     campaigns = relationship("Campaign", back_populates="workspace", cascade="all, delete-orphan")
+    posts = relationship("Post", back_populates="workspace", cascade="all, delete-orphan")
