@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../../context/AuthContext'
 import Button from '../../../shared/components/ui/Button'
 import { CardSkeleton, TableSkeleton } from '../../../shared/components/ui/Skeleton'
 import { getAdminStats, getAdminActivity, getAdminUsers } from '../../../services/adminService'
@@ -40,11 +39,21 @@ function QuickAction({ emoji, label, desc, onClick }) {
 
 const quickActions = [
   { emoji: '👤', label: 'Add User', desc: 'Create a new platform user', to: '/users' },
-  { emoji: '✅', label: 'Approve Business', desc: 'Validate business account', to: '/business-accounts' },
   { emoji: '👥', label: 'Create Team', desc: 'Form a new marketing team', to: '/marketing-teams' },
   { emoji: '📊', label: 'View Reports', desc: 'Access platform analytics', to: '/reports' },
   { emoji: '⚙️', label: 'Platform Settings', desc: 'Configure system options', to: '/settings' },
 ]
+
+function formatLastLogin(value) {
+  if (!value) return '—'
+  try {
+    const d = new Date(value)
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  } catch {
+    return '—'
+  }
+}
 
 function formatTime(value) {
   if (!value) return ''
@@ -62,7 +71,6 @@ function formatTime(value) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { user } = useAuth()
   const [stats, setStats] = useState(null)
   const [activities, setActivities] = useState([])
   const [recentUsers, setRecentUsers] = useState([])
@@ -139,7 +147,6 @@ export default function Dashboard() {
 
   const statCards = [
     { label: 'Total Users', value: stats.total_users, icon: '🧑‍💼', accent: 'bg-indigo-50 dark:bg-indigo-950/40' },
-    { label: 'Business Accounts', value: stats.users_by_role?.business || 0, icon: '🏢', accent: 'bg-emerald-50 dark:bg-emerald-950/40' },
     { label: 'Marketing Teams', value: stats.users_by_role?.marketing || 0, icon: '📈', accent: 'bg-amber-50 dark:bg-amber-950/40' },
     { label: 'Content Creators', value: stats.users_by_role?.creator || 0, icon: '✍️', accent: 'bg-rose-50 dark:bg-rose-950/40' },
     { label: 'Connected Social Accounts', value: stats.connected_social_accounts, icon: '🔗', accent: 'bg-sky-50 dark:bg-sky-950/40' },
@@ -155,11 +162,12 @@ export default function Dashboard() {
       <section aria-label="Dashboard header" className="card p-6 sm:p-8 relative overflow-hidden bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-800 dark:to-slate-800/80 border border-slate-100 dark:border-slate-700 shadow-card">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Welcome back, {user?.name?.split(' ')[0] || 'Administrator'}</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Welcome back, Administrator</h1>
             <p className="text-slate-600 dark:text-slate-400 mt-1.5 text-sm">Manage users, teams, campaigns and platform operations.</p>
           </div>
           <div className="flex flex-wrap gap-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
             <span className="bg-slate-100 dark:bg-slate-700 px-3.5 py-2 rounded-lg border border-slate-200/50 dark:border-slate-600/40">Current Date: {new Date().toLocaleDateString()}</span>
+            <span className="bg-slate-100 dark:bg-slate-700 px-3.5 py-2 rounded-lg border border-slate-200/50 dark:border-slate-600/40">Last Login: {formatLastLogin(stats?.admin?.last_login)}</span>
             <span className="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-3.5 py-2 rounded-lg border border-emerald-200/30 dark:border-emerald-900/30">System Online</span>
           </div>
         </div>

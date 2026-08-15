@@ -47,6 +47,17 @@ export async function getAdminAnalyticsSummary() {
   }
 }
 
+export async function getAdminTopPosts() {
+  const response = await API.get('/admin/analytics/top-posts')
+  return (response.data || []).map((p) => ({
+    id: p.id,
+    text: p.text,
+    platform: platformLabel(p.platform),
+    reach: formatCompact(p.reach),
+    engagement: `${Number(p.engagement_rate).toFixed(1)}%`,
+  }))
+}
+
 export async function getAdminCreatorPerformance({ search = '', status = 'All' } = {}) {
   const params = {}
   if (search) params.search = search

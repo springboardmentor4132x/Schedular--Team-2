@@ -604,6 +604,32 @@
     0%, 100% { opacity: 1; }
     50%      { opacity: 0.4; }
   }
+
+  /* Printable report — only the report area is printed */
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    .report-print-area,
+    .report-print-area * {
+      visibility: visible;
+    }
+    .report-print-area {
+      position: absolute !important;
+      left: 0;
+      top: 0;
+      width: 100%;
+      max-height: none !important;
+      overflow: visible !important;
+      padding: 0 !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+    @page {
+      margin: 14mm;
+    }
+  }
 }
 
 /* =============================================

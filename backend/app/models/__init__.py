@@ -16,3 +16,5 @@ from .post_analytics import PostAnalytics
 from .campaign_analytics import CampaignAnalytics
 from .platform_analytics import PlatformAnalytics
 from .audience_analytics import AudienceAnalytics
+from .notification_preference import NotificationPreference
+from .generated_report import GeneratedReport

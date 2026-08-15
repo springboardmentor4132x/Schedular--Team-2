@@ -77,6 +77,7 @@ class UserResponse(UserBase):
     website: Optional[str] = None
     avatar_url: Optional[str] = None
     created_at: Optional[datetime] = None
+    last_login: Optional[datetime] = None
 
     class Config:
         from_attributes = True

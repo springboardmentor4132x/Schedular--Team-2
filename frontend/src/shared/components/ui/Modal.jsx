@@ -15,7 +15,7 @@ const sizes = {
   xl: 'max-w-5xl',
 }
 
-export default function Modal({ isOpen, onClose, title, children, size = 'md' }) {
+export default function Modal({ isOpen, onClose, title, children, size = 'md', className = '' }) {
   useEffect(() => {
     if (!isOpen) return
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -32,20 +32,20 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex p-4 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
 
       <div
-        className={`relative z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full ${sizes[size] ?? sizes.md}
-                    flex flex-col max-h-[90vh] overflow-hidden border border-slate-100 dark:border-slate-700/60`}
+        className={`relative z-10 m-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full ${sizes[size] ?? sizes.md}
+                    flex flex-col max-h-[calc(100dvh-2rem)] overflow-hidden border border-slate-100 dark:border-slate-700/60 ${className}`}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex-shrink-0">
           <h2 id="modal-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h2>

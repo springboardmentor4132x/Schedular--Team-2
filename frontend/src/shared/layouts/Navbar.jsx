@@ -112,7 +112,7 @@ export default function Navbar() {
   const { pathname } = useLocation()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, role, logout } = useAuth()
   const page = pageTitles[pathname] ?? { label: 'Page', sub: '' }
   const firstName = user?.name?.split(' ')[0] || 'there'
   const pageSub = page.sub === 'welcome' ? `Welcome back, ${firstName} 👋` : page.sub
@@ -357,7 +357,7 @@ export default function Navbar() {
                   type="button"
                   onClick={() => {
                     setShowNotifications(false)
-                    navigate('/dashboard/creator/notifications')
+                    navigate(role === 'administrator' ? '/notifications' : '/dashboard/creator/notifications')
                   }}
                   className="w-full text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 py-1.5 focus:outline-none"
                 >

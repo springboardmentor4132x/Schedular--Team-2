@@ -41,6 +41,27 @@ const UsersIcon = ({ size = 20, className = 'w-5 h-5' }) => (
   </svg>
 )
 
+const FileBarChartIcon = ({ size = 20, className = 'w-5 h-5' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    width={size} height={size} className={className}>
+    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="12" y1="18" x2="12" y2="12"/>
+    <line x1="8" y1="18" x2="8" y2="15"/>
+    <line x1="16" y1="18" x2="16" y2="10"/>
+  </svg>
+)
+
+const BellIcon = ({ size = 20, className = 'w-5 h-5' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    width={size} height={size} className={className}>
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </svg>
+)
+
 const SettingsIcon = ({ size = 20, className = 'w-5 h-5' }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -53,11 +74,11 @@ const SettingsIcon = ({ size = 20, className = 'w-5 h-5' }) => (
 const navItems = [
   { label: 'Dashboard',         to: '/dashboard/admin/dashboard', Icon: GridIcon },
   { label: 'Users',             to: '/users',              Icon: UsersIcon },
-  { label: 'Business Accounts', to: '/business-accounts',  Icon: BarChartIcon },
   { label: 'Marketing Teams',   to: '/marketing-teams',    Icon: CalendarIcon },
   { label: 'Content Creators',  to: '/content-creators',   Icon: UsersIcon },
   { label: 'Analytics',         to: '/analytics',          Icon: BarChartIcon },
-  { label: 'Reports',           to: '/reports',            Icon: SettingsIcon },
+  { label: 'Reports',           to: '/reports',            Icon: FileBarChartIcon },
+  { label: 'Notifications',     to: '/notifications',      Icon: BellIcon },
   { label: 'Settings',          to: '/settings',           Icon: SettingsIcon },
 ]
 

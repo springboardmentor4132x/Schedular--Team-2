@@ -406,6 +406,10 @@ def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    from datetime import datetime, timezone as _tz
+    user.last_login = datetime.now(_tz.utc)
+    db.commit()
+
     token_payload = {
         "sub": user.email,
         "id": user.id,

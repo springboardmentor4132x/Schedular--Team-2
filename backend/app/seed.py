@@ -443,6 +443,117 @@ def seed_analytics_and_publishing(db: Session):
     _seed_publishing_rows(db, accounts_by_user)
 
 
+def seed_notifications(db: Session):
+    """Generate realistic notifications referencing real rows (posts, campaigns,
+    social accounts, workspaces, users). Idempotent via the signature dedupe key."""
+    from datetime import timedelta
+    from app.models.notification import Notification
+
+    created = 0
+    now = datetime.utcnow()
+
+    def add(user_id, ntype, title, message, signature, category="system", days_ago=0):
+        nonlocal created
+        exists = (
+            db.query(Notification)
+            .filter(Notification.user_id == user_id, Notification.signature == signature)
+            .first()
+        )
+        if exists:
+            return
+        db.add(Notification(
+            user_id=user_id,
+            type=ntype,
+            title=title,
+            message=message,
+            signature=signature,
+            category=category,
+            read=False,
+            delivery_channel="in_app",
+            created_at=now - timedelta(hours=days_ago * 24 + (hash(signature) % 20)),
+        ))
+        created += 1
+
+    # ── Publishing notifications from real posts ──
+    posts = db.query(Post).all()
+    for post in posts:
+        owner = db.query(User).filter(User.id == post.user_id).first()
+        if not owner:
+            continue
+        if post.status == "Published":
+            add(owner.id, "success", f"Post published: {post.title}",
+                f"Your post \"{post.title}\" went live successfully.",
+                f"post-published:{post.id}", "publishing", days_ago=1)
+        elif post.status == "Scheduled":
+            add(owner.id, "info", f"Post scheduled: {post.title}",
+                f"\"{post.title}\" is scheduled and ready to publish.",
+                f"post-scheduled:{post.id}", "publishing", days_ago=2)
+        elif post.status == "Failed":
+            add(owner.id, "error", f"Post failed: {post.title}",
+                f"\"{post.title}\" could not be published. Check the publishing logs.",
+                f"post-failed:{post.id}", "publishing", days_ago=0)
+        elif post.status == "Draft":
+            add(owner.id, "info", f"Draft saved: {post.title}",
+                f"\"{post.title}\" is saved as a draft and awaiting review.",
+                f"post-draft:{post.id}", "publishing", days_ago=3)
+
+    # ── Campaign notifications from real campaigns ──
+    campaigns = db.query(Campaign).all()
+    for campaign in campaigns:
+        owner = db.query(User).filter(User.id == campaign.user_id).first()
+        if not owner:
+            continue
+        if campaign.status == "Active":
+            add(owner.id, "campaign", f"Campaign running: {campaign.name}",
+                f"\"{campaign.name}\" is active — keep publishing to hit your goals.",
+                f"campaign-active:{campaign.id}", "campaign", days_ago=2)
+        else:
+            add(owner.id, "campaign", f"Campaign update: {campaign.name}",
+                f"\"{campaign.name}\" status changed to {campaign.status}.",
+                f"campaign-status:{campaign.id}", "campaign", days_ago=4)
+
+    # ── Social account notifications from real accounts ──
+    accounts = db.query(SocialAccount).all()
+    for account in accounts:
+        owner = db.query(User).filter(User.id == account.user_id).first()
+        if not owner:
+            continue
+        platform = (account.platform or "").title()
+        handle = account.username or owner.username
+        add(owner.id, "success", f"{platform} connected",
+            f"Your {platform} account (@{handle}) is connected and syncing.",
+            f"account-connected:{account.id}", "account", days_ago=5)
+
+    # ── Workspace / collaboration notifications from real memberships ──
+    memberships = db.query(WorkspaceMember).all()
+    for member in memberships:
+        workspace = db.query(Workspace).filter(Workspace.id == member.workspace_id).first()
+        if not workspace:
+            continue
+        add(member.user_id, "info", f"Workspace: {workspace.name}",
+            f"You are part of the \"{workspace.name}\" workspace as {member.role}.",
+            f"workspace-member:{member.id}", "collaboration", days_ago=6)
+
+    # ── Admin system notifications ──
+    admins = db.query(User).filter(User.role == "administrator").all()
+    for admin in admins:
+        add(admin.id, "info", "New users joined the platform",
+            f"{db.query(User).count()} users are now registered on the platform.",
+            "admin-user-count", "system", days_ago=1)
+        add(admin.id, "success", "Platform health check passed",
+            "All connected social accounts are syncing normally.",
+            "admin-health-check", "system", days_ago=2)
+        add(admin.id, "campaign", "Campaign performance summary",
+            f"{len(campaigns)} campaigns are currently running on the platform.",
+            "admin-campaign-summary", "campaign", days_ago=3)
+
+    db.commit()
+    if created:
+        print(f"[seed] Inserted {created} notifications.")
+    else:
+        print("[seed] Notifications already present; skipped.")
+
+
 def seed_initial_data():
     """Insert the demo data if the users table is empty."""
     db: Session = SessionLocal()
@@ -450,6 +561,7 @@ def seed_initial_data():
         user_count = db.query(User).count()
         if user_count > 0:
             seed_analytics_and_publishing(db)
+            seed_notifications(db)
             print("[seed] Users already present; analytics + publishing tables synced (filled if empty).")
             return
 
@@ -491,6 +603,7 @@ def seed_initial_data():
 
         db.commit()
         seed_analytics_and_publishing(db)
+        seed_notifications(db)
         total_users = len(business_users) + len(marketing_teams) + len(creators) + 1
         print(
             f"[seed] Inserted {total_users} demo users "

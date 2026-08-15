@@ -1,132 +1,160 @@
+from datetime import datetime, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user
-from app.database.database import get_db
-from app.models.user import User
-from app.schemas.notification import (
-    NotificationResponse,
-    NotificationPreferenceResponse,
-    NotificationPreferenceUpdate,
-    TeamActivityResponse,
-)
-from app.services import notification_service
-
-router = APIRouter(prefix="/notifications", tags=["Notifications"])
+from app.models.notification import Notification
+from app.models.notification_preference import NotificationPreference
 
 
 # ---------------------------------------------------------
 # Notification Center
 # ---------------------------------------------------------
 
-@router.get("/", response_model=List[NotificationResponse])
-def get_notifications(
-    unread_only: bool = Query(False),
-    category: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    return notification_service.get_all_notifications(
-        db, current_user.id, unread_only, category, search
+def get_all_notifications(
+    db: Session,
+    user_id: int,
+    unread_only: bool = False,
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+) -> List[Notification]:
+    """Returns the user's notifications, newest first, with optional filters."""
+    query = db.query(Notification).filter(Notification.user_id == user_id)
+
+    if unread_only:
+        query = query.filter(Notification.read == False)  # noqa: E712
+    if category:
+        query = query.filter(Notification.category == category)
+    if search:
+        like = f"%{search}%"
+        query = query.filter(
+            Notification.title.ilike(like) | Notification.message.ilike(like)
+        )
+
+    return query.order_by(Notification.created_at.desc()).all()
+
+
+def get_unread_count(db: Session, user_id: int) -> int:
+    """Number of unread notifications for the user."""
+    return (
+        db.query(Notification)
+        .filter(Notification.user_id == user_id, Notification.read == False)  # noqa: E712
+        .count()
     )
 
 
-@router.get("/unread-count")
-def get_unread_count(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    count = notification_service.get_unread_count(db, current_user.id)
-    return {"unread_count": count}
+def get_notification_by_id(db: Session, user_id: int, notification_id: int) -> Optional[Notification]:
+    """Returns a single notification, scoped to the user."""
+    return (
+        db.query(Notification)
+        .filter(
+            Notification.id == notification_id,
+            Notification.user_id == user_id,
+        )
+        .first()
+    )
 
 
-@router.get("/{notification_id}", response_model=NotificationResponse)
-def get_notification(
-    notification_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    return notification_service.get_notification_by_id(db, current_user.id, notification_id)
+def mark_notification_read(db: Session, user_id: int, notification_id: int) -> Optional[Notification]:
+    """Marks one notification as read. Returns None when it does not exist."""
+    notification = get_notification_by_id(db, user_id, notification_id)
+    if notification is None:
+        return None
+
+    notification.read = True
+    notification.read_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(notification)
+    return notification
 
 
-@router.post("/{notification_id}/read")
-def read_notification(
-    notification_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    return notification_service.mark_notification_read(db, current_user.id, notification_id)
+def mark_all_notifications_read(db: Session, user_id: int) -> dict:
+    """Marks every notification of the user as read."""
+    updated = (
+        db.query(Notification)
+        .filter(Notification.user_id == user_id, Notification.read == False)  # noqa: E712
+        .update(
+            {
+                "read": True,
+                "read_at": datetime.now(timezone.utc),
+            }
+        )
+    )
+    db.commit()
+    return {"updated": updated}
 
 
-@router.post("/read-all")
-def read_all_notifications(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    return notification_service.mark_all_notifications_read(db, current_user.id)
+def delete_notification(db: Session, user_id: int, notification_id: int) -> bool:
+    """Deletes a single notification. Returns False when it does not exist."""
+    notification = get_notification_by_id(db, user_id, notification_id)
+    if notification is None:
+        return False
+
+    db.delete(notification)
+    db.commit()
+    return True
 
 
-@router.delete("/{notification_id}")
-def delete_notification(
-    notification_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    return notification_service.delete_notification(db, current_user.id, notification_id)
-
-
-@router.delete("/")
-def clear_notifications(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    return notification_service.clear_all_notifications(db, current_user.id)
+def clear_all_notifications(db: Session, user_id: int) -> dict:
+    """Deletes all notifications of the user."""
+    deleted = (
+        db.query(Notification)
+        .filter(Notification.user_id == user_id)
+        .delete()
+    )
+    db.commit()
+    return {"deleted": deleted}
 
 
 # ---------------------------------------------------------
 # Notification Preferences
 # ---------------------------------------------------------
 
-@router.get("/preferences/settings", response_model=NotificationPreferenceResponse)
-def get_preferences(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    return notification_service.get_preferences(db, current_user.id)
-
-
-@router.put("/preferences/settings", response_model=NotificationPreferenceResponse)
-def update_preferences(
-    updates: NotificationPreferenceUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    return notification_service.update_preferences(
-        db, current_user.id, updates.model_dump(exclude_none=True)
+def get_preferences(db: Session, user_id: int) -> NotificationPreference:
+    """Returns the user's notification preferences, creating defaults on first access."""
+    prefs = (
+        db.query(NotificationPreference)
+        .filter(NotificationPreference.user_id == user_id)
+        .first()
     )
+    if prefs is None:
+        prefs = NotificationPreference(user_id=user_id)
+        db.add(prefs)
+        db.commit()
+        db.refresh(prefs)
+    return prefs
+
+
+def update_preferences(db: Session, user_id: int, updates: dict) -> NotificationPreference:
+    """Applies the provided preference updates for the user."""
+    prefs = get_preferences(db, user_id)
+    for key, value in updates.items():
+        if hasattr(prefs, key):
+            setattr(prefs, key, value)
+    db.commit()
+    db.refresh(prefs)
+    return prefs
 
 
 # ---------------------------------------------------------
 # Team Activity Feed
 # ---------------------------------------------------------
 
-@router.get("/team/activity")
 def get_team_activity(
-    campaign_id: Optional[int] = Query(None),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    activities = notification_service.get_team_activity(db, current_user.id, campaign_id)
-    return [
-        {
-            "id": a.id,
-            "title": a.title,
-            "message": a.message,
-            "category": getattr(a, "category", "collaboration"),
-            "created_at": a.created_at,
-        }
-        for a in activities
-    ]
+    db: Session,
+    user_id: int,
+    campaign_id: Optional[int] = None,
+) -> List[Notification]:
+    """Returns collaboration/publishing activity for the user's team, newest first.
+
+    Notifications carry no campaign association yet, so campaign_id is accepted
+    for API compatibility but does not filter the results.
+    """
+    query = (
+        db.query(Notification)
+        .filter(
+            Notification.user_id == user_id,
+            Notification.category.in_(["collaboration", "publishing"]),
+        )
+    )
+    return query.order_by(Notification.created_at.desc()).all()

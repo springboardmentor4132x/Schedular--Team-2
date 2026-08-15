@@ -1,7 +1,8 @@
 import json
-from datetime import date, timedelta
+import os
+from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -9,6 +10,7 @@ from app.auth.rbac import RoleChecker
 from app.database.database import get_db
 from app.models.campaign import Campaign
 from app.models.campaign_analytics import CampaignAnalytics
+from app.models.generated_report import GeneratedReport
 from app.models.post import Post
 from app.models.post_analytics import PostAnalytics
 from app.models.social_account import SocialAccount
@@ -16,6 +18,8 @@ from app.models.audience_analytics import AudienceAnalytics
 from app.models.platform_analytics import PlatformAnalytics
 from app.models.user import User
 from app.models.workspace import Workspace
+from app.schemas.report import ReportGenerateRequest
+from app.services.report_service import REPORTS_DIR, _generate_pdf, _generate_excel
 
 router = APIRouter(
     prefix="/admin",
@@ -28,7 +32,7 @@ admin_only = RoleChecker(["administrator"])
 @router.get("/stats")
 def admin_stats(
     db: Session = Depends(get_db),
-    _: User = Depends(admin_only),
+    current_admin: User = Depends(admin_only),
 ):
     """Platform-wide summary statistics for the admin dashboard."""
     users_by_role = dict(
@@ -49,6 +53,10 @@ def admin_stats(
     )
 
     return {
+        "admin": {
+            "name": f"{current_admin.first_name or ''} {current_admin.last_name or ''}".strip() or "Administrator",
+            "last_login": current_admin.last_login.isoformat() if current_admin.last_login else None,
+        },
         "total_users": sum(users_by_role.values()),
         "users_by_role": users_by_role,
         "connected_social_accounts": db.query(SocialAccount).count(),
@@ -202,6 +210,13 @@ def admin_analytics_summary(
     )
     engagement_rate = round((engagement / impressions) * 100, 2) if impressions > 0 else 0.0
 
+    # Followers gained in the last 30 days (accounts connected in that window)
+    new_followers = (
+        db.query(func.coalesce(func.sum(SocialAccount.followers_count), 0))
+        .filter(SocialAccount.created_at >= since)
+        .scalar()
+    )
+
     kpis = {
         "totalCreators": {"label": "Total Creators", "value": total_creators, "change": 0, "positive": True},
         "totalCampaigns": {"label": "Total Campaigns", "value": total_campaigns, "change": 0, "positive": True},
@@ -210,7 +225,9 @@ def admin_analytics_summary(
         "totalReach": {"label": "Total Reach", "value": reach, "change": 0, "positive": True},
         "totalImpressions": {"label": "Total Impressions", "value": impressions, "change": 0, "positive": True},
         "totalEngagement": {"label": "Total Engagement", "value": engagement, "change": 0, "positive": True},
+        "totalClicks": {"label": "Link Clicks", "value": clicks, "change": 0, "positive": True},
         "totalFollowers": {"label": "Total Followers", "value": total_followers, "change": 0, "positive": True},
+        "newFollowers": {"label": "New Followers", "value": new_followers, "change": 0, "positive": True},
         "overallEngagementRate": {"label": "Engagement Rate", "value": engagement_rate, "change": 0, "positive": True},
     }
 
@@ -259,6 +276,180 @@ def admin_analytics_summary(
         })
 
     return {"kpis": kpis, "timeSeries": time_series, "platformGrowth": platform_growth}
+
+
+@router.get("/analytics/top-posts")
+def admin_top_posts(
+    limit: int = Query(6, ge=1, le=20),
+    db: Session = Depends(get_db),
+    _: User = Depends(admin_only),
+):
+    """Top performing posts platform-wide, ranked by reach."""
+    rows = (
+        db.query(Post, PostAnalytics)
+        .join(PostAnalytics, PostAnalytics.post_id == Post.id)
+        .order_by(PostAnalytics.reach.desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": post.id,
+            "text": post.title or post.caption or f"Post {post.id}",
+            "platform": pa.platform,
+            "reach": pa.reach,
+            "engagement_rate": round(pa.engagement_rate, 2),
+        }
+        for post, pa in rows
+    ]
+
+
+# ---------------------------------------------------------
+# Admin platform-wide report generation
+# ---------------------------------------------------------
+
+def _platform_wide_report_data(db: Session) -> dict:
+    """Aggregate platform-wide data for admin-generated reports."""
+    total_creators = db.query(User).filter(User.role == "creator").count()
+    total_campaigns = db.query(Campaign).count()
+    total_posts = db.query(Post).count()
+    published = db.query(Post).filter(Post.status == "Published").count()
+    scheduled = db.query(Post).filter(Post.status == "Scheduled").count()
+    failed = db.query(Post).filter(Post.status == "Failed").count()
+
+    reach, impressions, likes, comments, shares, clicks = (
+        db.query(
+            func.coalesce(func.sum(PostAnalytics.reach), 0),
+            func.coalesce(func.sum(PostAnalytics.impressions), 0),
+            func.coalesce(func.sum(PostAnalytics.likes), 0),
+            func.coalesce(func.sum(PostAnalytics.comments), 0),
+            func.coalesce(func.sum(PostAnalytics.shares), 0),
+            func.coalesce(func.sum(PostAnalytics.clicks), 0),
+        ).first()
+    )
+    engagement = likes + comments + shares
+    total_followers = db.query(func.coalesce(func.sum(SocialAccount.followers_count), 0)).scalar()
+    engagement_rate = round((engagement / impressions) * 100, 2) if impressions > 0 else 0.0
+
+    summary = {
+        "Total Creators": total_creators,
+        "Total Campaigns": total_campaigns,
+        "Total Posts": total_posts,
+        "Published Posts": published,
+        "Scheduled Posts": scheduled,
+        "Failed Posts": failed,
+        "Total Reach": reach,
+        "Total Impressions": impressions,
+        "Total Engagement": engagement,
+        "Total Clicks": clicks,
+        "Total Followers": total_followers,
+        "Engagement Rate": f"{engagement_rate}%",
+    }
+
+    top_rows = (
+        db.query(Post, PostAnalytics)
+        .join(PostAnalytics, PostAnalytics.post_id == Post.id)
+        .order_by(PostAnalytics.reach.desc())
+        .limit(5)
+        .all()
+    )
+    top_posts = [
+        {
+            "post_id": post.id,
+            "platform": pa.platform,
+            "likes": pa.likes,
+            "comments": pa.comments,
+            "engagement_rate": pa.engagement_rate,
+        }
+        for post, pa in top_rows
+    ]
+
+    platform_map = {}
+    for acc in db.query(SocialAccount).all():
+        stats = _platform_account_aggregate(db, acc)
+        entry = platform_map.setdefault(acc.platform, {
+            "platform": acc.platform, "followers": 0, "reach": 0, "impressions": 0,
+            "likes": 0, "comments": 0, "shares": 0, "clicks": 0, "engagement": 0,
+        })
+        entry["followers"] += acc.followers_count or 0
+        entry["reach"] += stats["reach"]
+        entry["impressions"] += stats["impressions"]
+        entry["likes"] += stats["likes"]
+        entry["comments"] += stats["comments"]
+        entry["shares"] += stats["shares"]
+        entry["clicks"] += stats["clicks"]
+        entry["engagement"] += stats["engagement"]
+    platforms = list(platform_map.values())
+
+    campaign_rows = (
+        db.query(CampaignAnalytics, Campaign)
+        .join(Campaign, Campaign.id == CampaignAnalytics.campaign_id)
+        .all()
+    )
+    campaigns = [
+        {
+            "campaign_name": campaign.name,
+            "status": campaign.status,
+            "total_posts": ca.total_posts,
+            "reach": ca.reach,
+            "engagement": ca.engagement,
+            "roi": ca.roi,
+        }
+        for ca, campaign in campaign_rows
+    ]
+
+    return {"summary": summary, "top_posts": top_posts, "platforms": platforms, "campaigns": campaigns}
+
+
+@router.post("/reports/generate")
+def admin_generate_report(
+    request: ReportGenerateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_only),
+):
+    """Generate a platform-wide report (PDF/Excel) for the admin panel."""
+    report_type = request.report_type or "platform"
+    export_format = request.export_format.lower()
+    export_format = "xlsx" if export_format in ("excel", "xlsx") else "pdf"
+
+    data = _platform_wide_report_data(db)
+    report_name = request.report_name or "Platform Analytics Report"
+
+    os.makedirs(REPORTS_DIR, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    filename = f"{report_type}_{current_user.id}_{timestamp}.{export_format}"
+    file_path = os.path.join(REPORTS_DIR, filename)
+
+    if export_format == "pdf":
+        ok = _generate_pdf(report_name, report_type, data, file_path)
+    else:
+        ok = _generate_excel(report_name, report_type, data, file_path)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Report file generation failed.")
+
+    report = GeneratedReport(
+        user_id=current_user.id,
+        report_name=report_name,
+        report_type=report_type,
+        selected_filters=json.dumps({}),
+        export_format=export_format,
+        status="completed",
+        file_location=file_path,
+        download_count=0,
+    )
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+
+    return {
+        "message": "Report generated successfully.",
+        "report_id": report.id,
+        "report_name": report.report_name,
+        "export_format": report.export_format,
+        "status": report.status,
+        "generated_at": report.generated_at,
+        "preview": data,
+    }
 
 
 @router.get("/analytics/creators")
