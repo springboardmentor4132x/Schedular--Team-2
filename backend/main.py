@@ -28,6 +28,7 @@ from app.routers import (
     social_accounts,
     users,
     workspaces,
+    reports,
 )
 
 from app.routers import settings as settings_router
@@ -82,6 +83,7 @@ app.include_router(settings_router.router, prefix="/api/v1", tags=["Settings"])
 app.include_router(social_accounts.router, prefix="/api/v1", tags=["Social Accounts"])
 app.include_router(admin.router, prefix="/api/v1", tags=["Admin"])
 app.include_router(notifications.router, prefix="/api/v1", tags=["Notifications"])
+app.include_router(reports.router, prefix="/api/v1", tags=["Reports"])
 app.include_router(business.router, prefix="/api/v1", tags=["Business"])
 app.include_router(marketing.router, prefix="/api/v1", tags=["Marketing"])
 app.include_router(publishing.router, prefix="/api/v1", tags=["Publishing"])

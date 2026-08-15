@@ -69,7 +69,7 @@ def _post_response(post: Post):
         "title": post.title,
         "caption": post.caption,
         "content_type": post.content_type,
-        "media_file_path": post.media_file_path,
+        "media_url": post.media_file_path,
         "status": post.status,
         "scheduled_for": post.scheduled_for,
         "timezone": post.timezone,

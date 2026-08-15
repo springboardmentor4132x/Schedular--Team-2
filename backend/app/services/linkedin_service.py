@@ -165,10 +165,20 @@ def publish_post(post: Post, account: SocialAccount) -> dict:
                 caption=post.caption or "",
             )
         elif post.content_type == "video":
-            result = publish_video_post(
+            from pathlib import Path
+
+            media_path = Path.cwd() / post.media_file_path.lstrip("/\\")
+
+            if not media_path.exists():
+                raise Exception(f"LinkedIn video file not found: {media_path}")
+
+            with open(media_path, "rb") as video_file:
+                file_bytes = video_file.read()
+
+            result = publish_video_post_from_file(
                 access_token=account.access_token,
                 author_id=author_urn,
-                video_url=post.media_file_path,
+                file_bytes=file_bytes,
                 caption=post.caption or "",
             )
         else:

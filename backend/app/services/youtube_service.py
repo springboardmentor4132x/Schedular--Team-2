@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
 import requests
-
+from pathlib import Path
 from app.core.config import settings
 from datetime import datetime, timezone
 from app.models.post import Post
@@ -223,6 +223,7 @@ def upload_video_from_file(
 # publish_post — called by dispatch_publish in publishing_service.py
 # ---------------------------------------------------------
 
+
 def publish_post(post: Post, account: SocialAccount) -> dict:
     """
     Entry point called by the publishing queue dispatcher.
@@ -236,9 +237,24 @@ def publish_post(post: Post, account: SocialAccount) -> dict:
                 "raw_response": {},
             }
 
+        # Convert stored URL path to local filesystem path
+        media_path = Path.cwd() / post.media_file_path.lstrip("/\\")
+
+        print("🔥 YOUTUBE MEDIA DEBUG")
+        print("Stored path:", post.media_file_path)
+        print("Resolved path:", media_path)
+        print("File exists:", media_path.exists())
+
+        if not media_path.exists():
+            return {
+                "success": False,
+                "failure_reason": f"Video file not found: {media_path}",
+                "raw_response": {},
+            }
+
         response = upload_video(
             access_token=account.access_token,
-            video_path=post.media_file_path,
+            video_path=str(media_path),
             title=post.title or "Untitled Video",
             description=post.caption or "",
         )
@@ -257,6 +273,42 @@ def publish_post(post: Post, account: SocialAccount) -> dict:
             "failure_reason": str(e),
             "raw_response": {},
         }
+
+    
+# def publish_post(post: Post, account: SocialAccount) -> dict:
+#     """
+#     Entry point called by the publishing queue dispatcher.
+#     YouTube only supports video content — text/image posts are not supported.
+#     """
+#     try:
+#         if post.content_type != "video" or not post.media_file_path:
+#             return {
+#                 "success": False,
+#                 "failure_reason": "YouTube only supports video posts. Please attach a video file.",
+#                 "raw_response": {},
+#             }
+
+#         response = upload_video(
+#             access_token=account.access_token,
+#             video_path=post.media_file_path,
+#             title=post.title or "Untitled Video",
+#             description=post.caption or "",
+#         )
+
+#         video_id = response.get("id")
+
+#         return {
+#             "success": True,
+#             "platform_post_id": video_id,
+#             "raw_response": response,
+#         }
+
+#     except Exception as e:
+#         return {
+#             "success": False,
+#             "failure_reason": str(e),
+#             "raw_response": {},
+#         }
 
 
 # ---------------------------------------------------------

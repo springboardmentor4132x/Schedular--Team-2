@@ -83,3 +83,13 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+    notification_preference = relationship(
+        "NotificationPreference", 
+        back_populates="user", 
+        uselist=False
+    )
+    generated_reports = relationship(
+        "GeneratedReport", 
+        back_populates="user", 
+        cascade="all, delete-orphan"
+        )

@@ -28,28 +28,34 @@ def process_publishing_queue(db: Session):
     _recover_stale_processing(db)
     entries = get_due_queue_entries(db)
     for entry in entries:
+        entry_id = entry.id        # ✅ capture before processing
+        post_id = entry.post_id    # ✅ capture before processing
         try:
             process_queue_entry(db, entry)
-        except Exception:
-            logger.exception("Error processing queue entry %s — marking as failed", entry.id)
+        except Exception as exc:
+            print("🔥🔥 QUEUE INTERNAL ERROR 🔥🔥")
+            print("Entry ID:", entry_id)
+            print("Post ID:", post_id)
+            print("Exception type:", type(exc).__name__)
+            print("Exception:", str(exc))
+            logger.exception("Error processing queue entry %s", entry_id)
             try:
                 db.rollback()
             except Exception:
-                logger.exception("Rollback failed for entry %s", entry.id)
+                logger.exception("Rollback failed for entry %s", entry_id)
                 continue
-
-            # ✅ Wrap recovery in its own try/except so one failure doesn't block others
             try:
-                post = db.query(Post).filter(Post.id == entry.post_id).first()
-                entry = db.query(PublishingQueue).filter(PublishingQueue.id == entry.id).first()
-                if post and entry:
-                    _mark_failed(db, post, entry, "Unexpected error while publishing.")
-                elif entry:
-                    entry.processing_status = "Failed"
+                fresh_post = db.query(Post).filter(Post.id == post_id).first()
+                fresh_entry = db.query(PublishingQueue).filter(
+                    PublishingQueue.id == entry_id  # ✅ use captured ID
+                ).first()
+                if fresh_post and fresh_entry:
+                    _mark_failed(db, fresh_post, fresh_entry, "Unexpected internal error.")
+                elif fresh_entry:
+                    fresh_entry.processing_status = "Failed"
                     db.commit()
             except Exception:
-                logger.exception("Failed to mark entry %s as failed after crash", entry.id)
-
+                logger.exception("Failed to mark entry %s as failed", entry_id)
 
 def _recover_stale_processing(db: Session):
     """Reset queue entries stuck in "Processing" past a safety timeout so the
@@ -157,6 +163,7 @@ def process_queue_entry(db: Session, entry: PublishingQueue):
 
     all_succeeded = True
     failure_reasons = []
+    pending_logs=[]
 
     for account in social_accounts:
         token_error = validate_account_token(account)
@@ -171,6 +178,10 @@ def process_queue_entry(db: Session, entry: PublishingQueue):
 
         try:
             result = dispatch_publish(account.platform, post, account)
+            print("🔥 PUBLISH RESULT DEBUG")
+            print("Platform:", account.platform)
+            print("Result:", result)
+            print("Platform Post ID:", result.get("platform_post_id"))
         except Exception as exc:
             logger.exception("Dispatch to %s raised for post %s", account.platform, post.id)
             all_succeeded = False
@@ -185,6 +196,8 @@ def process_queue_entry(db: Session, entry: PublishingQueue):
         if result.get("success"):
             post.platform_post_id = result.get("platform_post_id")
             post.api_response = json.dumps(result.get("raw_response"))
+            print("🔥 POST ID DEBUG")
+            print("Saved platform_post_id:", post.platform_post_id)
             log_publishing_attempt(
                 db, post.id, account.platform, "Published", result, entry.retry_count,
             )
@@ -201,11 +214,17 @@ def process_queue_entry(db: Session, entry: PublishingQueue):
         post.published_at = datetime.now(timezone.utc)
         post.failure_reason = None
         entry.processing_status = "Completed"
+        db.commit()
+        logger.info("Post %s published successfully ",post.id)
+
     else:
-        post.status = "Failed"
+        # post.status = "Failed"
         post.failure_reason = "; ".join(failure_reasons)
         _handle_retry_or_fail(db, post, entry)
 
+    post_id = post.id
+    for platform, status, result in pending_logs:
+        log_publishing_attempt(db, post_id, platform, status, result, entry.retry_count)
     # FINAL ATOMIC COMMIT
     db.commit()
 
@@ -276,23 +295,55 @@ def validate_account_token(account: SocialAccount) -> Optional[str]:
 # ---------------------------------------------------------
 
 def log_publishing_attempt(
-    db: Session, post_id: int, platform: str, status: str, result: dict, retry_count: int
+    db: Session,
+    post_id: int,
+    platform: str,
+    status: str,
+    result: dict,
+    retry_count: int,
 ):
-    # ✅ Only use columns that exist in PublishingLog model
     payload = {
         "raw_response": result.get("raw_response", result),
         "platform_post_id": result.get("platform_post_id"),
-        "failure_reason": result.get("failure_reason") if status == "Failed" else None,
+        "failure_reason": (
+            result.get("failure_reason")
+            if status == "Failed"
+            else None
+        ),
     }
+
     log = PublishingLog(
         post_id=post_id,
         platform=platform,
         status=status,
-        response=json.dumps(payload, default=str),  # store extras in response JSON
+        response=json.dumps(payload, default=str),
         retry_count=retry_count,
+        failure_reason=result.get("failure_reason"),
+        platform_post_id=result.get("platform_post_id"),
+        api_response=json.dumps(
+            result.get("raw_response", {}),
+            default=str,
+        ),
     )
+
     db.add(log)
-    # db.commit()
+    db.commit()
+    db.refresh(log)
+
+    logger.info(
+        "Publishing log created: post=%s platform=%s status=%s platform_post_id=%s",
+        post_id,
+        platform,
+        status,
+        result.get("platform_post_id"),
+    )
+
+# Add this helper — just 4 lines
+def _safe_log(db, post_id, platform, status, result, retry_count):
+    try:
+        log_publishing_attempt(db, post_id, platform, status, result, retry_count)
+    except Exception:
+        logger.exception("Failed to write log for post %s platform %s", post_id, platform)
 
 
 # ---------------------------------------------------------

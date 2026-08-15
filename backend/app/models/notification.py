@@ -23,6 +23,9 @@ class Notification(Base):
 
     # Dedupe key so syncing real data never recreates the same notification
     signature = Column(String(255), nullable=True, index=True)
+    category = Column(String(50), default="system")  # publishing, campaign, account, collaboration, system
+    read_at = Column(DateTime(timezone=True), nullable=True)
+    delivery_channel = Column(String(20), default="in_app")  # in_app, email, both
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
