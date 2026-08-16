@@ -394,6 +394,8 @@ def get_video_analytics(access_token: str, video_id: str) -> dict:
     analytics_resp = requests.get(
         analytics_url, headers=headers, params=analytics_params, timeout=30
     )
+    print("🔥 CHANNEL ANALYTICS STATUS:", analytics_resp.status_code)
+    print("🔥 CHANNEL ANALYTICS RESPONSE:", analytics_resp.text)
     if analytics_resp.status_code == 200:
         rows = analytics_resp.json().get("rows", [])
         if rows:
@@ -429,6 +431,8 @@ def get_channel_analytics(access_token: str) -> dict:
     url = "https://www.googleapis.com/youtube/v3/channels"
     params = {"part": "statistics", "mine": "true"}
     resp = requests.get(url, headers=headers, params=params, timeout=30)
+    print("🔥 CHANNEL API STATUS:", resp.status_code)
+    print("🔥 CHANNEL API RESPONSE:", resp.text)
 
     followers = 0
     new_followers = 0
@@ -564,7 +568,9 @@ def sync_audience_analytics_to_db(db, account: SocialAccount):
     from app.models.audience_analytics import AudienceAnalytics
 
     try:
-        stats = get_channel_analytics(account.access_token)
+        # stats = get_channel_analytics(account.access_token)
+        access_token = get_fresh_access_token(account)
+        stats = get_channel_analytics(access_token)
         print("===============YOUTUBE AUDIENCE STATS===========",stats)
 
         existing = db.query(AudienceAnalytics).filter(

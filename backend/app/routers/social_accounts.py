@@ -651,13 +651,14 @@ def sync_linkedin_analytics(
 # ===========================
 
 @router.get("/youtube/connect")
-def connect_youtube(request: Request):
-    user_id = request.query_params.get("user_id")
-    if user_id:
-        request.session["user_id"] = user_id
+def connect_youtube(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    request.session["user_id"] = str(current_user.id)
+
     url = get_youtube_login_url()
     return RedirectResponse(url=url)
-
 
 @router.get("/youtube/callback")
 def youtube_callback(
