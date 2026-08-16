@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import AdminAnalyticsTabs from '../../components/AdminAnalyticsTabs'
 import AnalyticsHeader from '../../../creator/components/analytics/AnalyticsHeader'

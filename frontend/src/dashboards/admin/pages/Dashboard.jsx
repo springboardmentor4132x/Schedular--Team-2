@@ -4,6 +4,7 @@ import Button from '../../../shared/components/ui/Button'
 import { CardSkeleton, TableSkeleton } from '../../../shared/components/ui/Skeleton'
 import { getAdminStats, getAdminActivity, getAdminUsers } from '../../../services/adminService'
 import Toast from '../../../components/Toast'
+import AttentionRequired from '../components/AttentionRequired'
 
 function StatCard({ label, value, icon, accent }) {
   return (
@@ -172,6 +173,9 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      {/* Attention Required / Action Center */}
+      <AttentionRequired />
 
       <section aria-label="Overview stats">
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

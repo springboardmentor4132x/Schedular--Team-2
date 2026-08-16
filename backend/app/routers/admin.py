@@ -160,6 +160,7 @@ def _platform_account_aggregate(db: Session, account):
             func.coalesce(func.sum(PostAnalytics.likes), 0),
             func.coalesce(func.sum(PostAnalytics.comments), 0),
             func.coalesce(func.sum(PostAnalytics.shares), 0),
+            func.coalesce(func.sum(PostAnalytics.saves), 0),
             func.coalesce(func.sum(PostAnalytics.clicks), 0),
         )
         .filter(PostAnalytics.platform == account.platform)
@@ -167,7 +168,7 @@ def _platform_account_aggregate(db: Session, account):
         .filter(Post.user_id == account.user_id)
         .first()
     )
-    reach, impressions, likes, comments, shares, clicks = post_stats
+    reach, impressions, likes, comments, shares, saves, clicks = post_stats
     return {
         "reach": reach,
         "impressions": impressions,
@@ -175,6 +176,7 @@ def _platform_account_aggregate(db: Session, account):
         "likes": likes,
         "comments": comments,
         "shares": shares,
+        "saves": saves,
         "clicks": clicks,
     }
 
@@ -199,11 +201,12 @@ def admin_analytics_summary(
             func.coalesce(func.sum(PostAnalytics.likes), 0),
             func.coalesce(func.sum(PostAnalytics.comments), 0),
             func.coalesce(func.sum(PostAnalytics.shares), 0),
+            func.coalesce(func.sum(PostAnalytics.saves), 0),
             func.coalesce(func.sum(PostAnalytics.clicks), 0),
         )
         .first()
     )
-    reach, impressions, likes, comments, shares, clicks = totals
+    reach, impressions, likes, comments, shares, saves, clicks = totals
     engagement = likes + comments + shares
     total_followers = (
         db.query(func.coalesce(func.sum(SocialAccount.followers_count), 0)).scalar()
@@ -225,6 +228,10 @@ def admin_analytics_summary(
         "totalReach": {"label": "Total Reach", "value": reach, "change": 0, "positive": True},
         "totalImpressions": {"label": "Total Impressions", "value": impressions, "change": 0, "positive": True},
         "totalEngagement": {"label": "Total Engagement", "value": engagement, "change": 0, "positive": True},
+        "totalLikes": {"label": "Total Likes", "value": likes, "change": 0, "positive": True},
+        "totalComments": {"label": "Total Comments", "value": comments, "change": 0, "positive": True},
+        "totalShares": {"label": "Total Shares", "value": shares, "change": 0, "positive": True},
+        "totalSaves": {"label": "Total Saves", "value": saves, "change": 0, "positive": True},
         "totalClicks": {"label": "Link Clicks", "value": clicks, "change": 0, "positive": True},
         "totalFollowers": {"label": "Total Followers", "value": total_followers, "change": 0, "positive": True},
         "newFollowers": {"label": "New Followers", "value": new_followers, "change": 0, "positive": True},
@@ -234,7 +241,7 @@ def admin_analytics_summary(
     day_rows = (
         db.query(
             func.date_trunc("day", Post.published_at).label("day"),
-            func.coalesce(func.sum(PostAnalytics.engagement_rate), 0),
+            func.coalesce(func.sum(PostAnalytics.likes + PostAnalytics.comments + PostAnalytics.shares), 0),
             func.coalesce(func.sum(PostAnalytics.reach), 0),
             func.count(Post.id),
         )
@@ -263,19 +270,80 @@ def admin_analytics_summary(
             "creators": creators_by_day.get(d, 0) if d in creators_by_day else 0,
         })
 
-    platform_growth = []
-    accounts = db.query(SocialAccount).all()
-    for acc in accounts:
+    platform_growth_map = {}
+    for acc in db.query(SocialAccount).all():
         stats = _platform_account_aggregate(db, acc)
-        platform_growth.append({
+        entry = platform_growth_map.setdefault(acc.platform, {
             "platform": acc.platform,
-            "followers": acc.followers_count or 0,
-            "reach": stats["reach"],
-            "engagement": stats["engagement"],
+            "followers": 0,
+            "reach": 0,
+            "impressions": 0,
+            "engagement": 0,
+            "likes": 0,
+            "comments": 0,
+            "shares": 0,
+            "saves": 0,
+            "clicks": 0,
             "growth": 0,
         })
+        entry["followers"] += acc.followers_count or 0
+        entry["reach"] += stats["reach"]
+        entry["impressions"] += stats["impressions"]
+        entry["engagement"] += stats["engagement"]
+        entry["likes"] += stats["likes"]
+        entry["comments"] += stats["comments"]
+        entry["shares"] += stats["shares"]
+        entry["saves"] += stats["saves"]
+        entry["clicks"] += stats["clicks"]
+    platform_growth = []
+    for entry in platform_growth_map.values():
+        entry["engagementRate"] = round(
+            (entry["likes"] + entry["comments"] + entry["shares"] + entry["saves"]) / entry["impressions"] * 100, 1
+        ) if entry["impressions"] else 0.0
+        platform_growth.append(entry)
+    platform_growth.sort(key=lambda p: p["reach"], reverse=True)
 
-    return {"kpis": kpis, "timeSeries": time_series, "platformGrowth": platform_growth}
+    publishing_rows = (
+        db.query(
+            PostAnalytics.platform,
+            Post.status,
+            func.count(Post.id),
+            func.max(Post.content_type),
+        )
+        .join(Post, Post.id == PostAnalytics.post_id)
+        .group_by(PostAnalytics.platform, Post.status)
+        .all()
+    )
+    publishing_map = {}
+    for platform, status, count, top_format in publishing_rows:
+        entry = publishing_map.setdefault(platform, {
+            "platform": platform,
+            "published": 0,
+            "scheduled": 0,
+            "failed": 0,
+            "successRate": "0%",
+            "topFormat": "—",
+        })
+        if status == "Published":
+            entry["published"] = count
+        elif status == "Scheduled":
+            entry["scheduled"] = count
+        else:
+            entry["failed"] += count
+        if top_format and entry["topFormat"] == "—":
+            entry["topFormat"] = top_format
+    for entry in publishing_map.values():
+        total = entry["published"] + entry["scheduled"] + entry["failed"]
+        entry["successRate"] = f"{round(entry['published'] / total * 100, 1)}%" if total else "0%"
+    publishing = sorted(publishing_map.values(), key=lambda p: p["published"], reverse=True)
+
+    recent_engagement = sum(r["engagement"] for r in time_series[15:])
+    previous_engagement = sum(r["engagement"] for r in time_series[:15])
+    engagement_change = round((recent_engagement - previous_engagement) / previous_engagement * 100, 1) if previous_engagement else 0.0
+    kpis["totalEngagement"]["change"] = engagement_change
+    kpis["totalEngagement"]["positive"] = engagement_change >= 0
+
+    return {"kpis": kpis, "timeSeries": time_series, "platformGrowth": platform_growth, "publishing": publishing}
 
 
 @router.get("/analytics/top-posts")
@@ -297,7 +365,13 @@ def admin_top_posts(
             "id": post.id,
             "text": post.title or post.caption or f"Post {post.id}",
             "platform": pa.platform,
+            "date": post.published_at.date().isoformat() if post.published_at else None,
             "reach": pa.reach,
+            "likes": pa.likes,
+            "comments": pa.comments,
+            "shares": pa.shares,
+            "saves": pa.saves,
+            "clicks": pa.clicks,
             "engagement_rate": round(pa.engagement_rate, 2),
         }
         for post, pa in rows
@@ -542,18 +616,20 @@ def admin_platform_analytics(
     _: User = Depends(admin_only),
 ):
     """Platform-level aggregates for the admin comparison dashboard."""
-    accounts = db.query(SocialAccount).all()
-    results = []
-    for acc in accounts:
+    platform_map = {}
+    for acc in db.query(SocialAccount).all():
         stats = _platform_account_aggregate(db, acc)
-        results.append({
+        entry = platform_map.setdefault(acc.platform, {
             "platform": acc.platform,
-            "followers": acc.followers_count or 0,
-            "reach": stats["reach"],
-            "engagement": stats["engagement"],
+            "followers": 0,
+            "reach": 0,
+            "engagement": 0,
             "growth": 0,
         })
-    return results
+        entry["followers"] += acc.followers_count or 0
+        entry["reach"] += stats["reach"]
+        entry["engagement"] += stats["engagement"]
+    return sorted(platform_map.values(), key=lambda p: p["reach"], reverse=True)
 
 
 @router.get("/analytics/audience")
@@ -589,13 +665,43 @@ def admin_audience_analytics(
             lang = item.get("language", "Unknown")
             language_map[lang] = language_map.get(lang, 0) + (item.get("percentage", 0) * weight)
 
+    platform_map = {}
+    for r in rows:
+        entry = platform_map.setdefault(r.platform, {
+            "platform": r.platform,
+            "followers": 0,
+            "newFollowers": 0,
+            "lostFollowers": 0,
+        })
+        entry["followers"] += r.followers or 0
+        entry["newFollowers"] += r.new_followers or 0
+        entry["lostFollowers"] += r.lost_followers or 0
+    platforms = []
+    for p in platform_map.values():
+        p["netGrowth"] = p["newFollowers"] - p["lostFollowers"]
+        p["growthRate"] = round(p["netGrowth"] / p["followers"] * 100, 1) if p["followers"] else 0.0
+        platforms.append(p)
+    platforms.sort(key=lambda p: p["followers"], reverse=True)
+
     return {
         "age": [{"range": k, "percentage": round(v, 1)} for k, v in sorted(age_map.items())],
         "gender": [{"label": k, "percentage": round(v, 1)} for k, v in sorted(gender_map.items())],
-        "countries": sorted(country_map.values(), key=lambda c: c["percentage"], reverse=True)[:10],
+        "countries": sorted(
+            [
+                {
+                    "country": c["country"],
+                    "percentage": round(c["percentage"], 1),
+                    "count": int(c["count"]),
+                }
+                for c in country_map.values()
+            ],
+            key=lambda c: c["percentage"],
+            reverse=True,
+        )[:10],
         "languages": [{"language": k, "percentage": round(v, 1)} for k, v in sorted(language_map.items(), key=lambda x: -x[1])][:6],
         "activeHoursPeak": "18:00 - 21:00",
         "activeDaysPeak": "Weekend",
+        "platforms": platforms,
     }
 
 

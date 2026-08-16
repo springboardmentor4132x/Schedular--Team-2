@@ -41,6 +41,16 @@ const UsersIcon = ({ size = 20, className = 'w-5 h-5' }) => (
   </svg>
 )
 
+const BuildingIcon = ({ size = 20, className = 'w-5 h-5' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    width={size} height={size} className={className}>
+    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+    <path d="M9 22v-4h6v4"/>
+    <path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/>
+  </svg>
+)
+
 const FileBarChartIcon = ({ size = 20, className = 'w-5 h-5' }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -74,9 +84,21 @@ const SettingsIcon = ({ size = 20, className = 'w-5 h-5' }) => (
 const navItems = [
   { label: 'Dashboard',         to: '/dashboard/admin/dashboard', Icon: GridIcon },
   { label: 'Users',             to: '/users',              Icon: UsersIcon },
+  { label: 'Business Accounts', to: '/business-accounts',  Icon: BuildingIcon },
   { label: 'Marketing Teams',   to: '/marketing-teams',    Icon: CalendarIcon },
   { label: 'Content Creators',  to: '/content-creators',   Icon: UsersIcon },
-  { label: 'Analytics',         to: '/analytics',          Icon: BarChartIcon },
+  {
+    label: 'Analytics',
+    Icon: BarChartIcon,
+    children: [
+      { label: 'Overview',            to: '/analytics',          Icon: GridIcon },
+      { label: 'Creator Performance', to: '/analytics/creators',  Icon: UsersIcon },
+      { label: 'Campaign Analytics',  to: '/analytics/campaigns', Icon: CalendarIcon },
+      { label: 'Platform Analytics',  to: '/analytics/platforms', Icon: BarChartIcon },
+      { label: 'Audience Analytics',  to: '/analytics/audience',  Icon: UsersIcon },
+      { label: 'Performance Trends',  to: '/analytics/performance', Icon: BarChartIcon },
+    ],
+  },
   { label: 'Reports',           to: '/reports',            Icon: FileBarChartIcon },
   { label: 'Notifications',     to: '/notifications',      Icon: BellIcon },
   { label: 'Settings',          to: '/settings',           Icon: SettingsIcon },

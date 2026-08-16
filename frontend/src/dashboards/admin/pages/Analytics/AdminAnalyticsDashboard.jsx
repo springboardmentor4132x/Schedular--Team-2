@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { getAdminAnalyticsSummary } from '../../../../services/adminAnalyticsService'
 import { KPICard, StatsGrid } from '../../../creator/components/analytics'
 import AreaChart from '../../../creator/components/analytics/Charts/AreaChart'
@@ -13,8 +13,6 @@ import {
   Zap,
   TrendingUp,
   UserPlus,
-  Layers,
-  Award,
   BarChart3
 } from 'lucide-react'
 
@@ -41,7 +39,7 @@ export default function AdminAnalyticsDashboard() {
     )
   }
 
-  const { kpis, timeSeries, platformGrowth } = data
+  const { kpis, timeSeries } = data
 
   const kpiItems = [
     { key: 'totalCreators', icon: Users, ...kpis.totalCreators },

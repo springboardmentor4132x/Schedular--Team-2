@@ -24,7 +24,7 @@ function formatCompact(value) {
 
 export async function getAdminAnalyticsSummary() {
   const response = await API.get('/admin/analytics/summary')
-  const { kpis, timeSeries, platformGrowth } = response.data
+  const { kpis, timeSeries, platformGrowth, publishing } = response.data
   const formatted = {}
   for (const [key, kpi] of Object.entries(kpis || {})) {
     formatted[key] = {
@@ -41,8 +41,23 @@ export async function getAdminAnalyticsSummary() {
       platform: platformLabel(p.platform),
       followers: p.followers,
       reach: p.reach,
+      impressions: p.impressions,
       engagement: p.engagement,
+      likes: p.likes,
+      comments: p.comments,
+      shares: p.shares,
+      saves: p.saves,
+      clicks: p.clicks,
+      engagementRate: p.engagementRate,
       growth: p.growth,
+    })),
+    publishing: (publishing || []).map((p) => ({
+      platform: platformLabel(p.platform),
+      published: p.published,
+      scheduled: p.scheduled,
+      failed: p.failed,
+      successRate: p.successRate,
+      topFormat: p.topFormat,
     })),
   }
 }
@@ -51,10 +66,15 @@ export async function getAdminTopPosts() {
   const response = await API.get('/admin/analytics/top-posts')
   return (response.data || []).map((p) => ({
     id: p.id,
-    text: p.text,
+    name: p.text,
     platform: platformLabel(p.platform),
-    reach: formatCompact(p.reach),
-    engagement: `${Number(p.engagement_rate).toFixed(1)}%`,
+    date: p.date,
+    likes: Number(p.likes || 0).toLocaleString(),
+    comments: Number(p.comments || 0).toLocaleString(),
+    shares: Number(p.shares || 0).toLocaleString(),
+    saves: Number(p.saves || 0).toLocaleString(),
+    clicks: Number(p.clicks || 0).toLocaleString(),
+    rate: `${Number(p.engagement_rate).toFixed(1)}%`,
   }))
 }
 
@@ -106,7 +126,14 @@ export async function getAdminPlatformAnalytics() {
 
 export async function getAdminAudienceAnalytics() {
   const response = await API.get('/admin/analytics/audience')
-  return response.data
+  const data = response.data
+  return {
+    ...data,
+    platforms: (data.platforms || []).map((p) => ({
+      ...p,
+      platform: platformLabel(p.platform),
+    })),
+  }
 }
 
 export async function getAdminPerformanceTrends(timeframe = 'monthly') {

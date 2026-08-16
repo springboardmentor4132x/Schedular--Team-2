@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { getAdminPlatformAnalytics } from '../../../../services/adminAnalyticsService'
-import { ComparisonCard } from '../../../creator/components/analytics'
 import BarChart from '../../../creator/components/analytics/Charts/BarChart'
-import { Layers, TrendingUp, Users, Eye, MousePointer } from 'lucide-react'
+import { Layers, TrendingUp } from 'lucide-react'
 
 export default function AdminPlatformAnalytics() {
   const [platforms, setPlatforms] = useState([])

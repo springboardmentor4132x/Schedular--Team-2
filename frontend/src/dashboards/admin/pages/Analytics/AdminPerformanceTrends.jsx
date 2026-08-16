@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { getAdminPerformanceTrends } from '../../../../services/adminAnalyticsService'
 import AreaChart from '../../../creator/components/analytics/Charts/AreaChart'
 import BarChart from '../../../creator/components/analytics/Charts/BarChart'
-import { Calendar, TrendingUp } from 'lucide-react'
+import { Calendar } from 'lucide-react'
 
 export default function AdminPerformanceTrends() {
   const [timeframe, setTimeframe] = useState('daily')

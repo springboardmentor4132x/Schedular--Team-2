@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { getAdminCampaignAnalytics } from '../../../../services/adminAnalyticsService'
-import { KPICard, StatsGrid, InsightCard } from '../../../creator/components/analytics'
-import AreaChart from '../../../creator/components/analytics/Charts/AreaChart'
-import { Target, Users, Eye, Zap, MousePointer, DollarSign, CheckCircle2 } from 'lucide-react'
+import { InsightCard } from '../../../creator/components/analytics'
+import { Target } from 'lucide-react'
 
 export default function AdminCampaignAnalytics() {
   const [campaigns, setCampaigns] = useState([])
