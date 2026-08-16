@@ -857,15 +857,25 @@ def instagram_callback(request: Request, code: str = "", db: Session = Depends(g
         short_lived_token = token_data.get("access_token")
         
         # Exchange for long-lived token (60 days)
+        # Use the Facebook Login for Business access token directly
         print("========== STEP 2 ==========")
-        long_lived_data = get_ig_long_lived_token(short_lived_token)
-        print(long_lived_data)
 
-        access_token = long_lived_data["access_token"]
-        expires_in = long_lived_data.get("expires_in", 5184000)
-        
-        token_expires_at = datetime.now(timezone.utc) + __import__('datetime').timedelta(seconds=expires_in)
+        access_token = short_lived_token
 
+        if not access_token:
+            raise Exception(f"Access token not received: {token_data}")
+
+        expires_in = token_data.get("expires_in")
+
+        token_expires_at = None
+
+        if expires_in:
+            token_expires_at = (
+                datetime.now(timezone.utc)
+                + __import__("datetime").timedelta(seconds=expires_in)
+        )
+
+        print("STEP 2 SUCCESS - Access token received")
         print("========== STEP 3 ==========")
         user_info = get_instagram_user_info(access_token)
         print(user_info)

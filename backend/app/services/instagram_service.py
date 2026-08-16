@@ -5,7 +5,7 @@ from app.core.config import settings
 
 
 AUTH_URL = "https://www.facebook.com/v23.0/dialog/oauth"
-TOKEN_URL = "https://api.instagram.com/oauth/access_token"
+TOKEN_URL = "https://graph.facebook.com/v23.0/oauth/access_token"
 GRAPH_URL = "https://graph.facebook.com/v23.0"
 
 SCOPES = [
