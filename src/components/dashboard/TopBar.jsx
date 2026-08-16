@@ -1,0 +1,159 @@
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Bell, Menu, Search } from 'lucide-react'
+import { useState, useRef } from 'react'
+import ThemeToggle from '../ThemeToggle'
+import { useAuth } from '../../context/AuthContext'
+import { useClient } from '../../context/ClientContext'
+
+/**
+ * TopBar — sticky top navigation inside the dashboard layout.
+ * Props: isDark, onToggleTheme, onOpenMobileSidebar
+ */
+
+const ROUTE_LABELS = {
+  '/dashboard/business':           'Dashboard',
+  '/dashboard/marketing':          'Dashboard',
+  '/dashboard/creator':            'Dashboard',
+  '/dashboard/admin':              'Dashboard',
+  // Business routes
+  '/dashboard/marketing-teams':    'Marketing Teams',
+  '/dashboard/marketing-activity': 'Marketing Activity',
+  '/dashboard/connected-accounts': 'Connected Accounts',
+  '/dashboard/campaigns':          'Campaigns',
+  '/dashboard/scheduled-posts':    'Scheduled Posts',
+  '/dashboard/published-posts':    'Published Posts',
+  '/dashboard/reports':            'Reports',
+  // Marketing Team routes
+  '/dashboard/mkt/clients':        'Clients',
+  '/dashboard/mkt/workspace':      'Client Workspace',
+  '/dashboard/mkt/queue':          'Publishing Queue',
+  '/dashboard/mkt/connected-accounts': 'Connected Accounts',
+  '/dashboard/mkt/content':        'Content Management',
+  '/dashboard/mkt/scheduling':     'Content Scheduling',
+  '/dashboard/mkt/calendar':       'Publishing Calendar',
+  '/dashboard/mkt/campaigns':      'Campaign Management',
+  '/dashboard/mkt/reports':        'Reports',
+  // Shared
+  '/dashboard/analytics':          'Analytics',
+  '/dashboard/notifications':      'Notifications',
+  '/dashboard/profile':            'Profile',
+  '/dashboard/settings':           'Settings',
+}
+
+export default function TopBar({ isDark, onToggleTheme, onOpenMobileSidebar }) {
+  const { user } = useAuth()
+  const { activeClient } = useClient()
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const [searchOpen, setSearchOpen] = useState(false)
+  const inlineSearchRef = useRef(null)
+
+  const pageTitle = ROUTE_LABELS[pathname] ?? 'Dashboard'
+
+  return (
+    <header
+      className="h-16 flex items-center justify-between px-4 sm:px-6 gap-4 flex-shrink-0 sticky top-0 z-30"
+      style={{
+        background: 'var(--card)',
+        borderBottom: '1px solid var(--border)',
+        backdropFilter: 'blur(12px)',
+      }}
+    >
+      {/* Left: mobile menu + breadcrumb */}
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          onClick={onOpenMobileSidebar}
+          className="lg:hidden p-2 rounded-lg transition-colors hover:bg-[var(--bg-alt)]"
+          style={{ color: 'var(--text-muted)' }}
+          aria-label="Open sidebar"
+        >
+          <Menu size={20} />
+        </button>
+
+        <div className="min-w-0">
+          <h1
+            className="text-base sm:text-lg font-bold truncate"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--text)' }}
+          >
+            {pageTitle}
+          </h1>
+        </div>
+      </div>
+
+      {/* Right: search, notifications, theme, avatar */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Search toggle */}
+        <button
+          onClick={() => {
+            setSearchOpen(v => {
+              const next = !v
+              if (!v) setTimeout(() => inlineSearchRef.current?.focus(), 50)
+              return next
+            })
+          }}
+          className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-alt)]"
+          style={{ color: 'var(--text-muted)' }}
+          aria-label="Search"
+        >
+          <Search size={18} />
+        </button>
+
+        {/* Notifications */}
+        <div className="relative">
+          <button
+            onClick={() => navigate('/dashboard/notifications')}
+            className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-alt)] relative"
+            style={{ color: 'var(--text-muted)' }}
+            aria-label="Notifications"
+          >
+            <Bell size={18} />
+            {/* Unread badge */}
+            <span
+              className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+              style={{ background: 'var(--error)' }}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+
+        <ThemeToggle isDark={isDark} onToggle={onToggleTheme} />
+
+        {/* Avatar */}
+        {user && (
+          <div
+            onClick={() => navigate('/dashboard/profile')}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold cursor-pointer flex-shrink-0 overflow-hidden border"
+            style={{ background: 'linear-gradient(135deg, var(--primary), var(--secondary))', borderColor: 'var(--border)' }}
+            title={user.name}
+          >
+            {user.avatar ? (
+              <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+            ) : (
+              user.name?.[0]?.toUpperCase() ?? 'U'
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Inline search bar */}
+      {searchOpen && (
+        <div
+          className="absolute top-16 left-0 right-0 px-4 py-3 border-b z-40 topbar-inline-search"
+          style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+        >
+          <input
+            ref={inlineSearchRef}
+            placeholder="Search posts, campaigns, drafts…"
+            className="w-full h-10 px-4 text-sm rounded-[var(--r-md)] border outline-none transition-all"
+            style={{
+              background: 'var(--bg-alt)',
+              borderColor: 'var(--border)',
+              color: 'var(--text)',
+            }}
+            onKeyDown={e => e.key === 'Escape' && setSearchOpen(false)}
+          />
+        </div>
+      )}
+    </header>
+  )
+}
