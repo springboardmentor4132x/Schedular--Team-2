@@ -44,3 +44,5 @@ class PublishingLog(Base):
         primaryjoin="PublishingLog.post_id == Post.id",
         foreign_keys="PublishingLog.post_id",
     )
+
+    

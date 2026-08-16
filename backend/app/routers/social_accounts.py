@@ -1183,6 +1183,35 @@ def pinterest_callback(request: Request, code: str = "", db: Session = Depends(g
         return RedirectResponse(url=f"http://localhost:5173/social-accounts?error={str(e)}")
 
 
+
+@router.delete("/{account_id}")
+def disconnect_account(
+    account_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Disconnect and delete the current user's social account."""
+
+    account = db.query(SocialAccount).filter(
+        SocialAccount.id == account_id,
+        SocialAccount.user_id == current_user.id
+    ).first()
+
+    if not account:
+        raise HTTPException(
+            status_code=404,
+            detail="Social account not found"
+        )
+
+    db.delete(account)
+    db.commit()
+
+    return {
+        "message": "Account disconnected successfully",
+        "account_id": account_id
+    }
+
+
 @router.post("/{account_id}/sync", response_model=SocialAccountResponse)
 def sync_social_account(account_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     account = db.query(SocialAccount).filter(SocialAccount.id == account_id).first()
@@ -1224,3 +1253,5 @@ def sync_social_account(account_id: int, current_user: User = Depends(get_curren
     db.commit()
     db.refresh(account)
     return account
+
+

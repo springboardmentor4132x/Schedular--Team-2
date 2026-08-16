@@ -295,7 +295,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette.requests import Request
 from sqlalchemy.orm import Session
-
+from datetime import datetime
 from app.database.database import get_db
 from app.models.user import User
 from app.models.workspace import Workspace
@@ -488,17 +488,22 @@ def change_password(
     return {"message": "Password updated successfully"}
 
 @router.get("/google/login")
-async def google_login(request: Request, role: str = "business", redirect_uri: str = None):
+async def google_login(
+    request: Request,
+    role: str = "business"
+):
+    # Keep role only for NEW Google users.
+    # Existing users will use the role already stored in the database.
     request.session["role"] = role
-    request.session["redirect_uri"] = redirect_uri or settings.GOOGLE_REDIRECT_URI
 
-    print(request.session["redirect_uri"])
-    print(settings.GOOGLE_REDIRECT_URI)
-    
+    # This is ONLY Google's OAuth callback URI.
+    request.session["oauth_redirect_uri"] = settings.GOOGLE_REDIRECT_URI
+
     return await oauth.google.authorize_redirect(
         request,
-        request.session["redirect_uri"],
+        settings.GOOGLE_REDIRECT_URI,
     )
+
 
 @router.get("/google/callback")
 async def google_callback(
@@ -509,32 +514,48 @@ async def google_callback(
 
     user_info = token.get("userinfo")
 
-    email = user_info["email"]
+    if not user_info:
+        raise HTTPException(
+            status_code=400,
+            detail="Unable to retrieve Google user information."
+        )
 
+    email = user_info.get("email")
+
+    if not email:
+        raise HTTPException(
+            status_code=400,
+            detail="Google account email not available."
+        )
+
+    # Find existing user
     user = db.query(User).filter(
         User.email == email
     ).first()
 
-    role = request.session.get("role", "business")
+    requested_role = request.session.get("role", "business")
 
     if user:
-        if user.role != role:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"This account already belongs to the "
-                    f"{user.role} role."
-                ),
-            )
+        # Existing user:
+        # ALWAYS use the role stored in the database.
+        actual_role = user.role
+
     else:
-        if role == "administrator":
-            admin_count = db.query(User).filter(User.role == "administrator").count()
+        # New Google user:
+        # Use the role selected/requested during login.
+        actual_role = requested_role
+
+        if actual_role == "administrator":
+            admin_count = db.query(User).filter(
+                User.role == "administrator"
+            ).count()
+
             if admin_count > 0:
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        "An administrator already exists. Only one admin "
-                        "account can be created."
+                        "An administrator already exists. "
+                        "Only one admin account can be created."
                     ),
                 )
 
@@ -544,37 +565,46 @@ async def google_callback(
             username=email.split("@")[0],
             email=email,
             password_hash="google_oauth",
-            role=role,
+            role=actual_role,
         )
 
         db.add(user)
         db.commit()
         db.refresh(user)
 
+    # Update last login if your User model has this field
+    if hasattr(user, "last_login"):
+        user.last_login = datetime.utcnow()
+        db.commit()
+        db.refresh(user)
 
-    user = db.query(User).filter(
-        User.email == email
-    ).first()
-
+    # Generate JWT using the ACTUAL database role
     access_token = create_access_token({
         "sub": user.email,
         "id": user.id,
-        "role": user.role
+        "role": actual_role
     })
 
-    redirect_uri = request.session.get("redirect_uri")
-    if redirect_uri:
-        redirect_url = f"{redirect_uri}?token={access_token}"
-    else:
-        routes = {
-            "creator": "http://localhost:5173/dashboard/creator",
-            "business": "http://localhost:5173/dashboard/business",
-            "marketing": "http://localhost:5173/dashboard/marketing",
-            "administrator": "http://localhost:5173/dashboard/admin",
-        }
-        redirect_url = routes.get(role, "http://localhost:5173/dashboard/business")
-        redirect_url += f"?token={access_token}"
+    # Redirect to the correct FRONTEND dashboard
+    redirect_url = (
+    f"http://localhost:5173/oauth/callback"
+    f"?token={access_token}"
+    )
 
     return RedirectResponse(url=redirect_url)
 
+    # routes = {
+    #     "creator": "http://localhost:5173/dashboard/creator",
+    #     "business": "http://localhost:5173/dashboard/business",
+    #     "marketing": "http://localhost:5173/dashboard/marketing",
+    #     "administrator": "http://localhost:5173/dashboard/admin",
+    # }
 
+    # redirect_url = routes.get(
+    #     actual_role,
+    #     "http://localhost:5173/dashboard/business"
+    # )
+
+    # redirect_url += f"?token={access_token}"
+
+    # return RedirectResponse(url=redirect_url)

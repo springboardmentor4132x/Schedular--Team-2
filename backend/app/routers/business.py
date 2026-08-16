@@ -178,7 +178,7 @@ def get_business_dashboard(current_user: User = Depends(get_current_user), db: S
         upcoming_posts.append({
             "id": post.id,
             "title": post.title or f"Post {post.id}",
-            "platform": post.social_accounts[0].platform if post.social_accounts else "instagram",
+            "platform": post.social_accounts[0].platform if post.social_accounts else None,
             "scheduledAt": post.scheduled_for.isoformat() if post.scheduled_for else None,
             "status": post.status,
             "campaign": campaign.name if campaign else None

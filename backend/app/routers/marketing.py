@@ -57,7 +57,11 @@ def _client_summary(db: Session, workspace: Workspace):
     }
 
 def _post_item(post: Post):
-    return {"id": post.id, "title": post.title or "Untitled post", "caption": post.caption or "", "platform": post.social_accounts[0].platform if post.social_accounts else "instagram", "platforms": [a.platform for a in post.social_accounts], "campaign": post.campaign.name if post.campaign else None, "campaignId": post.campaign_id, "status": post.status.lower().replace(" ", "_"), "scheduledAt": post.scheduled_for.isoformat() if post.scheduled_for else None, "publishedAt": post.updated_at.isoformat() if post.status == "Published" and post.updated_at else None, "mediaUrl": post.media_file_path, "contentType": post.content_type, "createdAt": post.created_at.isoformat() if post.created_at else None, "failureReason": post.failure_reason}
+    return {"id": post.id, 
+            "title": post.title or "Untitled post", 
+            "caption": post.caption or "", 
+            "platform": post.social_accounts[0].platform if post.social_accounts else None, 
+            "platforms": [a.platform for a in post.social_accounts], "campaign": post.campaign.name if post.campaign else None, "campaignId": post.campaign_id, "status": post.status.lower().replace(" ", "_"), "scheduledAt": post.scheduled_for.isoformat() if post.scheduled_for else None, "publishedAt": post.updated_at.isoformat() if post.status == "Published" and post.updated_at else None, "mediaUrl": post.media_file_path, "contentType": post.content_type, "createdAt": post.created_at.isoformat() if post.created_at else None, "failureReason": post.failure_reason}
 
 def _request_item(item: WorkRequest):
     return {"id": item.id, "clientId": item.business_user_id, "workspaceId": item.workspace_id, "status": item.status.lower(), "details": json.loads(item.details or "{}"), "decisionNote": item.decision_note, "createdAt": item.created_at, "updatedAt": item.updated_at}
@@ -187,6 +191,7 @@ def dashboard(current_user: User = Depends(get_current_user), db: Session = Depe
 def workspace(client_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     _require_marketing(current_user); w = _workspace_for_client(db, current_user.id, client_id)
     return {"client": _client_summary(db, w), "posts": [_post_item(p) for p in db.query(Post).filter(Post.workspace_id == w.id).order_by(Post.created_at.desc()).all()], "campaigns": [campaign_service._campaign_response(c) for c in db.query(Campaign).filter(Campaign.workspace_id == w.id).all()]}
+
 
 @router.post("/clients/{client_id}/posts")
 def create_client_post(client_id: int, payload: PostCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

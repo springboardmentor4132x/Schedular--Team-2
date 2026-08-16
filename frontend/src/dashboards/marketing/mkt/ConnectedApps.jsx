@@ -9,7 +9,8 @@ import { useNavigate } from 'react-router-dom'
 import { useClient } from '../../../context/ClientContext'
 import PageHeader from '../../../components/dashboard/PageHeader'
 import EmptyState from '../../../components/dashboard/EmptyState'
-import { fetchSocialAccounts } from '../../../services/socialAccountsService'
+import { marketingService } from '../../../services/marketingService'
+// import { fetchSocialAccounts } from '../../../services/socialAccountsService'
 
 const PLATFORM_CONFIGS = {
   instagram: { icon:FaInstagram, color:'#E1306C', bg:'rgba(225,48,108,.10)', label:'Instagram', features:['Post photos','Reels','Stories','Carousels'],      permissions:['Read profile','Publish posts','View insights'] },
@@ -60,12 +61,40 @@ export default function ConnectedApps() {
 
   useEffect(() => {
     if (!activeClient) return
+
     let cancelled = false
-    fetchSocialAccounts()
-      .then(realAccounts => { if (!cancelled) setAccounts(buildAccounts(activeClient.connectedPlatforms ?? [], realAccounts)) })
-      .catch(() => { if (!cancelled) setAccounts(buildAccounts(activeClient.connectedPlatforms ?? [], [])) })
-    return () => { cancelled = true }
+
+    marketingService.workspace(activeClient.id)
+      .then(data => {
+        if (cancelled) return
+
+        const clientPlatforms = data?.client?.connectedPlatforms ?? []
+
+        setAccounts(buildAccounts(clientPlatforms, []))
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAccounts(
+            buildAccounts(activeClient.connectedPlatforms ?? [], [])
+          )
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [activeClient])
+  
+  // useEffect(() => {
+  //   if (!activeClient) return
+  //   let cancelled = false
+  //   fetchSocialAccounts()
+  //     .then(realAccounts => { 
+  //       if (!cancelled) setAccounts(buildAccounts(activeClient.connectedPlatforms ?? [], realAccounts)) 
+  //     })
+  //     .catch(() => { if (!cancelled) setAccounts(buildAccounts(activeClient.connectedPlatforms ?? [], [])) })
+  //   return () => { cancelled = true }
+  // }, [activeClient])
 
   const accountsMemo = useMemo(() => accounts, [accounts])
 

@@ -53,7 +53,7 @@ export default function Login({ isDark, onToggleTheme }) {
   );
 
     window.location.href =
-        `${import.meta.env.VITE_API_BASE_URL}/auth/google/login?role=${role}&redirect_uri=${redirectUri}`;
+        `${import.meta.env.VITE_API_BASE_URL}/auth/google/login?role=${role}`;
 };
   const handleSubmit = async e => {
     e.preventDefault()

@@ -61,6 +61,25 @@ def _maybe_enqueue(db: Session, post: Post):
 
 
 def _post_response(post: Post):
+    # Get platforms from actual publishing logs
+    logged_platforms = [
+        log.platform
+        for log in post.publishing_logs
+        if log.platform
+    ]
+
+    # Remove duplicates while preserving order
+    platforms = list(dict.fromkeys(logged_platforms))
+
+    # Fallback to connected social accounts for posts
+    # that don't have publishing logs yet
+    if not platforms:
+        platforms = list(dict.fromkeys(
+            acc.platform
+            for acc in post.social_accounts
+            if acc.platform
+        ))
+
     return {
         "id": post.id,
         "user_id": post.user_id,
@@ -79,9 +98,13 @@ def _post_response(post: Post):
         "failure_reason": post.failure_reason,
         "retry_count": post.retry_count,
         "platform_post_id": post.platform_post_id,
+
         "social_account_ids": [
             acc.id for acc in post.social_accounts
         ],
+
+        "platform": platforms[0] if platforms else None,
+        "platforms": platforms,
     }
 
 

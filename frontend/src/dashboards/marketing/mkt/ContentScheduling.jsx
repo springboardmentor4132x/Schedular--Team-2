@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../../shared/components/Button'
 import { useAuth } from '../../../context/AuthContext'
+import API from '../../../shared/api/api'
 import { useClient } from '../../../context/ClientContext'
 import { uploadMedia, publishPost } from '../../../services/postService'
 import { marketingService } from '../../../services/marketingService'
@@ -139,7 +140,20 @@ export function SchedulingPanel() {
     .slice(0, 2)
     .join('')
     .toUpperCase() || 'MT'
-  const previewMedia = mediaList[0]?.url || ''
+  const previewMedia = useMemo(() => {
+    const url = mediaList[0]?.url || ''
+
+    if (!url) return ''
+
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url
+    }
+
+    const baseURL = API.defaults.baseURL || 'http://127.0.0.1:8000/api/v1'
+    const backendURL = baseURL.replace(/\/api\/v1\/?$/, '')
+
+    return `${backendURL}${url.startsWith('/') ? url : `/${url}`}`
+  }, [mediaList])
 
   const showToast = (msg, type = 'success') => setToast({ msg, type })
 
@@ -466,7 +480,15 @@ export function SchedulingPanel() {
                   <ImageIcon size={15} className="text-indigo-500" />
                 </span>
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate">{m.name}</span>
-                <button onClick={() => setMediaList([])} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 text-rose-500 rounded ml-auto" title="Remove media">
+                <button onClick={() => {
+                          if (previewUrl) {
+                            URL.revokeObjectURL(previewUrl)
+                          }
+
+                          setPreviewUrl('')
+                          setMediaList([])
+                        }} 
+                        className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 text-rose-500 rounded ml-auto" title="Remove media">
                   <X size={14} />
                 </button>
               </div>

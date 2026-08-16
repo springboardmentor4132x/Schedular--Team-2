@@ -68,15 +68,16 @@ export default function ContentScheduling() {
   const [selectedPlatforms, setSelectedPlatforms] = useState([])
   const [connectedPlatforms, setConnectedPlatforms] = useState([])
   const [platformsLoading, setPlatformsLoading] = useState(true)
-  const [caption, setCaption] = useState('Kickstart your brand campaign with a fresh perspective! 🚀 We are matching clean assets with premium SaaS design guidelines.')
+  const [caption, setCaption] = useState('')
   const [mediaList, setMediaList] = useState([])
+  const [previewUrl, setPreviewUrl] = useState('')
   const [uploadProgress, setUploadProgress] = useState(null)
   const fileInputRef = useRef(null)
 
   const [scheduleDate, setScheduleDate] = useState(todayLocalStr())
   const [scheduleTime, setScheduleTime] = useState('')
   const [recurrence, setRecurrence] = useState('Never')
-  const [previewTab, setPreviewTab] = useState('instagram')
+  const [previewTab, setPreviewTab] = useState('')
 
   const [recStartDate, setRecStartDate] = useState(todayLocalStr())
   const [recEndDate, setRecEndDate] = useState(() => daysFromToday(30))
@@ -156,26 +157,66 @@ export default function ContentScheduling() {
     .slice(0, 2)
     .join('')
     .toUpperCase() || 'CR'
-  const previewMedia = mediaList[0]?.url || ''
+  const previewMedia = mediaList[0]?.previewUrl || ''
+  console.log("PREVIEW MEDIA:", previewMedia)
+  const previewMediaType = mediaList[0]?.type || ''
+  const isVideo = previewMediaType.startsWith('video/')
 
   const hasConnectedPlatforms = !platformsLoading && connectedPlatforms.length > 0
   const effectivePlatforms = selectedPlatforms.filter(p => connectedPlatforms.includes(p))
 
+  // const handleFileSelect = async (e) => {
+  //   const file = e.target.files?.[0]
+  //   if (!file) return
+  //   setUploadProgress(10)
+  //   try {
+  //     const result = await uploadMedia(file)
+  //     setMediaList([{ id: Date.now(), url: result.media_url, name: file.name, type: file.type }])
+  //     showToast(`${file.name} uploaded successfully!`)
+  //   } catch {
+  //     showToast('Media upload failed.', 'error')
+  //   } finally {
+  //     setUploadProgress(null)
+  //     if (fileInputRef.current) fileInputRef.current.value = ''
+  //   }
+  // }
+
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // Create an immediate browser preview
+    const localPreviewUrl = URL.createObjectURL(file)
+    setPreviewUrl(localPreviewUrl)
+
     setUploadProgress(10)
+
     try {
       const result = await uploadMedia(file)
-      setMediaList([{ id: Date.now(), url: result.media_url, name: file.name, type: file.type }])
+
+      setMediaList([
+        {
+          id: Date.now(),
+          url: result.media_url,
+          previewUrl: localPreviewUrl,
+          name: file.name,
+          type: file.type,
+        },
+      ])
+
       showToast(`${file.name} uploaded successfully!`)
     } catch {
+      URL.revokeObjectURL(localPreviewUrl)
+      setPreviewUrl('')
       showToast('Media upload failed.', 'error')
     } finally {
       setUploadProgress(null)
-      if (fileInputRef.current) fileInputRef.current.value = ''
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
-  }
+  } 
 
   const handleSimulatedUpload = () => {
     fileInputRef.current?.click()
@@ -636,7 +677,20 @@ export default function ContentScheduling() {
                   </div>
                   <div className="aspect-square bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
                     {previewMedia ? (
-                      <img src={previewMedia} alt="Instagram preview" className="w-full h-full object-cover" />
+                      isVideo ? (
+                        <video
+                          src={previewMedia}
+                          controls
+                          muted
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src={previewMedia}
+                          alt="Instagram preview"
+                          className="w-full h-full object-cover"
+                        />
+                      )
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1">
                         <ImageIcon size={20} />
@@ -679,7 +733,20 @@ export default function ContentScheduling() {
                   )}
                   <div className="aspect-video bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
                     {previewMedia ? (
-                      <img src={previewMedia} alt="Facebook preview" className="w-full h-full object-cover" />
+                      isVideo ? (
+                        <video
+                          src={previewMedia}
+                          controls
+                          muted
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src={previewMedia}
+                          alt="Facebook preview"
+                          className="w-full h-full object-cover"
+                        />
+                      )
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1">
                         <ImageIcon size={20} />
@@ -715,7 +782,20 @@ export default function ContentScheduling() {
                   </div>
                   <div className="aspect-video bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
                     {previewMedia ? (
-                      <img src={previewMedia} alt="LinkedIn preview" className="w-full h-full object-cover" />
+                      isVideo ? (
+                        <video
+                          src={previewMedia}
+                          controls
+                          muted
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src={previewMedia}
+                          alt="Linkedin preview"
+                          className="w-full h-full object-cover"
+                        />
+                      )
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1">
                         <ImageIcon size={20} />
@@ -749,8 +829,21 @@ export default function ContentScheduling() {
                   )}
                   <div className="mt-2.5 rounded-2xl aspect-video bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
                     {previewMedia ? (
-                      <img src={previewMedia} alt="X preview" className="w-full h-full object-cover" />
+                      isVideo ? (
+                        <video
+                          src={previewMedia}
+                          controls
+                          muted
+                          className="w-full h-full object-cover"
+                        />
                     ) : (
+                      <img
+                        src={previewMedia}
+                        alt="Twitter preview"
+                        className="w-full h-full object-cover"
+                      />
+                    )
+                  ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1">
                         <ImageIcon size={20} />
                         <span>Image / Video</span>
@@ -770,7 +863,20 @@ export default function ContentScheduling() {
                 <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden text-slate-800 dark:text-slate-100">
                   <div className="relative aspect-video bg-slate-900 overflow-hidden">
                     {previewMedia ? (
-                      <img src={previewMedia} alt="YouTube preview" className="w-full h-full object-cover opacity-90" />
+                      isVideo ? (
+                        <video
+                          src={previewMedia}
+                          controls
+                          muted
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src={previewMedia}
+                          alt="YouTube preview"
+                          className="w-full h-full object-cover"
+                        />
+                      )
                     ) : (
                       <div className="w-full h-full bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-400 text-[10px] gap-1">
                         <ImageIcon size={20} />

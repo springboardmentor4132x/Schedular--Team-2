@@ -195,7 +195,8 @@ export default function PublishedPosts() {
       const publishedAt = post.scheduled_for ?? post.created_at
       return {
         ...post,
-        platform: account?.platform ?? 'instagram',
+        platform: post.platform ?? account?.platform ?? null,
+        platforms:post.platforms ?? [],
         campaign: campaignItem?.name ?? null,
         publishedAt,
       }

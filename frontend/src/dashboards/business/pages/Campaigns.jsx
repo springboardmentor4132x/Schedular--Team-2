@@ -112,7 +112,7 @@ export default function Campaigns() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <AnimatePresence>
             {filtered.map((c, i) => {
-              const s = STATUS_STYLES[c.status]
+              const s = STATUS_STYLES[c.status] || STATUS_STYLES.draft
               const progress = c.progress ?? {}
               const totalPosts = Number.isFinite(Number(progress.total_posts)) ? Number(progress.total_posts) : 0
               const publishedCount = Number.isFinite(Number(progress.published)) ? Number(progress.published) : 0

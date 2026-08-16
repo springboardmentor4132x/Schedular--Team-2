@@ -73,7 +73,7 @@ export default function ClientWorkspace() {
     )
   }
 
-  const c        = activeClient
+  const c = workspaceData.client ?? activeClient
   const campaigns = workspaceData.campaigns ?? []
   const allPosts = workspaceData.posts ?? []
   const posts = { drafts: allPosts.filter(p => p.status === 'draft'), scheduled: allPosts.filter(p => p.status === 'scheduled'), published: allPosts.filter(p => p.status === 'published') }
