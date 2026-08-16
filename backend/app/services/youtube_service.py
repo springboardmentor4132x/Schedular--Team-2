@@ -355,17 +355,36 @@ def get_fresh_access_token(account) -> str:
 # Analytics — Video metrics
 # ---------------------------------------------------------
 
+# ---------------------------------------------------------
+# Analytics — Video metrics
+# ---------------------------------------------------------
+
 def get_video_analytics(access_token: str, video_id: str) -> dict:
     """Get performance metrics for a specific YouTube video."""
-    headers = {"Authorization": f"Bearer {access_token}"}
 
-    # Video statistics (views, likes, comments)
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+
+    # ---------------------------------------------------------
+    # 1. YouTube Data API — video statistics
+    # ---------------------------------------------------------
     stats_url = "https://www.googleapis.com/youtube/v3/videos"
-    params = {
+
+    stats_params = {
         "part": "statistics",
         "id": video_id,
     }
-    resp = requests.get(stats_url, headers=headers, params=params, timeout=30)
+
+    resp = requests.get(
+        stats_url,
+        headers=headers,
+        params=stats_params,
+        timeout=30,
+    )
+
+    print("🔥 VIDEO API STATUS:", resp.status_code)
+    print("🔥 VIDEO API RESPONSE:", resp.text)
 
     likes = 0
     comments = 0
@@ -375,36 +394,74 @@ def get_video_analytics(access_token: str, video_id: str) -> dict:
 
     if resp.status_code == 200:
         items = resp.json().get("items", [])
+
         if items:
             stats = items[0].get("statistics", {})
+
             likes = int(stats.get("likeCount", 0))
             comments = int(stats.get("commentCount", 0))
             views = int(stats.get("viewCount", 0))
 
-    # YouTube Analytics API for impressions and clicks
-    analytics_url = "https://youtubeanalytics.googleapis.com/v2/reports"
+    # ---------------------------------------------------------
+    # 2. YouTube Analytics API
+    # ---------------------------------------------------------
+    analytics_url = (
+        "https://youtubeanalytics.googleapis.com/v2/reports"
+    )
+
     analytics_params = {
         "ids": "channel==MINE",
-        "metrics": "impressions,impressionClickThroughRate",
+        "metrics": "views,likes,comments",
         "dimensions": "video",
         "filters": f"video=={video_id}",
         "startDate": "2020-01-01",
         "endDate": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
     }
+
     analytics_resp = requests.get(
-        analytics_url, headers=headers, params=analytics_params, timeout=30
+        analytics_url,
+        headers=headers,
+        params=analytics_params,
+        timeout=30,
     )
-    print("🔥 CHANNEL ANALYTICS STATUS:", analytics_resp.status_code)
-    print("🔥 CHANNEL ANALYTICS RESPONSE:", analytics_resp.text)
+
+    print(
+        "🔥 VIDEO ANALYTICS STATUS:",
+        analytics_resp.status_code
+    )
+
+    print(
+        "🔥 VIDEO ANALYTICS RESPONSE:",
+        analytics_resp.text
+    )
+
+    # Keep rows safely initialized
+    rows = []
+
     if analytics_resp.status_code == 200:
         rows = analytics_resp.json().get("rows", [])
-        if rows:
-            impressions = int(rows[0][1]) if len(rows[0]) > 1 else 0
-            ctr = float(rows[0][2]) if len(rows[0]) > 2 else 0.0
-            clicks = int(impressions * ctr / 100)
 
+        # Only overwrite Data API values if Analytics
+        # actually returned a row.
+        if rows:
+            views = int(rows[0][0]) if len(rows[0]) > 0 else views
+            likes = int(rows[0][1]) if len(rows[0]) > 1 else likes
+            comments = int(rows[0][2]) if len(rows[0]) > 2 else comments
+
+    # ---------------------------------------------------------
+    # 3. Calculate engagement
+    # ---------------------------------------------------------
     engagement = likes + comments
-    engagement_rate = round((engagement / views) * 100, 2) if views > 0 else 0.0
+
+    engagement_rate = (
+        round((engagement / views) * 100, 2)
+        if views > 0
+        else 0.0
+    )
+
+    # YouTube Analytics may not provide the requested
+    # impressions/clicks data here, so use safe fallback.
+    impressions = views
 
     return {
         "platform": "youtube",
@@ -413,7 +470,7 @@ def get_video_analytics(access_token: str, video_id: str) -> dict:
         "shares": 0,
         "saves": 0,
         "reach": views,
-        "impressions": impressions if impressions > 0 else views,
+        "impressions": impressions,
         "clicks": clicks,
         "engagement_rate": engagement_rate,
     }
@@ -424,42 +481,94 @@ def get_video_analytics(access_token: str, video_id: str) -> dict:
 # ---------------------------------------------------------
 
 def get_channel_analytics(access_token: str) -> dict:
-    """Get subscriber count and channel-level growth stats."""
-    headers = {"Authorization": f"Bearer {access_token}"}
+    """Get YouTube channel statistics and subscriber growth analytics."""
 
-    # Channel statistics
-    url = "https://www.googleapis.com/youtube/v3/channels"
-    params = {"part": "statistics", "mine": "true"}
-    resp = requests.get(url, headers=headers, params=params, timeout=30)
-    print("🔥 CHANNEL API STATUS:", resp.status_code)
-    print("🔥 CHANNEL API RESPONSE:", resp.text)
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
 
     followers = 0
     new_followers = 0
     lost_followers = 0
 
-    if resp.status_code == 200:
-        items = resp.json().get("items", [])
+    # ---------------------------------------------------------
+    # 1. YouTube Data API — Channel statistics
+    # ---------------------------------------------------------
+    channel_url = "https://www.googleapis.com/youtube/v3/channels"
+
+    channel_params = {
+        "part": "statistics",
+        "mine": "true",
+    }
+
+    channel_resp = requests.get(
+        channel_url,
+        headers=headers,
+        params=channel_params,
+        timeout=30,
+    )
+
+    print("🔥 CHANNEL API STATUS:", channel_resp.status_code)
+    print("🔥 CHANNEL API RESPONSE:", channel_resp.text)
+
+    if channel_resp.status_code == 200:
+        items = channel_resp.json().get("items", [])
+
         if items:
             stats = items[0].get("statistics", {})
-            followers = int(stats.get("subscriberCount", 0))
 
-    # YouTube Analytics for subscriber gains/losses
-    analytics_url = "https://youtubeanalytics.googleapis.com/v2/reports"
+            followers = int(
+                stats.get("subscriberCount", 0)
+            )
+
+    # ---------------------------------------------------------
+    # 2. YouTube Analytics API — Subscriber growth
+    # ---------------------------------------------------------
+    analytics_url = (
+        "https://youtubeanalytics.googleapis.com/v2/reports"
+    )
+
     analytics_params = {
         "ids": "channel==MINE",
         "metrics": "subscribersGained,subscribersLost",
         "startDate": datetime.now(timezone.utc).strftime("%Y-%m-01"),
         "endDate": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
     }
+
     analytics_resp = requests.get(
-        analytics_url, headers=headers, params=analytics_params, timeout=30
+        analytics_url,
+        headers=headers,
+        params=analytics_params,
+        timeout=30,
     )
+
+    print(
+        "🔥 YOUTUBE ANALYTICS STATUS:",
+        analytics_resp.status_code
+    )
+
+    print(
+        "🔥 YOUTUBE ANALYTICS RESPONSE:",
+        analytics_resp.text
+    )
+
     if analytics_resp.status_code == 200:
         rows = analytics_resp.json().get("rows", [])
+
         if rows:
-            new_followers = int(rows[0][0]) if len(rows[0]) > 0 else 0
-            lost_followers = int(rows[0][1]) if len(rows[0]) > 1 else 0
+            new_followers = int(
+                rows[0][0]
+            ) if len(rows[0]) > 0 else 0
+
+            lost_followers = int(
+                rows[0][1]
+            ) if len(rows[0]) > 1 else 0
+
+    else:
+        print(
+            "⚠️ YouTube Analytics request failed:",
+            analytics_resp.status_code
+        )
 
     return {
         "platform": "youtube",
@@ -530,7 +639,16 @@ def sync_post_analytics_to_db(db, post, account: SocialAccount):
 
     try:
         metrics = get_video_analytics(account.access_token, post.platform_post_id)
+        fresh_token = get_fresh_access_token(account)
 
+        if fresh_token != account.access_token:
+            account.access_token = fresh_token
+            db.commit()
+
+        metrics = get_video_analytics(
+            fresh_token,
+            post.platform_post_id
+        )
         existing = db.query(PostAnalytics).filter(
             PostAnalytics.post_id == post.id
         ).first()
@@ -569,8 +687,16 @@ def sync_audience_analytics_to_db(db, account: SocialAccount):
 
     try:
         # stats = get_channel_analytics(account.access_token)
-        access_token = get_fresh_access_token(account)
-        stats = get_channel_analytics(access_token)
+        # access_token = get_fresh_access_token(account)
+        # stats = get_channel_analytics(access_token)
+        fresh_token = get_fresh_access_token(account)
+
+        if fresh_token != account.access_token:
+            account.access_token = fresh_token
+            db.commit()
+
+        stats = get_channel_analytics(fresh_token)
+
         print("===============YOUTUBE AUDIENCE STATS===========",stats)
 
         existing = db.query(AudienceAnalytics).filter(
@@ -602,7 +728,14 @@ def sync_platform_snapshot_to_db(db, account: SocialAccount):
     from app.models.platform_analytics import PlatformAnalytics
 
     try:
-        snapshot = get_platform_snapshot(account.access_token)
+        # snapshot = get_platform_snapshot(account.access_token)
+        fresh_token = get_fresh_access_token(account)
+
+        if fresh_token != account.access_token:
+            account.access_token = fresh_token
+            db.commit()
+
+        snapshot = get_platform_snapshot(fresh_token)
         today = snapshot["snapshot_date"]
 
         existing = db.query(PlatformAnalytics).filter(
