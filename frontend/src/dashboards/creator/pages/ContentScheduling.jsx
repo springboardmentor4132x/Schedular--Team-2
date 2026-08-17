@@ -77,7 +77,7 @@ export default function ContentScheduling() {
   const [scheduleDate, setScheduleDate] = useState(todayLocalStr())
   const [scheduleTime, setScheduleTime] = useState('')
   const [recurrence, setRecurrence] = useState('Never')
-  const [previewTab, setPreviewTab] = useState('')
+  const [previewTab, setPreviewTab] = useState('instagram')
 
   const [recStartDate, setRecStartDate] = useState(todayLocalStr())
   const [recEndDate, setRecEndDate] = useState(() => daysFromToday(30))

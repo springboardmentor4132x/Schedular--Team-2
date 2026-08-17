@@ -585,28 +585,100 @@ def admin_campaign_analytics(
     db: Session = Depends(get_db),
     _: User = Depends(admin_only),
 ):
-    """All campaigns with completion, reach, engagement, ROI for admin analytics."""
-    rows = db.query(CampaignAnalytics, Campaign).join(Campaign, Campaign.id == CampaignAnalytics.campaign_id).all()
-    creator_count_map = dict(
-        db.query(Post.campaign_id, func.count(func.distinct(Post.user_id)))
-        .filter(Post.campaign_id.isnot(None))
-        .group_by(Post.campaign_id)
+    """Campaign analytics calculated from real campaign posts and post analytics."""
+
+    campaigns = (
+        db.query(Campaign)
+        .order_by(Campaign.created_at.desc())
         .all()
     )
+
     results = []
-    for ca, campaign in rows:
-        results.append({
-            "id": ca.campaign_id,
-            "name": campaign.name,
-            "creatorCount": creator_count_map.get(ca.campaign_id, 0),
-            "status": campaign.status,
-            "completion": ca.completion_percentage,
-            "reach": ca.reach,
-            "impressions": ca.impressions,
-            "engagement": ca.engagement,
-            "clicks": ca.clicks,
-            "roi": ca.roi,
+
+    for campaign in campaigns:
+        # All posts belonging to this campaign
+        posts = (
+            db.query(Post)
+            .filter(Post.campaign_id == campaign.id)
+            .all()
+        )
+
+        total_posts = len(posts)
+
+        # Number of unique creators participating in this campaign
+        creator_count = len({
+            post.user_id
+            for post in posts
+            if post.user_id is not None
         })
+
+        # Post IDs for analytics lookup
+        post_ids = [post.id for post in posts]
+
+        # Aggregate real post analytics
+        if post_ids:
+            analytics_totals = (
+                db.query(
+                    func.coalesce(func.sum(PostAnalytics.reach), 0),
+                    func.coalesce(func.sum(PostAnalytics.impressions), 0),
+                    func.coalesce(func.sum(PostAnalytics.likes), 0),
+                    func.coalesce(func.sum(PostAnalytics.comments), 0),
+                    func.coalesce(func.sum(PostAnalytics.shares), 0),
+                    func.coalesce(func.sum(PostAnalytics.clicks), 0),
+                )
+                .filter(PostAnalytics.post_id.in_(post_ids))
+                .first()
+            )
+
+            reach = analytics_totals[0] or 0
+            impressions = analytics_totals[1] or 0
+            likes = analytics_totals[2] or 0
+            comments = analytics_totals[3] or 0
+            shares = analytics_totals[4] or 0
+            clicks = analytics_totals[5] or 0
+        else:
+            reach = 0
+            impressions = 0
+            likes = 0
+            comments = 0
+            shares = 0
+            clicks = 0
+
+        # Total engagement
+        engagement = likes + comments + shares
+
+        # Completion:
+        # Published posts are considered completed.
+        published_posts = sum(
+            1 for post in posts
+            if (post.status or "").lower() == "published"
+        )
+
+        completion = (
+            round((published_posts / total_posts) * 100, 1)
+            if total_posts > 0
+            else 0.0
+        )
+
+        # ROI
+        # No revenue field exists in Campaign, so we cannot calculate
+        # a genuine financial ROI. Keep it at 0 until revenue/conversion
+        # data is available.
+        roi = 0.0
+
+        results.append({
+            "id": campaign.id,
+            "name": campaign.name,
+            "creatorCount": creator_count,
+            "status": campaign.status,
+            "completion": completion,
+            "reach": reach,
+            "impressions": impressions,
+            "engagement": engagement,
+            "clicks": clicks,
+            "roi": roi,
+        })
+
     return results
 
 

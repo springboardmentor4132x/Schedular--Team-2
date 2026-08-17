@@ -135,11 +135,15 @@ def upload_facebook_photo(
 
     payload = {
         "url": image_url,
-        "caption": caption,
+        "caption": caption or "",
+        "published": "true",
         "access_token": page_access_token,
     }
 
-    response = requests.post(url, data=payload)
+    response = requests.post(url, data=payload, timeout=30)
+
+    print("FACEBOOK PHOTO STATUS:", response.status_code)
+    print("FACEBOOK PHOTO RESPONSE:", response.text)
 
     if response.status_code != 200:
         raise Exception(response.json())

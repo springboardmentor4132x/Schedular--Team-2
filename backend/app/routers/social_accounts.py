@@ -87,6 +87,35 @@ router = APIRouter(
     tags=["Social Accounts"],
 )
 
+def get_friendly_publish_error(error: Exception, platform: str) -> str:
+    """Convert raw social-media API errors into a user-friendly message."""
+
+    error_text = str(error)
+
+    # Common authentication/token errors
+    if "OAuthException" in error_text:
+        if "190" in error_text or "access token" in error_text.lower():
+            return (
+                f"{platform} authorization has expired or is invalid. "
+                f"Please reconnect your {platform} account."
+            )
+
+    # Permission errors
+    if "permission" in error_text.lower() or "permissions" in error_text.lower():
+        return (
+            f"{platform} does not have the required permission to publish this post."
+        )
+
+    # Rate limit errors
+    if "rate limit" in error_text.lower() or "too many requests" in error_text.lower():
+        return (
+            f"{platform} is temporarily limiting requests. "
+            "Please try again later."
+        )
+
+    # Generic fallback
+    return f"{platform} publishing failed. Please check your account and try again."
+
 
 @router.get("/", response_model=List[SocialAccountResponse])
 def get_social_accounts(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -129,6 +158,11 @@ def facebook_callback(
         # Get the user from session (OAuth state)
         # In production, use proper state parameter to identify user
         user_id = request.session.get("user_id")
+        print("========== OAUTH CALLBACK ==========")
+        print("SESSION USER ID:", request.session.get("user_id"))
+        print("QUERY USER ID:", request.query_params.get("user_id"))
+        print("FINAL USER ID:", user_id)
+        print("====================================")
         if not user_id:
             # Try to get from query param or cookie
             user_id = request.query_params.get("user_id")
@@ -240,14 +274,25 @@ def publish_post(data: FacebookPostRequest):
         )
 
 
-@router.post("/facebook/photo")
-def upload_photo(photo: FacebookPhotoRequest):
-    return upload_facebook_photo(
-        photo.page_id,
-        photo.page_access_token,
-        photo.image_url,
-        photo.caption,
-    )
+@router.post("/facebook/post")
+def publish_post(data: FacebookPostRequest):
+    try:
+        return create_facebook_post(
+            data.page_id,
+            data.page_access_token,
+            data.message,
+        )
+
+    except Exception as e:
+        friendly_message = get_friendly_publish_error(
+            e,
+            "Facebook"
+        )
+
+        raise HTTPException(
+            status_code=400,
+            detail=friendly_message,
+        )
 
 @router.post("/facebook/insights")
 def facebook_insights(data: FacebookInsightsRequest):
@@ -829,6 +874,13 @@ def sync_youtube_analytics(
 @router.get("/instagram/connect")
 def connect_instagram(request: Request):
     user_id = request.query_params.get("user_id")
+    user_id = request.session.get("user_id") or request.query_params.get("user_id")
+
+    print("========== INSTAGRAM CALLBACK ==========")
+    print("SESSION USER ID:", request.session.get("user_id"))
+    print("QUERY USER ID:", request.query_params.get("user_id"))
+    print("FINAL USER ID:", user_id)
+    print("========================================")
     if user_id:
         request.session["user_id"] = user_id
     url = get_instagram_login_url()
@@ -912,8 +964,16 @@ def instagram_callback(request: Request, code: str = "", db: Session = Depends(g
                 connected_since=datetime.now(timezone.utc),
                 last_sync=datetime.now(timezone.utc)
             )
+
+            print("========== SAVING INSTAGRAM ==========")
+            print("USER:", user.id)
+            print("USERNAME:", user_info["username"])
+
             db.add(new_account)
             db.commit()
+
+            print("========== INSTAGRAM DB COMMIT SUCCESS ==========")
+
             db.refresh(new_account)
 
         return RedirectResponse(
@@ -921,8 +981,11 @@ def instagram_callback(request: Request, code: str = "", db: Session = Depends(g
         )
 
     except Exception as e:
+        print("========== INSTAGRAM CALLBACK ERROR ==========")
+        print(type(e).__name__, ":", str(e))
+        print("==============================================")
         return RedirectResponse(
-            url=f"http://localhost:5173/social-accounts?error={str(e)}"
+            url=f"http://localhost:5173/social-accounts?error=InstagramCallbackFailed"
         )
     
 
@@ -934,20 +997,34 @@ def instagram_post(
     caption: str,
     access_token: str,
 ):
-    media = create_media_container(
-        instagram_account_id,
-        image_url,
-        caption,
-        access_token,
-    )
+    try:
+        media = create_media_container(
+            instagram_account_id,
+            image_url,
+            caption,
+            access_token,
+        )
 
-    creation_id = media["id"]
+        creation_id = media["id"]
 
-    return publish_media(
-        instagram_account_id,
-        creation_id,
-        access_token,
-    )
+        result = publish_media(
+            instagram_account_id,
+            creation_id,
+            access_token,
+        )
+
+        return result
+
+    except Exception as e:
+        friendly_message = get_friendly_publish_error(
+            e,
+            "Instagram"
+        )
+
+        raise HTTPException(
+            status_code=400,
+            detail=friendly_message,
+        )
 
 
 @router.get("/instagram/account")

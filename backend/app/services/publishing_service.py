@@ -10,6 +10,7 @@ from app.models.post import Post
 from app.models.social_account import SocialAccount
 from app.models.publishing_log import PublishingLog
 from app.models.publishing_queue import PublishingQueue
+from app.services.notification_service import create_notification
 
 RETRY_INTERVAL_MINUTES = 5
 

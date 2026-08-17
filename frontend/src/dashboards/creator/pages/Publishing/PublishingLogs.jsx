@@ -178,8 +178,8 @@ export default function PublishingLogs() {
                   </div>
                 )}
 
-                {/* API response — always visible */}
-                <div className="mt-3">
+               {/* API response — always visible */}
+                {/*<div className="mt-3">
                   <div className="flex items-center gap-1.5 mb-1.5">
                     {failed ? (
                       <AlertTriangle size={12} className="text-rose-500" />
@@ -193,7 +193,7 @@ export default function PublishingLogs() {
                   <pre className="text-[11px] leading-relaxed text-secondary whitespace-pre-wrap break-all bg-surface rounded-lg p-4 border border-default max-h-48 overflow-y-auto">
                     {prettyLogResponse(log.response)}
                   </pre>
-                </div>
+                </div>*/}
               </div>
             )
           })}

@@ -10,6 +10,45 @@ from app.models.notification_preference import NotificationPreference
 # ---------------------------------------------------------
 # Notification Center
 # ---------------------------------------------------------
+def create_notification(
+    db: Session,
+    user_id: int,
+    title: str,
+    message: str = "",
+    notification_type: str = "info",
+    category: str = "system",
+    signature: str | None = None,
+):
+    """Create an in-app notification with optional deduplication."""
+
+    if signature:
+        existing = (
+            db.query(Notification)
+            .filter(
+                Notification.user_id == user_id,
+                Notification.signature == signature,
+            )
+            .first()
+        )
+
+        if existing:
+            return existing
+
+    notification = Notification(
+        user_id=user_id,
+        type=notification_type,
+        title=title,
+        message=message,
+        category=category,
+        delivery_channel="in_app",
+        signature=signature,
+        read=False,
+    )
+
+    db.add(notification)
+    db.flush()
+
+    return notification
 
 def get_all_notifications(
     db: Session,

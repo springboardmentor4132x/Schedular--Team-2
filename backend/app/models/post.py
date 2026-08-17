@@ -90,7 +90,7 @@ class Post(Base):
     )
 
     failure_reason = Column(
-        String(500),
+        Text,
         nullable=True,
     )
 

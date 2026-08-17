@@ -10,6 +10,7 @@ from app.models.post import Post
 from app.models.social_account import SocialAccount
 from app.schemas.post import PostCreate, PostUpdate
 from app.services import publishing_service
+from app.services.publishing_service import publish_post_immediately
 
 ALLOWED_MEDIA_TYPES = {
     "image/jpeg",
@@ -48,7 +49,6 @@ def _get_owned_accounts(db: Session, user_id: int, account_ids: list[int]):
         )
         .all()
     )
-
 
 def _maybe_enqueue(db: Session, post: Post):
     """Register a scheduled post into the publishing queue so the background
@@ -431,29 +431,29 @@ def publish_post(
         )
 
     try:
-        post.status = "Publishing"
-        post.status = "Published"
-        post.published_at = _now()
-        post.platform_post_id = f"POST-{post.id}"
+        result = publishing_service.publish_post_immediately(
+            db,
+            post_id,
+        )
 
-        db.commit()
-        db.refresh(post)
+        if result is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Post cannot be published.",
+            )
+
+        db.refresh(result)
+        return _post_response(result)
+
+    except HTTPException:
+        raise
 
     except Exception as e:
-        post.status = "Failed"
-        post.failure_reason = str(e)
-        db.commit()
-
+        db.rollback()
         raise HTTPException(
             status_code=500,
             detail=str(e),
         )
-
-    db.commit()
-    db.refresh(post)
-
-    return _post_response(post)
-
 
 def retry_failed_post(
     db: Session,

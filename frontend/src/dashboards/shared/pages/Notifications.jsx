@@ -144,7 +144,8 @@ export default function Notifications() {
                 exit={{ opacity:0, x:30, scale:0.96 }}
                 transition={{ duration:0.18, delay: i * 0.03 }}
                 onClick={() => markRead(notif.id)}
-                className="card p-4 flex items-start gap-4 cursor-pointer hover:shadow-[var(--shadow-md)] transition-all relative"
+                // className="card p-4 flex items-start gap-4 cursor-pointer hover:shadow-[var(--shadow-md)] transition-all relative"
+                className="group card p-4 flex items-start gap-4 cursor-pointer hover:shadow-[var(--shadow-md)] transition-all relative"
                 style={{ borderLeft: !notif.read ? `3px solid ${meta.color}` : '3px solid transparent' }}
               >
                 {/* Icon */}

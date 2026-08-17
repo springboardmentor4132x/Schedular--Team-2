@@ -252,8 +252,10 @@ def publish_post(post: Post, account: SocialAccount) -> dict:
                 "raw_response": {},
             }
 
+        fresh_token = get_fresh_access_token(account)
+
         response = upload_video(
-            access_token=account.access_token,
+            access_token=fresh_token,
             video_path=str(media_path),
             title=post.title or "Untitled Video",
             description=post.caption or "",
