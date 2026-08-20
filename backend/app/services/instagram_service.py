@@ -113,3 +113,89 @@ def publish_media(
     response = requests.post(url, data=payload)
 
     return response.json()
+
+
+def publish_post(post, account) -> dict:
+    """
+    Publish an Instagram post through the common publishing pipeline.
+    """
+
+    print("🔥 INSTAGRAM publish_post() CALLED")
+    print("Post ID:", post.id)
+    print("Account ID:", account.id)
+    print("Instagram ID:", account.platform_user_id)
+    print("Has access token:", bool(account.access_token))
+
+    try:
+        instagram_account_id = account.platform_user_id
+        access_token = account.access_token
+
+        if not instagram_account_id or not access_token:
+            return {
+                "success": False,
+                "failure_reason": "Missing Instagram account ID or access token.",
+                "raw_response": {},
+            }
+
+        image_url = post.media_file_path
+        caption = post.caption or ""
+
+        if not image_url:
+            return {
+                "success": False,
+                "failure_reason": "Instagram requires an image URL to publish this post.",
+                "raw_response": {},
+            }
+
+        media = create_media_container(
+            instagram_account_id=instagram_account_id,
+            image_url=image_url,
+            caption=caption,
+            access_token=access_token,
+        )
+
+        creation_id = media.get("id")
+
+        if not creation_id:
+            return {
+                "success": False,
+                "failure_reason": "Instagram media container was not created.",
+                "raw_response": media,
+            }
+
+        print("🔥 Instagram creation ID:", creation_id)
+
+        result = publish_media(
+            instagram_account_id=instagram_account_id,
+            creation_id=creation_id,
+            access_token=access_token,
+        )
+
+        if "error" in result:
+            return {
+                "success": False,
+                "failure_reason": result["error"].get(
+                    "message",
+                    "Instagram publishing failed."
+                ),
+                "raw_response": result,
+            }
+
+        platform_post_id = result.get("id")
+
+        print("🔥 Instagram platform post ID:", platform_post_id)
+
+        return {
+            "success": True,
+            "platform_post_id": platform_post_id,
+            "raw_response": result,
+        }
+
+    except Exception as e:
+        print("🔥 INSTAGRAM PUBLISH ERROR:", repr(e))
+
+        return {
+            "success": False,
+            "failure_reason": str(e),
+            "raw_response": {},
+        }
