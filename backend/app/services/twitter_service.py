@@ -7,22 +7,24 @@ from app.core.config import settings
 
 AUTH_URL = "https://twitter.com/i/oauth2/authorize"
 TOKEN_URL = "https://api.x.com/2/oauth2/token"
+API_URL = "https://api.x.com/2"
 
 SCOPES = [
     "tweet.read",
     "tweet.write",
     "users.read",
     "offline.access",
+    "media.write",
 ]
 
 
-def get_twitter_login_url():
+def get_twitter_login_url(user_id: int):
     params = {
         "response_type": "code",
         "client_id": settings.TWITTER_CLIENT_ID,
         "redirect_uri": settings.TWITTER_REDIRECT_URI,
         "scope": " ".join(SCOPES),
-        "state": "twitter_oauth",
+        "state": str(user_id),
         "code_challenge": "challenge",
         "code_challenge_method": "plain",
     }
@@ -43,24 +45,45 @@ def exchange_twitter_token(code: str):
         TOKEN_URL,
         data=data,
         auth=(settings.TWITTER_CLIENT_ID, settings.TWITTER_CLIENT_SECRET),
+        timeout=30
     )
 
-    response.raise_for_status()
+    if response.status_code != 200:
+        raise Exception(response.text)
     return response.json()
 
-def get_twitter_profile(access_token: str):
+
+def get_twitter_user_info(access_token: str):
+    """Get user's Twitter/X profile info"""
+
+    url = f"{API_URL}/users/me"
+
+    params = {
+        "user.fields": "username,name,public_metrics,profile_image_url",
+    }
+
     headers = {
-        "Authorization": f"Bearer {access_token}"
+        "Authorization": f"Bearer {access_token}",
     }
 
     response = requests.get(
-        "https://api.x.com/2/users/me",
+        url,
+        params=params,
         headers=headers,
+        timeout=30,
     )
 
     response.raise_for_status()
 
-    return response.json()
+    data = response.json().get("data", {})
+    metrics = data.get("public_metrics", {})
+
+    return {
+        "platform_user_id": data.get("id"),
+        "username": data.get("username", ""),
+        "followers_count": metrics.get("followers_count", 0),
+        "profile_image": data.get("profile_image_url"),
+    }
 
 def publish_tweet(access_token: str, message: str):
     headers = {
@@ -69,15 +92,26 @@ def publish_tweet(access_token: str, message: str):
     }
 
     payload = {
-        "text": message
+        "text": message,
     }
 
     response = requests.post(
-    "https://api.x.com/2/tweets",
-    headers=headers,
-    json=payload,
+    "   https://api.twitter.com/2/tweets",
+        headers=headers,
+        json=payload,
     )
+    
+    print("*" * 50)
+    print(access_token)
+    print("=" * 50)
+    print(len(access_token))
+    print("=" * 50)
+    print("STATUS:", response.status_code)
+    print("HEADERS:", response.headers)
+    print("BODY:", response.text)
+    print("=" * 50)
 
-    response.raise_for_status()
-
-    return response.json()
+    return {
+        "status_code": response.status_code,
+        "response": response.text,
+    }

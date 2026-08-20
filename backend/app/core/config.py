@@ -1,16 +1,17 @@
 import os
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "SocialPilot API"
     VERSION: str = "1.0.0"
 
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "socialpilot-secret_key_11")
     # PostgreSQL
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "root")
     POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost")
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "socialpilot")
+    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "Social_pilot")
 
     # ✅ Facebook OAuth
     FACEBOOK_CLIENT_ID: str = os.getenv("FACEBOOK_CLIENT_ID", "")
@@ -28,18 +29,27 @@ class Settings(BaseSettings):
     INSTAGRAM_CLIENT_ID: str = os.getenv("INSTAGRAM_CLIENT_ID", "")
     INSTAGRAM_CLIENT_SECRET: str = os.getenv("INSTAGRAM_CLIENT_SECRET", "")
     INSTAGRAM_REDIRECT_URI: str = os.getenv("INSTAGRAM_REDIRECT_URI", "")
+    INSTAGRAM_CONFIGURATION_ID: str = os.getenv("INSTAGRAM_CONFIGURATION_ID", "")
 
     TWITTER_CLIENT_ID: str = os.getenv("TWITTER_CLIENT_ID", "")
     TWITTER_CLIENT_SECRET: str = os.getenv("TWITTER_CLIENT_SECRET", "")
     TWITTER_REDIRECT_URI: str = os.getenv("TWITTER_REDIRECT_URI", "")
+    TWITTER_ACCESS_TOKEN: str = os.getenv("TWITTER_ACCESS_TOKEN", "")
+    TWITTER_REFRESH_TOKEN: str = os.getenv("TWITTER_REFRESH_TOKEN", "")
 
-    
+    PINTEREST_CLIENT_ID: str = os.getenv("PINTEREST_CLIENT_ID", "")
+    PINTEREST_CLIENT_SECRET: str = os.getenv("PINTEREST_CLIENT_SECRET", "")
+    PINTEREST_REDIRECT_URI: str = os.getenv("PINTEREST_REDIRECT_URI", "")
+
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI", "")
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"postgresql+pg8000://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
-    # MongoDB
+    # MongoDB (optional)
     MONGO_SERVER: str = os.getenv("MONGO_SERVER", "localhost")
     MONGO_PORT: str = os.getenv("MONGO_PORT", "27017")
     MONGO_USER: str = os.getenv("MONGO_USER", "admin")
@@ -52,8 +62,13 @@ class Settings(BaseSettings):
             return f"mongodb://{self.MONGO_USER}:{self.MONGO_PASSWORD}@{self.MONGO_SERVER}:{self.MONGO_PORT}/?authSource=admin"
         return f"mongodb://{self.MONGO_SERVER}:{self.MONGO_PORT}/"
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"   # ✅ Important
+    # Uploaded media storage
+    BACKEND_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    MEDIA_DIR: str = os.path.join(BACKEND_DIR, "uploads")
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore"
+    )
 
 settings = Settings()
